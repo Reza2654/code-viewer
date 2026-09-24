@@ -1,0 +1,78 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CodeViewer.ViewModels"
+        x:Class="CodeViewer.Views.FileInfoDialog"
+        x:DataType="vm:FileInfoViewModel"
+        Title="File Information"
+        Width="480" Height="420"
+        WindowStartupLocation="CenterOwner"
+        CanResize="false"
+        Background="#1E1E1E"
+        ShowInTaskbar="false">
+
+  <Grid Margin="24" RowDefinitions="Auto,*,Auto">
+    <!-- Header -->
+    <StackPanel Grid.Row="0" Spacing="4">
+      <TextBlock Text="{Binding FileName}"
+                 FontSize="18"
+                 FontWeight="SemiBold"
+                 Foreground="#FFFFFF"/>
+      <TextBlock Text="{Binding FullPath}"
+                 FontSize="11"
+                 Foreground="#888888"
+                 TextWrapping="Wrap"/>
+    </StackPanel>
+
+    <!-- Details Grid -->
+    <Border Grid.Row="1"
+            Margin="0,16"
+            Background="#252526"
+            BorderBrush="#333333"
+            BorderThickness="1"
+            CornerRadius="4"
+            Padding="16">
+      <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="0,4">
+        <!-- File Size -->
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="File Size:" Foreground="#888888" Margin="0,4"/>
+        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding FileSize}" Foreground="#FFFFFF" Margin="0,4"/>
+
+        <!-- Language -->
+        <TextBlock Grid.Row="1" Grid.Column="0" Text="Language:" Foreground="#888888" Margin="0,4"/>
+        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Language}" Foreground="#FFFFFF" Margin="0,4"/>
+
+        <!-- Encoding -->
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Encoding:" Foreground="#888888" Margin="0,4"/>
+        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Encoding}" Foreground="#FFFFFF" Margin="0,4"/>
+
+        <!-- Line Endings -->
+        <TextBlock Grid.Row="3" Grid.Column="0" Text="Line Endings:" Foreground="#888888" Margin="0,4"/>
+        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding LineEndings}" Foreground="#FFFFFF" Margin="0,4"/>
+
+        <!-- Total Lines -->
+        <TextBlock Grid.Row="4" Grid.Column="0" Text="Total Lines:" Foreground="#888888" Margin="0,4"/>
+        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding LineCount}" Foreground="#FFFFFF" Margin="0,4"/>
+
+        <!-- Characters -->
+        <TextBlock Grid.Row="5" Grid.Column="0" Text="Total Characters:" Foreground="#888888" Margin="0,4"/>
+        <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding CharacterCount}" Foreground="#FFFFFF" Margin="0,4"/>
+
+        <!-- Last Modified -->
+        <TextBlock Grid.Row="6" Grid.Column="0" Text="Last Modified:" Foreground="#888888" Margin="0,4"/>
+        <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding LastModified}" Foreground="#FFFFFF" Margin="0,4"/>
+      </Grid>
+    </Border>
+
+    <!-- Close Button -->
+    <Button Grid.Row="2"
+            Content="Close"
+            Width="90"
+            Height="32"
+            Margin="0,16,0,0"
+            HorizontalAlignment="Right"
+            Background="#007ACC"
+            Foreground="#FFFFFF"
+            HorizontalContentAlignment="Center"
+            CornerRadius="4"
+            Click="OnCloseClick"/>
+  </Grid>
+</Window>

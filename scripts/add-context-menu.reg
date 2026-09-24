@@ -1,0 +1,57 @@
+Windows Registry Editor Version 5.00
+
+; ====================================================================
+; Code Viewer - Windows Context Menu Registration
+; Right-click any file, folder, or folder background -> Open with Code Viewer
+; ====================================================================
+
+; 1. Right-click any file
+[HKEY_CURRENT_USER\Software\Classes\*\shell\CodeViewer]
+@="Open with Code Viewer"
+"Icon"="\"E:\\AntiGravity\\MYAPP\\dist\\CodeViewer.exe\",0"
+
+[HKEY_CURRENT_USER\Software\Classes\*\shell\CodeViewer\command]
+@="\"E:\\AntiGravity\\MYAPP\\dist\\CodeViewer.exe\" \"%1\""
+
+; 2. Right-click any folder
+[HKEY_CURRENT_USER\Software\Classes\Directory\shell\CodeViewer]
+@="Open with Code Viewer"
+"Icon"="\"E:\\AntiGravity\\MYAPP\\dist\\CodeViewer.exe\",0"
+
+[HKEY_CURRENT_USER\Software\Classes\Directory\shell\CodeViewer\command]
+@="\"E:\\AntiGravity\\MYAPP\\dist\\CodeViewer.exe\" \"%1\""
+
+; 3. Right-click folder background (empty space inside folder)
+[HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\CodeViewer]
+@="Open with Code Viewer"
+"Icon"="\"E:\\AntiGravity\\MYAPP\\dist\\CodeViewer.exe\",0"
+
+[HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\CodeViewer\command]
+@="\"E:\\AntiGravity\\MYAPP\\dist\\CodeViewer.exe\" \"%V\""
+
+; 4. Register in Windows "Open with" application list
+[HKEY_CURRENT_USER\Software\Classes\Applications\CodeViewer.exe\shell\open\command]
+@="\"E:\\AntiGravity\\MYAPP\\dist\\CodeViewer.exe\" \"%1\""
+
+[HKEY_CURRENT_USER\Software\Classes\Applications\CodeViewer.exe\SupportedTypes]
+".txt"=""
+".cs"=""
+".js"=""
+".ts"=""
+".html"=""
+".css"=""
+".json"=""
+".xml"=""
+".py"=""
+".dart"=""
+".cpp"=""
+".c"=""
+".h"=""
+".rs"=""
+".go"=""
+".sql"=""
+".sh"=""
+".ps1"=""
+".yaml"=""
+".yml"=""
+".md"=""

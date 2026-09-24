@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    name: Build & Test (Windows & Linux)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-latest, ubuntu-latest ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK 8.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore CodeViewer.slnx
+
+      - name: Build solutions (Release)
+        run: dotnet build CodeViewer.slnx -c Release --no-restore
+
+      - name: Run Unit Tests
+        # Run tests on Windows (where Windows-specific shell extension and desktop tests execute)
+        if: matrix.os == 'windows-latest'
+        run: dotnet test tests/CodeViewer.Tests/CodeViewer.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=test_results.trx"
+
+      - name: Upload Test Results
+        if: matrix.os == 'windows-latest' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/TestResults/*.trx'

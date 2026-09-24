@@ -1,0 +1,224 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CodeViewer.ViewModels"
+        xmlns:views="using:CodeViewer.Views"
+        xmlns:ae="using:AvaloniaEdit"
+        x:Class="CodeViewer.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="{Binding WindowTitle}"
+        Width="1120" Height="740"
+        MinWidth="640" MinHeight="420"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource ThemeWindowBackground}"
+        DragDrop.AllowDrop="True">
+
+  <Grid RowDefinitions="Auto,*">
+    <!-- Top Menu Bar -->
+    <Menu Grid.Row="0">
+      <MenuItem Header="_File">
+        <MenuItem Header="_New File" Command="{Binding CreateNewDocumentCommand}" InputGesture="Ctrl+N"/>
+        <MenuItem Header="_Open File..." Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O"/>
+        <MenuItem Header="Open _Recent" ItemsSource="{Binding RecentFiles}">
+          <MenuItem.ItemTemplate>
+            <DataTemplate>
+              <MenuItem Header="{Binding FileName}"
+                        Command="{Binding ((vm:MainViewModel)DataContext).OpenRecentFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="{Binding FilePath}"/>
+            </DataTemplate>
+          </MenuItem.ItemTemplate>
+        </MenuItem>
+        <Separator/>
+        <MenuItem Header="_Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S"/>
+        <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S"/>
+        <MenuItem Header="_Close Tab" Command="{Binding CloseTabCommand}" CommandParameter="{Binding ActiveDocument}" InputGesture="Ctrl+W"/>
+        <Separator/>
+        <MenuItem Header="File _Info..." Click="OnShowFileInfoClick"/>
+        <Separator/>
+        <MenuItem Header="E_xit" Click="OnExitClick" InputGesture="Alt+F4"/>
+      </MenuItem>
+
+      <MenuItem Header="_Edit">
+        <MenuItem Header="_Undo" Click="OnUndoClick" InputGesture="Ctrl+Z"/>
+        <MenuItem Header="_Redo" Click="OnRedoClick" InputGesture="Ctrl+Y"/>
+        <Separator/>
+        <MenuItem Header="Cu_t" Click="OnCutClick" InputGesture="Ctrl+X"/>
+        <MenuItem Header="_Copy" Click="OnCopyClick" InputGesture="Ctrl+C"/>
+        <MenuItem Header="_Paste" Click="OnPasteClick" InputGesture="Ctrl+V"/>
+        <MenuItem Header="Select _All" Click="OnSelectAllClick" InputGesture="Ctrl+A"/>
+        <Separator/>
+        <MenuItem Header="_Find..." Command="{Binding ShowSearchCommand}" InputGesture="Ctrl+F"/>
+      </MenuItem>
+
+      <MenuItem Header="_View">
+        <MenuItem Header="Zoom _In" Command="{Binding ZoomInCommand}" InputGesture="Ctrl+OemPlus"/>
+        <MenuItem Header="Zoom _Out" Command="{Binding ZoomOutCommand}" InputGesture="Ctrl+OemMinus"/>
+        <MenuItem Header="_Reset Zoom" Command="{Binding ResetZoomCommand}" InputGesture="Ctrl+0"/>
+        <Separator/>
+        <MenuItem Header="Toggle _Word Wrap" Command="{Binding ToggleWordWrapCommand}" InputGesture="Alt+Z"/>
+        <MenuItem Header="Toggle _Line Numbers" Command="{Binding ToggleLineNumbersCommand}"/>
+      </MenuItem>
+
+      <!-- Theme Switcher & Importer Menu -->
+      <MenuItem Header="_Themes">
+        <MenuItem Header="_Select Theme" ItemsSource="{Binding AvailableThemes}">
+          <MenuItem.ItemTemplate>
+            <DataTemplate>
+              <MenuItem Header="{Binding Name}"
+                        Command="{Binding ((vm:MainViewModel)DataContext).SelectThemeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="{Binding}"/>
+            </DataTemplate>
+          </MenuItem.ItemTemplate>
+        </MenuItem>
+        <Separator/>
+        <MenuItem Header="Import _Color Theme (.json)..." Command="{Binding ImportThemeCommand}"/>
+        <MenuItem Header="Import _Syntax Definition (.xshd)..." Command="{Binding ImportSyntaxCommand}"/>
+        <Separator/>
+        <MenuItem Header="Open _Themes Folder" Command="{Binding OpenThemesFolderCommand}"/>
+      </MenuItem>
+
+      <!-- Developer Tools & Plugins Menu -->
+      <MenuItem Header="_Tools">
+        <MenuItem Header="_JSON Tools">
+          <MenuItem Header="_Format JSON (2 spaces)" Click="OnJsonFormatClick"/>
+          <MenuItem Header="_Minify JSON" Click="OnJsonMinifyClick"/>
+        </MenuItem>
+        <MenuItem Header="_Line Utilities">
+          <MenuItem Header="Sort Lines (_A to Z)" Click="OnSortAscClick"/>
+          <MenuItem Header="Sort Lines (_Z to A)" Click="OnSortDescClick"/>
+          <MenuItem Header="_Remove Duplicate Lines" Click="OnRemoveDuplicatesClick"/>
+          <MenuItem Header="Re_verse Lines" Click="OnReverseLinesClick"/>
+        </MenuItem>
+        <MenuItem Header="_Encodings">
+          <MenuItem Header="_Base64 Encode" Click="OnBase64EncodeClick"/>
+          <MenuItem Header="Base64 _Decode" Click="OnBase64DecodeClick"/>
+          <MenuItem Header="_URL Encode" Click="OnUrlEncodeClick"/>
+          <MenuItem Header="URL D_ecode" Click="OnUrlDecodeClick"/>
+        </MenuItem>
+        <MenuItem Header="_Case Transform">
+          <MenuItem Header="UPPERCASE" Click="OnUpperCaseClick"/>
+          <MenuItem Header="lowercase" Click="OnLowerCaseClick"/>
+          <MenuItem Header="Title Case" Click="OnTitleCaseClick"/>
+        </MenuItem>
+        <Separator/>
+        <MenuItem Header="Text _Statistics..." Click="OnTextStatisticsClick"/>
+        <Separator/>
+        <MenuItem Header="_Import Plugin (.dll)..." Command="{Binding ImportPluginCommand}"/>
+        <MenuItem Header="_Open Plugins Folder" Command="{Binding OpenPluginsFolderCommand}"/>
+        <MenuItem Header="_Plugin Manager..." Command="{Binding ShowPluginManagerCommand}"/>
+      </MenuItem>
+
+      <MenuItem Header="_Help">
+        <MenuItem Header="_About Code Viewer" Click="OnAboutClick"/>
+        <MenuItem Header="_GitHub Repository" Click="OnGitHubRepoClick"/>
+      </MenuItem>
+    </Menu>
+
+    <!-- Main Editor Workspace -->
+    <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto">
+      <!-- Tab Bar Area -->
+      <Border Grid.Row="0" Background="{DynamicResource ThemeTabBarBackground}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="0,0,0,1">
+        <Grid ColumnDefinitions="*,Auto">
+          <!-- Tabs Strip -->
+          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Documents}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="vm:DocumentViewModel">
+                  <Border Margin="0,0,1,0"
+                          Padding="12,6,8,6"
+                          Cursor="Hand"
+                          Classes.tabActive="{Binding IsActive}"
+                          Classes.tabInactive="{Binding !IsActive}"
+                          PointerPressed="OnTabPointerPressed">
+                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding DisplayName}"
+                                 FontSize="12"
+                                 VerticalAlignment="Center"/>
+                      <Button ToolTip.Tip="Close Tab (Ctrl+W)"
+                              Width="18" Height="18"
+                              Padding="0"
+                              CornerRadius="9"
+                              Background="Transparent"
+                              BorderThickness="0"
+                              Command="{Binding ((vm:MainViewModel)DataContext).CloseTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                              CommandParameter="{Binding}">
+                        <TextBlock Text="✕"
+                                   FontSize="9"
+                                   Foreground="#888888"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                      </Button>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+          <!-- New Tab '+' Button -->
+          <Button Grid.Column="1"
+                  Command="{Binding CreateNewDocumentCommand}"
+                  ToolTip.Tip="New Tab (Ctrl+N)"
+                  Width="30" Height="28"
+                  Padding="0"
+                  Margin="4,2"
+                  Background="Transparent"
+                  BorderThickness="0">
+            <TextBlock Text="+"
+                       FontSize="16"
+                       Foreground="{DynamicResource ThemeMenuForeground}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+          </Button>
+        </Grid>
+      </Border>
+
+      <!-- Editor Viewport with Floating Search Overlay -->
+      <Grid Grid.Row="1">
+        <ae:TextEditor x:Name="Editor"
+                       Document="{Binding ActiveDocument.TextDocument}"
+                       SyntaxHighlighting="{Binding ActiveDocument.HighlightingDefinition}"
+                       FontSize="{Binding ActiveDocument.FontSize, FallbackValue=14.0}"
+                       WordWrap="{Binding ActiveDocument.WordWrap, FallbackValue=False}"
+                       ShowLineNumbers="{Binding ActiveDocument.ShowLineNumbers, FallbackValue=True}"
+                       FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                       Background="{DynamicResource ThemeEditorBackground}"
+                       Foreground="{DynamicResource ThemeEditorForeground}"
+                       HorizontalScrollBarVisibility="Auto"
+                       VerticalScrollBarVisibility="Visible"
+                       LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"/>
+
+        <!-- Search Overlay (Floating on top right) -->
+        <views:SearchOverlayView DataContext="{Binding SearchViewModel}"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Margin="0,12,24,0"/>
+      </Grid>
+
+      <!-- Modern Status Bar -->
+      <Border Grid.Row="2" Classes="statusbar" Background="{DynamicResource ThemeStatusBarBackground}" Height="24">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <!-- Left Info: Language | Encoding | Line Endings -->
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+            <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.Language, FallbackValue='Plain Text'}"/>
+            <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
+            <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.EncodingName, FallbackValue='UTF-8'}"/>
+            <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
+            <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.LineEndingDisplay, FallbackValue='LF'}"/>
+          </StackPanel>
+
+          <!-- Right Info: Caret Position (Ln X, Col Y) & Font Size -->
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,12,0">
+            <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.CaretDisplay, FallbackValue='Ln 1, Col 1'}"/>
+            <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
+            <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.FontSize, StringFormat='{}{0:0} pt', FallbackValue='14 pt'}"/>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

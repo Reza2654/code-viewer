@@ -1,0 +1,46 @@
+## Build & Output Directories
+bin/
+obj/
+dist/
+publish/
+out/
+TestResults/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+## Visual Studio & IDEs
+.vs/
+.idea/
+*.DotSettings.user
+*.suo
+*.userprefs
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+## Secrets & Local Environment
+.env
+.env.*
+!.env.example
+*.local
+
+## Windows OS Files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+## Package Caches & Dependencies
+*.nupkg
+*.snupkg
+packages/
+project.lock.json
+project.assets.json
+
+## Inno Setup temporary output
+_ISStudio.tmp/
+Output/

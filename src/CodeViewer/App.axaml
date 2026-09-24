@@ -1,0 +1,80 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:CodeViewer"
+             x:Class="CodeViewer.App"
+             RequestedThemeVariant="Dark">
+  <Application.DataTemplates>
+    <local:ViewLocator/>
+  </Application.DataTemplates>
+
+  <Application.Resources>
+    <!-- Dynamic Theme Resources (switched live by ThemeService) -->
+    <SolidColorBrush x:Key="ThemeWindowBackground" Color="#1E1E1E"/>
+    <SolidColorBrush x:Key="ThemeWindowForeground" Color="#D4D4D4"/>
+    <SolidColorBrush x:Key="ThemeMenuBackground" Color="#252526"/>
+    <SolidColorBrush x:Key="ThemeMenuForeground" Color="#CCCCCC"/>
+    <SolidColorBrush x:Key="ThemeTabBarBackground" Color="#252526"/>
+    <SolidColorBrush x:Key="ThemeTabItemActiveBackground" Color="#1E1E1E"/>
+    <SolidColorBrush x:Key="ThemeTabItemInactiveBackground" Color="#2D2D2D"/>
+    <SolidColorBrush x:Key="ThemeTabItemActiveForeground" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="ThemeTabItemInactiveForeground" Color="#969696"/>
+    <SolidColorBrush x:Key="ThemeEditorBackground" Color="#1E1E1E"/>
+    <SolidColorBrush x:Key="ThemeEditorForeground" Color="#D4D4D4"/>
+    <SolidColorBrush x:Key="ThemeLineNumbersForeground" Color="#5A5A5A"/>
+    <SolidColorBrush x:Key="ThemeSelectionBackground" Color="#264F78"/>
+    <SolidColorBrush x:Key="ThemeStatusBarBackground" Color="#007ACC"/>
+    <SolidColorBrush x:Key="ThemeStatusBarForeground" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="ThemeAccentBrush" Color="#007ACC"/>
+    <SolidColorBrush x:Key="ThemeBorderBrush" Color="#181818"/>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+    <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
+
+    <!-- Modern Dynamic Theme Palette Overrides -->
+    <Style Selector="Window">
+      <Setter Property="Background" Value="{DynamicResource ThemeWindowBackground}"/>
+      <Setter Property="Foreground" Value="{DynamicResource ThemeWindowForeground}"/>
+      <Setter Property="FontFamily" Value="Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif"/>
+    </Style>
+
+    <!-- Menu Bar Styling -->
+    <Style Selector="Menu">
+      <Setter Property="Background" Value="{DynamicResource ThemeMenuBackground}"/>
+      <Setter Property="Foreground" Value="{DynamicResource ThemeMenuForeground}"/>
+      <Setter Property="Height" Value="30"/>
+    </Style>
+
+    <Style Selector="MenuItem">
+      <Setter Property="Foreground" Value="{DynamicResource ThemeMenuForeground}"/>
+      <Setter Property="FontSize" Value="12"/>
+    </Style>
+
+    <!-- Custom Tab Styling -->
+    <Style Selector="Border.tabActive">
+      <Setter Property="Background" Value="{DynamicResource ThemeTabItemActiveBackground}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
+      <Setter Property="BorderThickness" Value="0,2,1,0"/>
+    </Style>
+
+    <Style Selector="Border.tabInactive">
+      <Setter Property="Background" Value="{DynamicResource ThemeTabItemInactiveBackground}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="0,0,1,0"/>
+    </Style>
+
+    <!-- Status Bar Styling -->
+    <Style Selector="Border.statusbar">
+      <Setter Property="Background" Value="{DynamicResource ThemeStatusBarBackground}"/>
+      <Setter Property="Height" Value="24"/>
+    </Style>
+
+    <Style Selector="TextBlock.statusitem">
+      <Setter Property="Foreground" Value="{DynamicResource ThemeStatusBarForeground}"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Margin" Value="10,0,10,0"/>
+    </Style>
+  </Application.Styles>
+</Application>

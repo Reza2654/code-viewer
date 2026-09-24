@@ -1,0 +1,10 @@
+Windows Registry Editor Version 5.00
+
+; ====================================================================
+; Code Viewer - Remove Windows Context Menu Registration
+; ====================================================================
+
+[-HKEY_CURRENT_USER\Software\Classes\*\shell\CodeViewer]
+[-HKEY_CURRENT_USER\Software\Classes\Directory\shell\CodeViewer]
+[-HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\CodeViewer]
+[-HKEY_CURRENT_USER\Software\Classes\Applications\CodeViewer.exe]

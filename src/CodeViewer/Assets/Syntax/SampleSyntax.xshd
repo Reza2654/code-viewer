@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<SyntaxDefinition name="SampleCustom" extensions=".sample;.demo" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" foreground="#6A9955" />
+  <Color name="String" foreground="#CE9178" />
+  <Color name="Keyword" foreground="#569CD6" fontWeight="bold" />
+  <Color name="Number" foreground="#B5CEA8" />
+
+  <RuleSet>
+    <Span color="Comment" begin="//" />
+    <Span color="Comment" multiline="true" begin="/\*" end="\*/" />
+    <Span color="String">
+      <Begin>"</Begin>
+      <End>"</End>
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+
+    <Keywords color="Keyword">
+      <Word>function</Word>
+      <Word>let</Word>
+      <Word>const</Word>
+      <Word>var</Word>
+      <Word>if</Word>
+      <Word>else</Word>
+      <Word>return</Word>
+      <Word>class</Word>
+      <Word>import</Word>
+      <Word>export</Word>
+    </Keywords>
+
+    <Rule color="Number">\b[0-9]+(\.[0-9]+)?\b</Rule>
+  </RuleSet>
+</SyntaxDefinition>

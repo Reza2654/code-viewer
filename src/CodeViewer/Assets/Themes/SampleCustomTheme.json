@@ -1,0 +1,22 @@
+{
+  "id": "nordic-frost",
+  "name": "Nordic Frost",
+  "isDark": true,
+  "windowBackground": "#2E3440",
+  "foreground": "#D8DEE9",
+  "menuBackground": "#242933",
+  "menuForeground": "#D8DEE9",
+  "tabBarBackground": "#242933",
+  "tabItemActiveBackground": "#2E3440",
+  "tabItemInactiveBackground": "#3B4252",
+  "tabItemActiveForeground": "#ECEFF4",
+  "tabItemInactiveForeground": "#98A2B3",
+  "editorBackground": "#2E3440",
+  "editorForeground": "#D8DEE9",
+  "lineNumbersForeground": "#4C566A",
+  "selectionBackground": "#434C5E",
+  "statusBarBackground": "#434C5E",
+  "statusBarForeground": "#ECEFF4",
+  "accentColor": "#88C0D0",
+  "borderColor": "#1E222A"
+}

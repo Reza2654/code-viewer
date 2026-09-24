@@ -1,0 +1,88 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CodeViewer.ViewModels"
+             x:Class="CodeViewer.Views.SearchOverlayView"
+             x:DataType="vm:SearchViewModel">
+
+  <Border Background="#252526"
+          BorderBrush="#454545"
+          BorderThickness="1"
+          CornerRadius="6"
+          Padding="8,6"
+          BoxShadow="0 4 16 0 #50000000"
+          IsVisible="{Binding IsOpen}">
+    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+      <TextBox x:Name="SearchTextBox"
+               Text="{Binding SearchText, Mode=TwoWay}"
+               Watermark="Find in file..."
+               Width="200"
+               Height="28"
+               FontSize="12"
+               Background="#3C3C3C"
+               Foreground="#FFFFFF"
+               BorderBrush="#555555"
+               CornerRadius="3"
+               VerticalContentAlignment="Center"/>
+
+      <ToggleButton IsChecked="{Binding MatchCase, Mode=TwoWay}"
+                    ToolTip.Tip="Match Case (Alt+C)"
+                    Width="28" Height="28"
+                    Padding="0"
+                    CornerRadius="3"
+                    Background="Transparent">
+        <TextBlock Text="Aa"
+                   FontSize="12"
+                   FontWeight="Bold"
+                   Foreground="{Binding MatchCase, Converter={x:Static ObjectConverters.IsNotNull}}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+      </ToggleButton>
+
+      <Button Command="{Binding FindPreviousCommand}"
+              ToolTip.Tip="Find Previous (Shift+F3)"
+              Width="28" Height="28"
+              Padding="0"
+              CornerRadius="3"
+              Background="Transparent">
+        <TextBlock Text="▲"
+                   FontSize="10"
+                   Foreground="#CCCCCC"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+      </Button>
+
+      <Button Command="{Binding FindNextCommand}"
+              ToolTip.Tip="Find Next (F3 / Enter)"
+              Width="28" Height="28"
+              Padding="0"
+              CornerRadius="3"
+              Background="Transparent">
+        <TextBlock Text="▼"
+                   FontSize="10"
+                   Foreground="#CCCCCC"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+      </Button>
+
+      <TextBlock Text="{Binding StatusText}"
+                 FontSize="11"
+                 Foreground="#888888"
+                 VerticalAlignment="Center"
+                 Margin="4,0"
+                 IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+      <Button Command="{Binding CloseCommand}"
+              ToolTip.Tip="Close (Esc)"
+              Width="24" Height="28"
+              Padding="0"
+              CornerRadius="3"
+              Background="Transparent">
+        <TextBlock Text="✕"
+                   FontSize="12"
+                   Foreground="#AAAAAA"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+      </Button>
+    </StackPanel>
+  </Border>
+</UserControl>

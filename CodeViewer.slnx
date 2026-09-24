@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CodeViewer/CodeViewer.csproj" />
+    <Project Path="src/CodeViewer.ShellExtension/CodeViewer.ShellExtension.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CodeViewer.Benchmarks/CodeViewer.Benchmarks.csproj" />
+    <Project Path="tests/CodeViewer.Tests/CodeViewer.Tests.csproj" />
+  </Folder>
+</Solution>

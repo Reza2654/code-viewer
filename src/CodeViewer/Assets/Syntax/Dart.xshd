@@ -1,0 +1,164 @@
+<?xml version="1.0"?>
+<SyntaxDefinition name="Dart" extensions=".dart" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" foreground="#6A9955" exampleText="// comment" />
+  <Color name="String" foreground="#CE9178" exampleText="string text" />
+  <Color name="Keywords" foreground="#C586C0" fontWeight="bold" exampleText="if (a) {}" />
+  <Color name="ControlKeywords" foreground="#C586C0" exampleText="return" />
+  <Color name="TypeKeywords" foreground="#4EC9B0" exampleText="int a;" />
+  <Color name="Numbers" foreground="#B5CEA8" exampleText="123" />
+  <Color name="Punctuation" foreground="#D4D4D4" exampleText=";" />
+
+  <RuleSet>
+    <!-- Line comments -->
+    <Span color="Comment">
+      <Begin>//</Begin>
+    </Span>
+
+    <!-- Block comments -->
+    <Span color="Comment" multiline="true">
+      <Begin>/\*</Begin>
+      <End>\*/</End>
+    </Span>
+
+    <!-- Triple single-quoted strings -->
+    <Span color="String" multiline="true">
+      <Begin>'''</Begin>
+      <End>'''</End>
+    </Span>
+
+    <!-- Triple double-quoted strings -->
+    <Span color="String" multiline="true">
+      <Begin>"""</Begin>
+      <End>"""</End>
+    </Span>
+
+    <!-- Raw strings -->
+    <Span color="String">
+      <Begin>r'</Begin>
+      <End>'</End>
+    </Span>
+    <Span color="String">
+      <Begin>r"</Begin>
+      <End>"</End>
+    </Span>
+
+    <!-- Single and double quoted strings -->
+    <Span color="String">
+      <Begin>'</Begin>
+      <End>'</End>
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+    <Span color="String">
+      <Begin>"</Begin>
+      <End>"</End>
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+
+    <!-- Numbers -->
+    <Rule color="Numbers">
+      \b0[xX][0-9a-fA-F]+\b|\b\d+(\.[0-9]+)?([eE][+-]?[0-9]+)?\b
+    </Rule>
+
+    <!-- Dart Keywords -->
+    <Keywords color="Keywords">
+      <Word>abstract</Word>
+      <Word>as</Word>
+      <Word>assert</Word>
+      <Word>async</Word>
+      <Word>await</Word>
+      <Word>base</Word>
+      <Word>break</Word>
+      <Word>case</Word>
+      <Word>catch</Word>
+      <Word>class</Word>
+      <Word>const</Word>
+      <Word>continue</Word>
+      <Word>covariant</Word>
+      <Word>default</Word>
+      <Word>deferred</Word>
+      <Word>do</Word>
+      <Word>dynamic</Word>
+      <Word>else</Word>
+      <Word>enum</Word>
+      <Word>export</Word>
+      <Word>extends</Word>
+      <Word>extension</Word>
+      <Word>external</Word>
+      <Word>factory</Word>
+      <Word>false</Word>
+      <Word>final</Word>
+      <Word>finally</Word>
+      <Word>for</Word>
+      <Word>Function</Word>
+      <Word>get</Word>
+      <Word>hide</Word>
+      <Word>if</Word>
+      <Word>implements</Word>
+      <Word>import</Word>
+      <Word>in</Word>
+      <Word>interface</Word>
+      <Word>is</Word>
+      <Word>late</Word>
+      <Word>library</Word>
+      <Word>mixin</Word>
+      <Word>new</Word>
+      <Word>null</Word>
+      <Word>of</Word>
+      <Word>on</Word>
+      <Word>operator</Word>
+      <Word>part</Word>
+      <Word>required</Word>
+      <Word>rethrow</Word>
+      <Word>return</Word>
+      <Word>sealed</Word>
+      <Word>set</Word>
+      <Word>show</Word>
+      <Word>static</Word>
+      <Word>super</Word>
+      <Word>switch</Word>
+      <Word>sync</Word>
+      <Word>this</Word>
+      <Word>throw</Word>
+      <Word>true</Word>
+      <Word>try</Word>
+      <Word>typedef</Word>
+      <Word>var</Word>
+      <Word>void</Word>
+      <Word>when</Word>
+      <Word>while</Word>
+      <Word>with</Word>
+      <Word>yield</Word>
+    </Keywords>
+
+    <!-- Built-in Dart Types -->
+    <Keywords color="TypeKeywords">
+      <Word>int</Word>
+      <Word>double</Word>
+      <Word>num</Word>
+      <Word>String</Word>
+      <Word>bool</Word>
+      <Word>List</Word>
+      <Word>Map</Word>
+      <Word>Set</Word>
+      <Word>Runes</Word>
+      <Word>Symbol</Word>
+      <Word>Future</Word>
+      <Word>Stream</Word>
+      <Word>Object</Word>
+      <Word>Record</Word>
+      <Word>Iterable</Word>
+      <Word>Duration</Word>
+      <Word>DateTime</Word>
+      <Word>Uri</Word>
+    </Keywords>
+
+    <!-- Punctuation -->
+    <Rule color="Punctuation">
+      [?,.;()\[\]{}+\-/%*&lt;&gt;^=!~&amp;|]
+    </Rule>
+  </RuleSet>
+</SyntaxDefinition>
