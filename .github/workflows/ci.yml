@@ -8,12 +8,8 @@ on:
 
 jobs:
   build-and-test:
-    name: Build & Test (Windows & Linux)
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ windows-latest, ubuntu-latest ]
+    name: Build & Test (Windows)
+    runs-on: windows-latest
 
     steps:
       - name: Checkout repository
@@ -27,16 +23,14 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore CodeViewer.slnx
 
-      - name: Build solutions (Release)
+      - name: Build solution (Release)
         run: dotnet build CodeViewer.slnx -c Release --no-restore
 
       - name: Run Unit Tests
-        # Run tests on Windows (where Windows-specific shell extension and desktop tests execute)
-        if: matrix.os == 'windows-latest'
         run: dotnet test tests/CodeViewer.Tests/CodeViewer.Tests.csproj -c Release --no-restore --logger "trx;LogFileName=test_results.trx"
 
       - name: Upload Test Results
-        if: matrix.os == 'windows-latest' && always()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results

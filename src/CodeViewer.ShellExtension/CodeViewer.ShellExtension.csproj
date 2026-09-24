@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
-    <EnableComHosting>true</EnableComHosting>
+    <EnableComHosting Condition="'$([MSBuild]::IsOSPlatform(&quot;Windows&quot;))' == 'true'">true</EnableComHosting>
     <PlatformTarget>x64</PlatformTarget>
     <RootNamespace>CodeViewer.ShellExtension</RootNamespace>
     <AssemblyName>CodeViewer.ShellExtension</AssemblyName>
