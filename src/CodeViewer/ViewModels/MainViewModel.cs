@@ -41,6 +41,17 @@ public partial class MainViewModel : ViewModelBase
 
     public IReadOnlyList<ColorTheme> AvailableThemes => _themeService.AvailableThemes;
     public ColorTheme CurrentTheme => _themeService.CurrentTheme;
+    public IThemeService ThemeService => _themeService;
+    public IPluginService PluginService => _pluginService;
+
+    public void SelectThemeById(string themeId)
+    {
+        var target = AvailableThemes.FirstOrDefault(t => string.Equals(t.Id, themeId, StringComparison.OrdinalIgnoreCase));
+        if (target != null)
+        {
+            SelectTheme(target);
+        }
+    }
 
     public IReadOnlyList<IPlugin> Plugins => _pluginService.Plugins;
     public IEnumerable<string> PluginCategories => _pluginService.Plugins.Select(p => p.Category).Distinct().OrderBy(c => c);

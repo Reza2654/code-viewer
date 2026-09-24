@@ -51,17 +51,37 @@
       <Setter Property="FontSize" Value="12"/>
     </Style>
 
-    <!-- Custom Tab Styling -->
+    <!-- Custom Tab Styling with Rounded Corners -->
     <Style Selector="Border.tabActive">
       <Setter Property="Background" Value="{DynamicResource ThemeTabItemActiveBackground}"/>
       <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
-      <Setter Property="BorderThickness" Value="0,2,1,0"/>
+      <Setter Property="BorderThickness" Value="0,2,0,0"/>
+      <Setter Property="CornerRadius" Value="6,6,0,0"/>
+    </Style>
+
+    <Style Selector="Border.tabActive TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource ThemeTabItemActiveForeground}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
 
     <Style Selector="Border.tabInactive">
       <Setter Property="Background" Value="{DynamicResource ThemeTabItemInactiveBackground}"/>
       <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}"/>
-      <Setter Property="BorderThickness" Value="0,0,1,0"/>
+      <Setter Property="BorderThickness" Value="0,0,0,0"/>
+      <Setter Property="CornerRadius" Value="6,6,0,0"/>
+    </Style>
+
+    <Style Selector="Border.tabInactive TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource ThemeTabItemInactiveForeground}"/>
+    </Style>
+
+    <Style Selector="Border.tabInactive:pointerover">
+      <Setter Property="Opacity" Value="0.85"/>
+    </Style>
+
+    <!-- General Button Rounded Corners -->
+    <Style Selector="Button">
+      <Setter Property="CornerRadius" Value="4"/>
     </Style>
 
     <!-- Status Bar Styling -->

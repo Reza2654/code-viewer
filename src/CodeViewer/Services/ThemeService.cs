@@ -332,7 +332,14 @@ public class ThemeService : IThemeService
         try
         {
             var color = Color.Parse(hex);
-            Application.Current.Resources[key] = new SolidColorBrush(color);
+            if (Application.Current.Resources.TryGetResource(key, null, out var existing) && existing is SolidColorBrush brush)
+            {
+                brush.Color = color;
+            }
+            else
+            {
+                Application.Current.Resources[key] = new SolidColorBrush(color);
+            }
         }
         catch
         {

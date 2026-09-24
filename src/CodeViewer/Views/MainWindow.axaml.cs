@@ -5,7 +5,9 @@ using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using CodeViewer.Models;
 using CodeViewer.Services;
 using CodeViewer.ViewModels;
 
@@ -23,6 +25,23 @@ public partial class MainWindow : Window
         // Editor caret position tracking
         Editor.TextArea.Caret.PositionChanged += OnCaretPositionChanged;
 
+        // Ctrl + Mouse Wheel Zooming on Editor
+        Editor.AddHandler(PointerWheelChangedEvent, (s, e) =>
+        {
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Control) && DataContext is MainViewModel vm)
+            {
+                if (e.Delta.Y > 0)
+                {
+                    vm.ZoomIn();
+                }
+                else if (e.Delta.Y < 0)
+                {
+                    vm.ZoomOut();
+                }
+                e.Handled = true;
+            }
+        }, RoutingStrategies.Bubble, handledEventsToo: true);
+
         // Window closing prompt for unsaved changes
         Closing += OnWindowClosing;
     }
@@ -35,6 +54,10 @@ public partial class MainWindow : Window
             vm.SearchViewModel.RequestFindNext += OnFindNext;
             vm.SearchViewModel.RequestFindPrevious += OnFindPrevious;
             vm.SearchViewModel.RequestClose += () => Editor.Focus();
+
+            // Wire theme change listener for guaranteed instant visual update
+            vm.ThemeService.ThemeChanged += OnThemeChanged;
+            OnThemeChanged(vm.CurrentTheme);
 
             // Wire plugin and editor interaction callbacks
             vm.RequestSelectedText = () => Editor.SelectedText ?? string.Empty;
@@ -67,6 +90,134 @@ public partial class MainWindow : Window
             };
         }
     }
+
+    private void OnThemeChanged(ColorTheme theme)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            try
+            {
+                var winBg = new SolidColorBrush(Color.Parse(theme.WindowBackground));
+                var editorBg = new SolidColorBrush(Color.Parse(theme.EditorBackground));
+                var editorFg = new SolidColorBrush(Color.Parse(theme.Foreground));
+                var lineNumbersFg = new SolidColorBrush(Color.Parse(theme.LineNumbersForeground));
+                var statusBg = new SolidColorBrush(Color.Parse(theme.StatusBarBackground));
+                var tabBg = new SolidColorBrush(Color.Parse(theme.TabBarBackground));
+
+                Background = winBg;
+                Editor.Background = editorBg;
+                Editor.Foreground = editorFg;
+                Editor.LineNumbersForeground = lineNumbersFg;
+
+                if (StatusBarBorder != null) StatusBarBorder.Background = statusBg;
+                if (TabBarBorder != null) TabBarBorder.Background = tabBg;
+            }
+            catch
+            {
+                // Fallback handled
+            }
+        });
+    }
+
+    private void OnSelectThemeMenuClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is MenuItem item && item.Tag is string themeId && DataContext is MainViewModel vm)
+        {
+            vm.SelectThemeById(themeId);
+        }
+    }
+
+    #region Window Keyboard Shortcuts Handler
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            // Ctrl + S: Save
+            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.S)
+            {
+                _ = vm.SaveCommand.ExecuteAsync(null);
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl + Shift + S: Save As
+            if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.S)
+            {
+                _ = vm.SaveAsCommand.ExecuteAsync(null);
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl + N: New File
+            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.N)
+            {
+                vm.CreateNewDocument();
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl + O: Open File
+            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.O)
+            {
+                _ = vm.OpenFileCommand.ExecuteAsync(null);
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl + W: Close Active Tab
+            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.W)
+            {
+                _ = vm.CloseTabCommand.ExecuteAsync(vm.ActiveDocument);
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl + F: Find in File
+            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.F)
+            {
+                vm.ShowSearch();
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl + Plus / Ctrl + = : Zoom In
+            if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.OemPlus || e.Key == Key.Add))
+            {
+                vm.ZoomIn();
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl + Minus: Zoom Out
+            if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.OemMinus || e.Key == Key.Subtract))
+            {
+                vm.ZoomOut();
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl + 0: Reset Zoom
+            if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.D0 || e.Key == Key.NumPad0))
+            {
+                vm.ResetZoom();
+                e.Handled = true;
+                return;
+            }
+
+            // Alt + Z: Toggle Word Wrap
+            if (e.KeyModifiers == KeyModifiers.Alt && e.Key == Key.Z)
+            {
+                vm.ToggleWordWrap();
+                e.Handled = true;
+                return;
+            }
+        }
+
+        base.OnKeyDown(e);
+    }
+
+    #endregion
 
     private void OnCaretPositionChanged(object? sender, EventArgs e)
     {
@@ -132,7 +283,6 @@ public partial class MainWindow : Window
         var index = text.IndexOf(query, startIndex, comparison);
         if (index == -1 && startIndex > 0)
         {
-            // Wrap around to start
             index = text.IndexOf(query, 0, comparison);
         }
 
@@ -171,7 +321,6 @@ public partial class MainWindow : Window
         var index = text.LastIndexOf(query, startIndex, comparison);
         if (index == -1 && startIndex < text.Length - 1)
         {
-            // Wrap around to end
             index = text.LastIndexOf(query, text.Length - 1, comparison);
         }
 
@@ -207,12 +356,10 @@ public partial class MainWindow : Window
             await vm.CloseTabAsync(doc);
             if (vm.Documents.Contains(doc) && doc.IsModified)
             {
-                // User cancelled closing
                 return;
             }
         }
 
-        // All saved or discarded, now safe to close
         Closing -= OnWindowClosing;
         Close();
     }
@@ -281,19 +428,19 @@ public partial class MainWindow : Window
         {
             Title = "About Code Viewer",
             Width = 400,
-            Height = 240,
+            Height = 250,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,
-            Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#1E1E1E")),
+            Background = new SolidColorBrush(Color.Parse("#1E1E1E")),
             ShowInTaskbar = false
         };
 
         var panel = new StackPanel { Margin = new Avalonia.Thickness(24), Spacing = 10, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.0 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Version 1.0.1-beta.1 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 10, 0, 10) });
 
-        var okBtn = new Button { Content = "OK", Width = 80, Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#007ACC")), Foreground = Avalonia.Media.Brushes.White, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
+        var okBtn = new Button { Content = "OK", Width = 80, CornerRadius = new Avalonia.CornerRadius(4), Background = new SolidColorBrush(Color.Parse("#007ACC")), Foreground = Avalonia.Media.Brushes.White, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
         okBtn.Click += (_, _) => aboutDialog.Close();
         panel.Children.Add(okBtn);
 

@@ -6,18 +6,40 @@
         x:Class="CodeViewer.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="{Binding WindowTitle}"
+        Icon="/Assets/icon.ico"
         Width="1120" Height="740"
         MinWidth="640" MinHeight="420"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource ThemeWindowBackground}"
         DragDrop.AllowDrop="True">
 
+  <Window.KeyBindings>
+    <!-- File Operation Shortcuts -->
+    <KeyBinding Gesture="Ctrl+N" Command="{Binding CreateNewDocumentCommand}"/>
+    <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}"/>
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}"/>
+    <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}"/>
+    <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseTabCommand}" CommandParameter="{Binding ActiveDocument}"/>
+
+    <!-- Search Shortcut -->
+    <KeyBinding Gesture="Ctrl+F" Command="{Binding ShowSearchCommand}"/>
+
+    <!-- View & Zoom Shortcuts -->
+    <KeyBinding Gesture="Ctrl+OemPlus" Command="{Binding ZoomInCommand}"/>
+    <KeyBinding Gesture="Ctrl+Add" Command="{Binding ZoomInCommand}"/>
+    <KeyBinding Gesture="Ctrl+OemMinus" Command="{Binding ZoomOutCommand}"/>
+    <KeyBinding Gesture="Ctrl+Subtract" Command="{Binding ZoomOutCommand}"/>
+    <KeyBinding Gesture="Ctrl+D0" Command="{Binding ResetZoomCommand}"/>
+    <KeyBinding Gesture="Ctrl+NumPad0" Command="{Binding ResetZoomCommand}"/>
+    <KeyBinding Gesture="Alt+Z" Command="{Binding ToggleWordWrapCommand}"/>
+  </Window.KeyBindings>
+
   <Grid RowDefinitions="Auto,*">
     <!-- Top Menu Bar -->
     <Menu Grid.Row="0">
       <MenuItem Header="_File">
-        <MenuItem Header="_New File" Command="{Binding CreateNewDocumentCommand}" InputGesture="Ctrl+N"/>
-        <MenuItem Header="_Open File..." Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O"/>
+        <MenuItem Header="_New File" Command="{Binding CreateNewDocumentCommand}" HotKey="Ctrl+N" InputGesture="Ctrl+N"/>
+        <MenuItem Header="_Open File..." Command="{Binding OpenFileCommand}" HotKey="Ctrl+O" InputGesture="Ctrl+O"/>
         <MenuItem Header="Open _Recent" ItemsSource="{Binding RecentFiles}">
           <MenuItem.ItemTemplate>
             <DataTemplate>
@@ -28,9 +50,9 @@
           </MenuItem.ItemTemplate>
         </MenuItem>
         <Separator/>
-        <MenuItem Header="_Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S"/>
-        <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S"/>
-        <MenuItem Header="_Close Tab" Command="{Binding CloseTabCommand}" CommandParameter="{Binding ActiveDocument}" InputGesture="Ctrl+W"/>
+        <MenuItem Header="_Save" Command="{Binding SaveCommand}" HotKey="Ctrl+S" InputGesture="Ctrl+S"/>
+        <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" HotKey="Ctrl+Shift+S" InputGesture="Ctrl+Shift+S"/>
+        <MenuItem Header="_Close Tab" Command="{Binding CloseTabCommand}" CommandParameter="{Binding ActiveDocument}" HotKey="Ctrl+W" InputGesture="Ctrl+W"/>
         <Separator/>
         <MenuItem Header="File _Info..." Click="OnShowFileInfoClick"/>
         <Separator/>
@@ -38,37 +60,34 @@
       </MenuItem>
 
       <MenuItem Header="_Edit">
-        <MenuItem Header="_Undo" Click="OnUndoClick" InputGesture="Ctrl+Z"/>
-        <MenuItem Header="_Redo" Click="OnRedoClick" InputGesture="Ctrl+Y"/>
+        <MenuItem Header="_Undo" Click="OnUndoClick" HotKey="Ctrl+Z" InputGesture="Ctrl+Z"/>
+        <MenuItem Header="_Redo" Click="OnRedoClick" HotKey="Ctrl+Y" InputGesture="Ctrl+Y"/>
         <Separator/>
-        <MenuItem Header="Cu_t" Click="OnCutClick" InputGesture="Ctrl+X"/>
-        <MenuItem Header="_Copy" Click="OnCopyClick" InputGesture="Ctrl+C"/>
-        <MenuItem Header="_Paste" Click="OnPasteClick" InputGesture="Ctrl+V"/>
-        <MenuItem Header="Select _All" Click="OnSelectAllClick" InputGesture="Ctrl+A"/>
+        <MenuItem Header="Cu_t" Click="OnCutClick" HotKey="Ctrl+X" InputGesture="Ctrl+X"/>
+        <MenuItem Header="_Copy" Click="OnCopyClick" HotKey="Ctrl+C" InputGesture="Ctrl+C"/>
+        <MenuItem Header="_Paste" Click="OnPasteClick" HotKey="Ctrl+V" InputGesture="Ctrl+V"/>
+        <MenuItem Header="Select _All" Click="OnSelectAllClick" HotKey="Ctrl+A" InputGesture="Ctrl+A"/>
         <Separator/>
-        <MenuItem Header="_Find..." Command="{Binding ShowSearchCommand}" InputGesture="Ctrl+F"/>
+        <MenuItem Header="_Find..." Command="{Binding ShowSearchCommand}" HotKey="Ctrl+F" InputGesture="Ctrl+F"/>
       </MenuItem>
 
       <MenuItem Header="_View">
-        <MenuItem Header="Zoom _In" Command="{Binding ZoomInCommand}" InputGesture="Ctrl+OemPlus"/>
-        <MenuItem Header="Zoom _Out" Command="{Binding ZoomOutCommand}" InputGesture="Ctrl+OemMinus"/>
-        <MenuItem Header="_Reset Zoom" Command="{Binding ResetZoomCommand}" InputGesture="Ctrl+0"/>
+        <MenuItem Header="Zoom _In" Command="{Binding ZoomInCommand}" HotKey="Ctrl+OemPlus" InputGesture="Ctrl++"/>
+        <MenuItem Header="Zoom _Out" Command="{Binding ZoomOutCommand}" HotKey="Ctrl+OemMinus" InputGesture="Ctrl+-"/>
+        <MenuItem Header="_Reset Zoom" Command="{Binding ResetZoomCommand}" HotKey="Ctrl+D0" InputGesture="Ctrl+0"/>
         <Separator/>
-        <MenuItem Header="Toggle _Word Wrap" Command="{Binding ToggleWordWrapCommand}" InputGesture="Alt+Z"/>
+        <MenuItem Header="Toggle _Word Wrap" Command="{Binding ToggleWordWrapCommand}" HotKey="Alt+Z" InputGesture="Alt+Z"/>
         <MenuItem Header="Toggle _Line Numbers" Command="{Binding ToggleLineNumbersCommand}"/>
       </MenuItem>
 
       <!-- Theme Switcher & Importer Menu -->
       <MenuItem Header="_Themes">
-        <MenuItem Header="_Select Theme" ItemsSource="{Binding AvailableThemes}">
-          <MenuItem.ItemTemplate>
-            <DataTemplate>
-              <MenuItem Header="{Binding Name}"
-                        Command="{Binding ((vm:MainViewModel)DataContext).SelectThemeCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="{Binding}"/>
-            </DataTemplate>
-          </MenuItem.ItemTemplate>
-        </MenuItem>
+        <MenuItem Header="Dark+ (VS Code)" Click="OnSelectThemeMenuClick" Tag="dark-plus"/>
+        <MenuItem Header="One Dark Pro" Click="OnSelectThemeMenuClick" Tag="one-dark"/>
+        <MenuItem Header="Monokai" Click="OnSelectThemeMenuClick" Tag="monokai"/>
+        <MenuItem Header="Dracula" Click="OnSelectThemeMenuClick" Tag="dracula"/>
+        <MenuItem Header="Solarized Dark" Click="OnSelectThemeMenuClick" Tag="solarized-dark"/>
+        <MenuItem Header="GitHub Light" Click="OnSelectThemeMenuClick" Tag="github-light"/>
         <Separator/>
         <MenuItem Header="Import _Color Theme (.json)..." Command="{Binding ImportThemeCommand}"/>
         <MenuItem Header="Import _Syntax Definition (.xshd)..." Command="{Binding ImportSyntaxCommand}"/>
@@ -115,21 +134,22 @@
 
     <!-- Main Editor Workspace -->
     <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto">
-      <!-- Tab Bar Area -->
-      <Border Grid.Row="0" Background="{DynamicResource ThemeTabBarBackground}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="0,0,0,1">
+      <!-- Tab Bar Area with Modern Rounded Corners -->
+      <Border x:Name="TabBarBorder" Grid.Row="0" Background="{DynamicResource ThemeTabBarBackground}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="0,0,0,1" Padding="4,4,4,0">
         <Grid ColumnDefinitions="*,Auto">
           <!-- Tabs Strip -->
           <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
             <ItemsControl ItemsSource="{Binding Documents}">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
-                  <StackPanel Orientation="Horizontal"/>
+                  <StackPanel Orientation="Horizontal" Spacing="2"/>
                 </ItemsPanelTemplate>
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="vm:DocumentViewModel">
-                  <Border Margin="0,0,1,0"
-                          Padding="12,6,8,6"
+                  <Border Margin="0,0,2,0"
+                          Padding="14,6,8,6"
+                          CornerRadius="6,6,0,0"
                           Cursor="Hand"
                           Classes.tabActive="{Binding IsActive}"
                           Classes.tabInactive="{Binding !IsActive}"
@@ -159,12 +179,13 @@
             </ItemsControl>
           </ScrollViewer>
 
-          <!-- New Tab '+' Button -->
+          <!-- New Tab '+' Button with Rounded Corners -->
           <Button Grid.Column="1"
                   Command="{Binding CreateNewDocumentCommand}"
                   ToolTip.Tip="New Tab (Ctrl+N)"
-                  Width="30" Height="28"
+                  Width="28" Height="26"
                   Padding="0"
+                  CornerRadius="5"
                   Margin="4,2"
                   Background="Transparent"
                   BorderThickness="0">
@@ -192,7 +213,7 @@
                        VerticalScrollBarVisibility="Visible"
                        LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"/>
 
-        <!-- Search Overlay (Floating on top right) -->
+        <!-- Search Overlay (Floating on top right) with Modern Rounded Corners -->
         <views:SearchOverlayView DataContext="{Binding SearchViewModel}"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Top"
@@ -200,7 +221,7 @@
       </Grid>
 
       <!-- Modern Status Bar -->
-      <Border Grid.Row="2" Classes="statusbar" Background="{DynamicResource ThemeStatusBarBackground}" Height="24">
+      <Border x:Name="StatusBarBorder" Grid.Row="2" Classes="statusbar" Background="{DynamicResource ThemeStatusBarBackground}" Height="24">
         <Grid ColumnDefinitions="Auto,*,Auto">
           <!-- Left Info: Language | Encoding | Line Endings -->
           <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
