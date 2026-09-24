@@ -2,7 +2,7 @@
 ; Builds a professional Windows 64-bit installer with Windows 11 Context Menu integration.
 
 #define MyAppName "Code Viewer"
-#define MyAppVersion "1.0.1-beta.3"
+#define MyAppVersion "1.0.1-beta.4"
 #define MyAppPublisher "Code Viewer Open Source Community"
 #define MyAppURL "https://github.com"
 #define MyAppExeName "CodeViewer.exe"
@@ -19,7 +19,7 @@ DefaultDirName={autopf}\CodeViewer
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=..\dist
-OutputBaseFilename=CodeViewer-v1.0.1-beta.3-Setup
+OutputBaseFilename=CodeViewer-v1.0.1-beta.4-Setup
 SetupIconFile=..\src\CodeViewer\Assets\icon.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -38,8 +38,10 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "win11contextmenu"; Description: "Integrate with Windows 11 right-click context menu"; GroupDescription: "Explorer Integration:"; Flags: checkedonce
 
 [Files]
-; Copy all published dist files recursively
-Source: "..\dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "*.zip,*.exe,*.iss,checksums.sha256"
+; Primary application executable - explicitly installed to ensure it is always present
+Source: "..\dist\CodeViewer.exe"; DestDir: "{app}"; Flags: ignoreversion
+; All supporting self-contained runtime assemblies, libraries, and assets
+Source: "..\dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "CodeViewer.exe,*Setup*.exe,*.zip,*.iss,checksums.sha256"
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
