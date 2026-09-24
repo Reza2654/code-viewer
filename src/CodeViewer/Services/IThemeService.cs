@@ -49,4 +49,9 @@ public interface IThemeService
     /// Returns the directory where user themes are stored (%LocalAppData%/CodeViewer/Themes).
     /// </summary>
     string GetThemesDirectory();
+
+    /// <summary>
+    /// Applies the current theme's code syntax highlighting colors to an AvaloniaEdit highlighting definition.
+    /// </summary>
+    void ApplyCodeColorsToHighlighting(AvaloniaEdit.Highlighting.IHighlightingDefinition? definition, ColorTheme? theme = null);
 }

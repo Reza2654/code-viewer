@@ -54,7 +54,7 @@ Copy-Item "$rootDir\scripts\remove-context-menu.reg" $distScripts -Force
 
 # 5. Create Portable ZIP
 Write-Host "[4/5] Creating Portable ZIP archive..." -ForegroundColor Yellow
-$zipPath = "$distDir\CodeViewer-v1.0.1-beta.2-win-x64-portable.zip"
+$zipPath = "$distDir\CodeViewer-v1.0.1-beta.3-win-x64-portable.zip"
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 
 # Gather files for ZIP (exclude installers)
@@ -87,7 +87,7 @@ if ($isccPath) {
     Write-Host "  Found Inno Setup at: $isccPath" -ForegroundColor Cyan
     Write-Host "  Compiling installer..." -ForegroundColor Yellow
     & $isccPath "$installerScript"
-    Write-Host "  -> Installer created: $distDir\CodeViewer-v1.0.1-beta.2-Setup.exe" -ForegroundColor Green
+    Write-Host "  -> Installer created: $distDir\CodeViewer-v1.0.1-beta.3-Setup.exe" -ForegroundColor Green
 } else {
     Write-Warning "Inno Setup compiler (ISCC.exe) not found on PATH or Program Files. Portable ZIP was built successfully."
 }

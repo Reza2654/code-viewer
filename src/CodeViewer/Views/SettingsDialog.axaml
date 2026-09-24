@@ -1,0 +1,405 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CodeViewer.ViewModels"
+        xmlns:models="using:CodeViewer.Models"
+        x:Class="CodeViewer.Views.SettingsDialog"
+        x:DataType="vm:SettingsViewModel"
+        Title="Settings - Code Viewer"
+        Icon="/Assets/icon.ico"
+        Width="680" Height="580"
+        MinWidth="540" MinHeight="460"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource ThemeWindowBackground}">
+
+  <Grid Margin="22" RowDefinitions="Auto,*,Auto">
+    <!-- Header -->
+    <StackPanel Grid.Row="0" Margin="0,0,0,16">
+      <TextBlock Text="Settings &amp; Preferences"
+                 FontSize="20"
+                 FontWeight="Bold"
+                 Foreground="{DynamicResource ThemeWindowForeground}"/>
+      <TextBlock Text="Customize editor fonts, theme colors, syntax highlighting, and editor behavior."
+                 FontSize="12"
+                 Foreground="#888888"
+                 Margin="0,4,0,0"/>
+    </StackPanel>
+
+    <!-- Tabbed Settings Content -->
+    <TabControl Grid.Row="1">
+      <!-- Tab 1: Fonts & Editor -->
+      <TabItem Header="Editor &amp; Fonts">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="16" Margin="4,12,8,12">
+            <!-- Font Family -->
+            <Border Background="{DynamicResource ThemeTabBarBackground}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="14">
+              <StackPanel Spacing="8">
+                <TextBlock Text="Font Family"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeWindowForeground}"
+                           FontSize="13"/>
+                <TextBlock Text="Select a coding font or type custom font name installed on your system."
+                           FontSize="11"
+                           Foreground="#888888"/>
+                <ComboBox ItemsSource="{Binding AvailableFonts}"
+                          SelectedItem="{Binding SelectedFont}"
+                          HorizontalAlignment="Stretch"/>
+                <TextBox Text="{Binding SelectedFont}"
+                         Watermark="Or type custom font family name..."
+                         Margin="0,4,0,0"/>
+              </StackPanel>
+            </Border>
+
+            <!-- Font Size -->
+            <Border Background="{DynamicResource ThemeTabBarBackground}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="14">
+              <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                <StackPanel Grid.Column="0" Grid.Row="0" Spacing="4">
+                  <TextBlock Text="Font Size"
+                             FontWeight="SemiBold"
+                             Foreground="{DynamicResource ThemeWindowForeground}"
+                             FontSize="13"/>
+                  <TextBlock Text="Adjust editor text size (8 pt to 36 pt)."
+                             FontSize="11"
+                             Foreground="#888888"/>
+                </StackPanel>
+                <TextBlock Grid.Column="1" Grid.Row="0"
+                           Text="{Binding FontSize, StringFormat='{}{0:0} pt'}"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource ThemeAccentBrush}"
+                           FontSize="14"
+                           VerticalAlignment="Center"/>
+
+                <Slider Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                        Margin="0,8,0,0"
+                        Minimum="8" Maximum="36"
+                        Value="{Binding FontSize}"
+                        TickFrequency="1"
+                        IsSnapToTickEnabled="True"/>
+              </Grid>
+            </Border>
+
+            <!-- Editor Options Grid: Word Wrap, Line Numbers, Tab Size -->
+            <Border Background="{DynamicResource ThemeTabBarBackground}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="14">
+              <StackPanel Spacing="12">
+                <TextBlock Text="Editor Display Options"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeWindowForeground}"
+                           FontSize="13"/>
+
+                <CheckBox IsChecked="{Binding ShowLineNumbers}"
+                          Content="Show line numbers in editor gutter"
+                          Foreground="{DynamicResource ThemeWindowForeground}"/>
+
+                <CheckBox IsChecked="{Binding WordWrap}"
+                          Content="Enable word wrap by default"
+                          Foreground="{DynamicResource ThemeWindowForeground}"/>
+
+                <Grid ColumnDefinitions="Auto,12,100" Margin="0,4,0,0">
+                  <TextBlock Grid.Column="0"
+                             Text="Tab Size (spaces):"
+                             Foreground="{DynamicResource ThemeWindowForeground}"
+                             VerticalAlignment="Center"/>
+                  <ComboBox Grid.Column="2"
+                            ItemsSource="{Binding AvailableTabSizes}"
+                            SelectedItem="{Binding TabSize}"
+                            HorizontalAlignment="Stretch"/>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- Tab 2: Theme & Appearance -->
+      <TabItem Header="Theme">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="16" Margin="4,12,8,12">
+            <!-- Theme Selection -->
+            <Border Background="{DynamicResource ThemeTabBarBackground}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="14">
+              <StackPanel Spacing="10">
+                <TextBlock Text="Color Theme"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeWindowForeground}"
+                           FontSize="13"/>
+                <TextBlock Text="Choose overall editor and application UI color theme."
+                           FontSize="11"
+                           Foreground="#888888"/>
+
+                <ComboBox ItemsSource="{Binding AvailableThemes}"
+                          SelectedItem="{Binding SelectedTheme}"
+                          HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:ColorTheme">
+                      <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Border Width="16" Height="16" CornerRadius="8"
+                                Background="{Binding EditorBackground}"
+                                BorderBrush="{Binding AccentColor}"
+                                BorderThickness="1.5"/>
+                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+            </Border>
+
+            <!-- Theme Colors Overview -->
+            <Border Background="{DynamicResource ThemeTabBarBackground}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="14">
+              <StackPanel Spacing="10">
+                <TextBlock Text="Theme Palette Colors"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeWindowForeground}"
+                           FontSize="13"/>
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
+                  <!-- Row 0 -->
+                  <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="0,4">
+                    <Border Width="18" Height="18" CornerRadius="3" Background="{Binding SelectedTheme.EditorBackground}"/>
+                    <TextBlock Text="Editor Background" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11"/>
+                  </StackPanel>
+                  <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0,4">
+                    <Border Width="18" Height="18" CornerRadius="3" Background="{Binding SelectedTheme.Foreground}"/>
+                    <TextBlock Text="Editor Text" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11"/>
+                  </StackPanel>
+
+                  <!-- Row 1 -->
+                  <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="0,4">
+                    <Border Width="18" Height="18" CornerRadius="3" Background="{Binding SelectedTheme.AccentColor}"/>
+                    <TextBlock Text="Accent Highlight" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11"/>
+                  </StackPanel>
+                  <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0,4">
+                    <Border Width="18" Height="18" CornerRadius="3" Background="{Binding SelectedTheme.StatusBarBackground}"/>
+                    <TextBlock Text="Status Bar" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11"/>
+                  </StackPanel>
+
+                  <!-- Row 2 -->
+                  <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="0,4">
+                    <Border Width="18" Height="18" CornerRadius="3" Background="{Binding SelectedTheme.TabBarBackground}"/>
+                    <TextBlock Text="Tab Bar" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11"/>
+                  </StackPanel>
+                  <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0,4">
+                    <Border Width="18" Height="18" CornerRadius="3" Background="{Binding SelectedTheme.SelectionBackground}"/>
+                    <TextBlock Text="Text Selection" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11"/>
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- Tab 3: Code Colors in Theme -->
+      <TabItem Header="Code Colors">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="16" Margin="4,12,8,12">
+            <Border Background="{DynamicResource ThemeTabBarBackground}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="14">
+              <StackPanel Spacing="10">
+                <TextBlock Text="Syntax Highlighting Colors"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeWindowForeground}"
+                           FontSize="13"/>
+                <TextBlock Text="Active theme syntax highlighting colors applied to code tokens in the editor."
+                           FontSize="11"
+                           Foreground="#888888"/>
+
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,6">
+                  <!-- Keyword -->
+                  <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="0,6">
+                    <Border Width="20" Height="20" CornerRadius="4" Background="{Binding SelectedTheme.CodeKeyword}" BorderBrush="#444" BorderThickness="1"/>
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="Keywords" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding SelectedTheme.CodeKeyword}" Foreground="#888888" FontSize="10"/>
+                    </StackPanel>
+                  </StackPanel>
+
+                  <!-- Comment -->
+                  <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="10" Margin="0,6">
+                    <Border Width="20" Height="20" CornerRadius="4" Background="{Binding SelectedTheme.CodeComment}" BorderBrush="#444" BorderThickness="1"/>
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="Comments" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding SelectedTheme.CodeComment}" Foreground="#888888" FontSize="10"/>
+                    </StackPanel>
+                  </StackPanel>
+
+                  <!-- String -->
+                  <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="0,6">
+                    <Border Width="20" Height="20" CornerRadius="4" Background="{Binding SelectedTheme.CodeString}" BorderBrush="#444" BorderThickness="1"/>
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="Strings" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding SelectedTheme.CodeString}" Foreground="#888888" FontSize="10"/>
+                    </StackPanel>
+                  </StackPanel>
+
+                  <!-- Number -->
+                  <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="10" Margin="0,6">
+                    <Border Width="20" Height="20" CornerRadius="4" Background="{Binding SelectedTheme.CodeNumber}" BorderBrush="#444" BorderThickness="1"/>
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="Numbers &amp; Digits" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding SelectedTheme.CodeNumber}" Foreground="#888888" FontSize="10"/>
+                    </StackPanel>
+                  </StackPanel>
+
+                  <!-- Type / Class -->
+                  <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="0,6">
+                    <Border Width="20" Height="20" CornerRadius="4" Background="{Binding SelectedTheme.CodeType}" BorderBrush="#444" BorderThickness="1"/>
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="Types &amp; Classes" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding SelectedTheme.CodeType}" Foreground="#888888" FontSize="10"/>
+                    </StackPanel>
+                  </StackPanel>
+
+                  <!-- Method / Function -->
+                  <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="10" Margin="0,6">
+                    <Border Width="20" Height="20" CornerRadius="4" Background="{Binding SelectedTheme.CodeMethod}" BorderBrush="#444" BorderThickness="1"/>
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="Methods &amp; Calls" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding SelectedTheme.CodeMethod}" Foreground="#888888" FontSize="10"/>
+                    </StackPanel>
+                  </StackPanel>
+
+                  <!-- Preprocessor -->
+                  <StackPanel Grid.Row="3" Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="0,6">
+                    <Border Width="20" Height="20" CornerRadius="4" Background="{Binding SelectedTheme.CodePreprocessor}" BorderBrush="#444" BorderThickness="1"/>
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="Preprocessors" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding SelectedTheme.CodePreprocessor}" Foreground="#888888" FontSize="10"/>
+                    </StackPanel>
+                  </StackPanel>
+
+                  <!-- Punctuation -->
+                  <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal" Spacing="10" Margin="0,6">
+                    <Border Width="20" Height="20" CornerRadius="4" Background="{Binding SelectedTheme.CodePunctuation}" BorderBrush="#444" BorderThickness="1"/>
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="Punctuation" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding SelectedTheme.CodePunctuation}" Foreground="#888888" FontSize="10"/>
+                    </StackPanel>
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <!-- Live Syntax Sample Preview Box -->
+            <Border Background="{Binding SelectedTheme.EditorBackground}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="14">
+              <StackPanel Spacing="6">
+                <TextBlock Text="// Code Viewer Live Syntax &amp; Font Preview"
+                           Foreground="{Binding SelectedTheme.CodeComment}"
+                           FontFamily="{Binding SelectedFont}"
+                           FontSize="{Binding FontSize}"/>
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                  <TextBlock Text="public class"
+                             Foreground="{Binding SelectedTheme.CodeKeyword}"
+                             FontFamily="{Binding SelectedFont}"
+                             FontSize="{Binding FontSize}"/>
+                  <TextBlock Text="Calculator"
+                             Foreground="{Binding SelectedTheme.CodeType}"
+                             FontFamily="{Binding SelectedFont}"
+                             FontSize="{Binding FontSize}"/>
+                  <TextBlock Text="{}{"
+                             Foreground="{Binding SelectedTheme.CodePunctuation}"
+                             FontFamily="{Binding SelectedFont}"
+                             FontSize="{Binding FontSize}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="16,0,0,0">
+                  <TextBlock Text="public int"
+                             Foreground="{Binding SelectedTheme.CodeKeyword}"
+                             FontFamily="{Binding SelectedFont}"
+                             FontSize="{Binding FontSize}"/>
+                  <TextBlock Text="Calculate"
+                             Foreground="{Binding SelectedTheme.CodeMethod}"
+                             FontFamily="{Binding SelectedFont}"
+                             FontSize="{Binding FontSize}"/>
+                  <TextBlock Text="(string mode, int count = "
+                             Foreground="{Binding SelectedTheme.Foreground}"
+                             FontFamily="{Binding SelectedFont}"
+                             FontSize="{Binding FontSize}"/>
+                  <TextBlock Text="42"
+                             Foreground="{Binding SelectedTheme.CodeNumber}"
+                             FontFamily="{Binding SelectedFont}"
+                             FontSize="{Binding FontSize}"/>
+                  <TextBlock Text=")"
+                             Foreground="{Binding SelectedTheme.CodePunctuation}"
+                             FontFamily="{Binding SelectedFont}"
+                             FontSize="{Binding FontSize}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="32,0,0,0">
+                  <TextBlock Text="return"
+                             Foreground="{Binding SelectedTheme.CodeKeyword}"
+                             FontFamily="{Binding SelectedFont}"
+                             FontSize="{Binding FontSize}"/>
+                  <TextBlock Text="count;"
+                             Foreground="{Binding SelectedTheme.Foreground}"
+                             FontFamily="{Binding SelectedFont}"
+                             FontSize="{Binding FontSize}"/>
+                </StackPanel>
+                <TextBlock Text="{}}"
+                           Foreground="{Binding SelectedTheme.CodePunctuation}"
+                           FontFamily="{Binding SelectedFont}"
+                           FontSize="{Binding FontSize}"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+    </TabControl>
+
+    <!-- Bottom Action Bar -->
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto,8,Auto" Margin="0,16,0,0">
+      <Button Grid.Column="0"
+              Content="Reset Defaults"
+              Command="{Binding ResetDefaultsCommand}"
+              Background="#333333"
+              Foreground="{DynamicResource ThemeWindowForeground}"
+              CornerRadius="5"
+              Padding="12,6"/>
+
+      <Button Grid.Column="2"
+              Content="Cancel"
+              Command="{Binding CancelCommand}"
+              Background="Transparent"
+              Foreground="{DynamicResource ThemeWindowForeground}"
+              BorderBrush="#555555"
+              BorderThickness="1"
+              CornerRadius="5"
+              Width="80"
+              HorizontalContentAlignment="Center"
+              Padding="12,6"/>
+
+      <Button Grid.Column="4"
+              Content="Save &amp; Apply"
+              Command="{Binding SaveCommand}"
+              Background="{DynamicResource ThemeAccentBrush}"
+              Foreground="#FFFFFF"
+              FontWeight="SemiBold"
+              CornerRadius="5"
+              Width="110"
+              HorizontalContentAlignment="Center"
+              Padding="12,6"/>
+    </Grid>
+  </Grid>
+</Window>

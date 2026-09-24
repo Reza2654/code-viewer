@@ -25,6 +25,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly IDialogService _dialogService;
     private readonly IThemeService _themeService;
     private readonly IPluginService _pluginService;
+    private readonly ISettingsService _settingsService;
     private readonly AppConfig _config;
 
     [ObservableProperty]
@@ -39,10 +40,14 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     private ObservableCollection<RecentFileItem> _recentFiles = [];
 
+    [ObservableProperty]
+    private string _currentFontFamily = "Cascadia Code, Consolas, Courier New, monospace";
+
     public IReadOnlyList<ColorTheme> AvailableThemes => _themeService.AvailableThemes;
     public ColorTheme CurrentTheme => _themeService.CurrentTheme;
     public IThemeService ThemeService => _themeService;
     public IPluginService PluginService => _pluginService;
+    public ISettingsService SettingsService => _settingsService;
 
     public void SelectThemeById(string themeId)
     {
@@ -62,6 +67,7 @@ public partial class MainViewModel : ViewModelBase
     public Action<string>? RequestReplaceAll { get; set; }
     public Action<string>? RequestInsertText { get; set; }
     public Action? RequestOpenPluginManager { get; set; }
+    public Action? RequestOpenSettings { get; set; }
 
     public string WindowTitle => ActiveDocument != null
         ? $"{ActiveDocument.DisplayName} - Code Viewer"
@@ -74,7 +80,8 @@ public partial class MainViewModel : ViewModelBase
         IDialogService dialogService,
         AppConfig config,
         IThemeService? themeService = null,
-        IPluginService? pluginService = null)
+        IPluginService? pluginService = null,
+        ISettingsService? settingsService = null)
     {
         _fileService = fileService;
         _languageService = languageService;
@@ -83,12 +90,19 @@ public partial class MainViewModel : ViewModelBase
         _config = config;
         _themeService = themeService ?? new ThemeService();
         _pluginService = pluginService ?? new PluginService();
+        _settingsService = settingsService ?? new SettingsService();
 
-        _themeService.ThemeChanged += _ =>
+        var settings = _settingsService.CurrentSettings;
+        _currentFontFamily = settings.FontFamily;
+
+        _themeService.ThemeChanged += theme =>
         {
             OnPropertyChanged(nameof(CurrentTheme));
             OnPropertyChanged(nameof(AvailableThemes));
+            ApplyCodeColorsToAllDocuments(theme);
         };
+
+        _settingsService.SettingsChanged += OnSettingsChanged;
 
         _pluginService.PluginsChanged += () =>
         {
@@ -97,13 +111,43 @@ public partial class MainViewModel : ViewModelBase
         };
     }
 
+    private void OnSettingsChanged(AppSettings settings)
+    {
+        CurrentFontFamily = settings.FontFamily;
+        foreach (var doc in Documents)
+        {
+            doc.FontSize = settings.FontSize;
+            doc.WordWrap = settings.WordWrap;
+            doc.ShowLineNumbers = settings.ShowLineNumbers;
+        }
+        ApplyCodeColorsToAllDocuments(CurrentTheme);
+    }
+
+    public void ApplyCodeColorsToAllDocuments(ColorTheme? theme = null)
+    {
+        var target = theme ?? CurrentTheme;
+        foreach (var doc in Documents)
+        {
+            if (doc.HighlightingDefinition != null)
+            {
+                _themeService.ApplyCodeColorsToHighlighting(doc.HighlightingDefinition, target);
+            }
+        }
+    }
+
     /// <summary>
     /// Initializes recent files, theme, and opens any command-line file arguments directly.
     /// </summary>
     public async Task InitializeAsync(string[]? commandLineArgs = null)
     {
-        // 1. Apply configured or default theme
-        _themeService.ApplyTheme(_themeService.CurrentTheme);
+        // 1. Load settings and apply configured theme & font
+        await _settingsService.LoadAsync();
+        var settings = _settingsService.CurrentSettings;
+        CurrentFontFamily = settings.FontFamily;
+        _config.DefaultFontSize = settings.FontSize;
+        _config.WordWrap = settings.WordWrap;
+        _config.ShowLineNumbers = settings.ShowLineNumbers;
+        _themeService.ApplyTheme(settings.ThemeId);
 
         // 2. Load Recent Files
         await LoadRecentFilesAsync();
@@ -140,12 +184,19 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     public void CreateNewDocument()
     {
+        var settings = _settingsService.CurrentSettings;
         var model = DocumentModel.CreateNew($"Untitled-{Documents.Count + 1}");
-        var docVm = new DocumentViewModel(model, _languageService, _config.DefaultFontSize)
+        var fontSize = _config.DefaultFontSize > 0 ? _config.DefaultFontSize : settings.FontSize;
+        var docVm = new DocumentViewModel(model, _languageService, fontSize)
         {
-            WordWrap = _config.WordWrap,
-            ShowLineNumbers = _config.ShowLineNumbers
+            WordWrap = settings.WordWrap,
+            ShowLineNumbers = settings.ShowLineNumbers
         };
+
+        if (docVm.HighlightingDefinition != null)
+        {
+            _themeService.ApplyCodeColorsToHighlighting(docVm.HighlightingDefinition, CurrentTheme);
+        }
 
         Documents.Add(docVm);
         ActiveDocument = docVm;
@@ -192,12 +243,19 @@ public partial class MainViewModel : ViewModelBase
 
         try
         {
+            var settings = _settingsService.CurrentSettings;
             var model = await _fileService.OpenFileAsync(fullPath);
-            var docVm = new DocumentViewModel(model, _languageService, _config.DefaultFontSize)
+            var fontSize = _config.DefaultFontSize > 0 ? _config.DefaultFontSize : settings.FontSize;
+            var docVm = new DocumentViewModel(model, _languageService, fontSize)
             {
-                WordWrap = _config.WordWrap,
-                ShowLineNumbers = _config.ShowLineNumbers
+                WordWrap = settings.WordWrap,
+                ShowLineNumbers = settings.ShowLineNumbers
             };
+
+            if (docVm.HighlightingDefinition != null)
+            {
+                _themeService.ApplyCodeColorsToHighlighting(docVm.HighlightingDefinition, CurrentTheme);
+            }
 
             // If the only document is an untouched empty Untitled tab, replace it
             if (Documents.Count == 1 && Documents[0].Model.IsNewFile && !Documents[0].IsModified && Documents[0].TextDocument.TextLength == 0)
@@ -330,6 +388,9 @@ public partial class MainViewModel : ViewModelBase
         if (ActiveDocument != null && ActiveDocument.FontSize < _config.MaxFontSize)
         {
             ActiveDocument.FontSize = Math.Min(_config.MaxFontSize, ActiveDocument.FontSize + 1.5);
+            var settings = _settingsService.CurrentSettings;
+            settings.FontSize = ActiveDocument.FontSize;
+            _ = _settingsService.SaveAsync(settings);
         }
     }
 
@@ -339,6 +400,9 @@ public partial class MainViewModel : ViewModelBase
         if (ActiveDocument != null && ActiveDocument.FontSize > _config.MinFontSize)
         {
             ActiveDocument.FontSize = Math.Max(_config.MinFontSize, ActiveDocument.FontSize - 1.5);
+            var settings = _settingsService.CurrentSettings;
+            settings.FontSize = ActiveDocument.FontSize;
+            _ = _settingsService.SaveAsync(settings);
         }
     }
 
@@ -348,6 +412,9 @@ public partial class MainViewModel : ViewModelBase
         if (ActiveDocument != null)
         {
             ActiveDocument.FontSize = _config.DefaultFontSize;
+            var settings = _settingsService.CurrentSettings;
+            settings.FontSize = ActiveDocument.FontSize;
+            _ = _settingsService.SaveAsync(settings);
         }
     }
 
@@ -357,6 +424,9 @@ public partial class MainViewModel : ViewModelBase
         if (ActiveDocument != null)
         {
             ActiveDocument.WordWrap = !ActiveDocument.WordWrap;
+            var settings = _settingsService.CurrentSettings;
+            settings.WordWrap = ActiveDocument.WordWrap;
+            _ = _settingsService.SaveAsync(settings);
         }
     }
 
@@ -366,7 +436,16 @@ public partial class MainViewModel : ViewModelBase
         if (ActiveDocument != null)
         {
             ActiveDocument.ShowLineNumbers = !ActiveDocument.ShowLineNumbers;
+            var settings = _settingsService.CurrentSettings;
+            settings.ShowLineNumbers = ActiveDocument.ShowLineNumbers;
+            _ = _settingsService.SaveAsync(settings);
         }
+    }
+
+    [RelayCommand]
+    public void ShowSettings()
+    {
+        RequestOpenSettings?.Invoke();
     }
 
     #region Theme Operations
@@ -378,6 +457,9 @@ public partial class MainViewModel : ViewModelBase
         {
             _themeService.ApplyTheme(theme);
             OnPropertyChanged(nameof(CurrentTheme));
+            var settings = _settingsService.CurrentSettings;
+            settings.ThemeId = theme.Id;
+            _ = _settingsService.SaveAsync(settings);
         }
     }
 

@@ -32,6 +32,9 @@
     <KeyBinding Gesture="Ctrl+D0" Command="{Binding ResetZoomCommand}"/>
     <KeyBinding Gesture="Ctrl+NumPad0" Command="{Binding ResetZoomCommand}"/>
     <KeyBinding Gesture="Alt+Z" Command="{Binding ToggleWordWrapCommand}"/>
+
+    <!-- Settings Shortcut -->
+    <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding ShowSettingsCommand}"/>
   </Window.KeyBindings>
 
   <Grid RowDefinitions="Auto,*">
@@ -54,6 +57,7 @@
         <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" HotKey="Ctrl+Shift+S" InputGesture="Ctrl+Shift+S"/>
         <MenuItem Header="_Close Tab" Command="{Binding CloseTabCommand}" CommandParameter="{Binding ActiveDocument}" HotKey="Ctrl+W" InputGesture="Ctrl+W"/>
         <Separator/>
+        <MenuItem Header="_Settings..." Command="{Binding ShowSettingsCommand}" HotKey="Ctrl+OemComma" InputGesture="Ctrl+,"/>
         <MenuItem Header="File _Info..." Click="OnShowFileInfoClick"/>
         <Separator/>
         <MenuItem Header="E_xit" Click="OnExitClick" InputGesture="Alt+F4"/>
@@ -69,6 +73,8 @@
         <MenuItem Header="Select _All" Click="OnSelectAllClick" HotKey="Ctrl+A" InputGesture="Ctrl+A"/>
         <Separator/>
         <MenuItem Header="_Find..." Command="{Binding ShowSearchCommand}" HotKey="Ctrl+F" InputGesture="Ctrl+F"/>
+        <Separator/>
+        <MenuItem Header="_Settings..." Command="{Binding ShowSettingsCommand}" InputGesture="Ctrl+,"/>
       </MenuItem>
 
       <MenuItem Header="_View">
@@ -206,12 +212,13 @@
                        FontSize="{Binding ActiveDocument.FontSize, FallbackValue=14.0}"
                        WordWrap="{Binding ActiveDocument.WordWrap, FallbackValue=False}"
                        ShowLineNumbers="{Binding ActiveDocument.ShowLineNumbers, FallbackValue=True}"
-                       FontFamily="Cascadia Code, Consolas, Courier New, monospace"
+                       FontFamily="{Binding CurrentFontFamily}"
                        Background="{DynamicResource ThemeEditorBackground}"
                        Foreground="{DynamicResource ThemeEditorForeground}"
                        HorizontalScrollBarVisibility="Auto"
                        VerticalScrollBarVisibility="Visible"
-                       LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"/>
+                       LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"
+                       DragDrop.AllowDrop="True"/>
 
         <!-- Search Overlay (Floating on top right) with Modern Rounded Corners -->
         <views:SearchOverlayView DataContext="{Binding SearchViewModel}"
@@ -232,11 +239,21 @@
             <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.LineEndingDisplay, FallbackValue='LF'}"/>
           </StackPanel>
 
-          <!-- Right Info: Caret Position (Ln X, Col Y) & Font Size -->
-          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,12,0">
+          <!-- Right Info: Caret Position, Font Size, and Settings Button -->
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">
             <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.CaretDisplay, FallbackValue='Ln 1, Col 1'}"/>
             <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
             <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.FontSize, StringFormat='{}{0:0} pt', FallbackValue='14 pt'}"/>
+            <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
+            <Button Command="{Binding ShowSettingsCommand}"
+                    ToolTip.Tip="Settings (Ctrl+,)"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="4,1"
+                    CornerRadius="3"
+                    Cursor="Hand">
+              <TextBlock Text="⚙" FontSize="12" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+            </Button>
           </StackPanel>
         </Grid>
       </Border>

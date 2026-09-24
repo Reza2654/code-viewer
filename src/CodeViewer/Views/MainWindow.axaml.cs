@@ -20,7 +20,11 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         DataContextChanged += OnDataContextChanged;
+        AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
+
+        Editor.AddHandler(DragDrop.DragOverEvent, OnDragOver, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
+        Editor.AddHandler(DragDrop.DropEvent, OnDrop, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
 
         // Editor caret position tracking
         Editor.TextArea.Caret.PositionChanged += OnCaretPositionChanged;
@@ -88,6 +92,11 @@ public partial class MainWindow : Window
                 var dialog = new PluginManagerDialog(vm.Plugins, folder);
                 await dialog.ShowDialog(this);
             };
+            vm.RequestOpenSettings = async () =>
+            {
+                var dialog = new SettingsDialog(new SettingsViewModel(vm.SettingsService, vm.ThemeService));
+                await dialog.ShowDialog(this);
+            };
         }
     }
 
@@ -111,6 +120,12 @@ public partial class MainWindow : Window
 
                 if (StatusBarBorder != null) StatusBarBorder.Background = statusBg;
                 if (TabBarBorder != null) TabBarBorder.Background = tabBg;
+
+                if (DataContext is MainViewModel vm)
+                {
+                    vm.ApplyCodeColorsToAllDocuments(theme);
+                    Editor.TextArea.TextView.Redraw();
+                }
             }
             catch
             {
@@ -212,6 +227,14 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 return;
             }
+
+            // Ctrl + , : Settings
+            if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.OemComma || e.Key == Key.OemPeriod))
+            {
+                vm.ShowSettings();
+                e.Handled = true;
+                return;
+            }
         }
 
         base.OnKeyDown(e);
@@ -239,19 +262,102 @@ public partial class MainWindow : Window
 
     #region Drag & Drop Support
 
+    private void OnDragOver(object? sender, DragEventArgs e)
+    {
+        if (e.Data.Contains(DataFormats.Files) || e.Data.GetFiles() != null || e.Data.Contains(DataFormats.Text))
+        {
+            e.DragEffects = DragDropEffects.Copy;
+            e.Handled = true;
+        }
+        else
+        {
+            e.DragEffects = DragDropEffects.None;
+        }
+    }
+
     private async void OnDrop(object? sender, DragEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
 
+        var pathsToOpen = new System.Collections.Generic.List<string>();
+
+        // 1. Check Avalonia IStorageItem files
         var files = e.Data.GetFiles();
         if (files != null)
         {
             foreach (var item in files)
             {
                 var path = item.TryGetLocalPath() ?? (item.Path.IsFile ? item.Path.LocalPath : null);
-                if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                if (!string.IsNullOrEmpty(path))
+                {
+                    pathsToOpen.Add(path);
+                }
+            }
+        }
+
+        // 2. Check Windows DataFormats.Files string paths
+        if (pathsToOpen.Count == 0 && e.Data.Contains(DataFormats.Files))
+        {
+            var raw = e.Data.Get(DataFormats.Files);
+            if (raw is System.Collections.Generic.IEnumerable<string> strList)
+            {
+                pathsToOpen.AddRange(strList);
+            }
+            else if (raw is System.Collections.Generic.IEnumerable<IStorageItem> storageList)
+            {
+                foreach (var item in storageList)
+                {
+                    var path = item.TryGetLocalPath() ?? (item.Path.IsFile ? item.Path.LocalPath : null);
+                    if (!string.IsNullOrEmpty(path)) pathsToOpen.Add(path);
+                }
+            }
+        }
+
+        // 3. Check Text URI format
+        if (pathsToOpen.Count == 0 && e.Data.Contains(DataFormats.Text))
+        {
+            var text = e.Data.GetText();
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in lines)
+                {
+                    var clean = line.Trim().Trim('"', '\'');
+                    if (clean.StartsWith("file://", StringComparison.OrdinalIgnoreCase) && Uri.TryCreate(clean, UriKind.Absolute, out var uri))
+                    {
+                        clean = uri.LocalPath;
+                    }
+                    if (File.Exists(clean) || Directory.Exists(clean))
+                    {
+                        pathsToOpen.Add(clean);
+                    }
+                }
+            }
+        }
+
+        if (pathsToOpen.Count > 0)
+        {
+            e.Handled = true;
+            foreach (var path in pathsToOpen)
+            {
+                if (File.Exists(path))
                 {
                     await vm.OpenFileInternalAsync(path);
+                }
+                else if (Directory.Exists(path))
+                {
+                    try
+                    {
+                        var subFiles = Directory.GetFiles(path).Take(10);
+                        foreach (var sub in subFiles)
+                        {
+                            await vm.OpenFileInternalAsync(sub);
+                        }
+                    }
+                    catch
+                    {
+                        // Directory access fallback
+                    }
                 }
             }
         }
@@ -437,7 +543,7 @@ public partial class MainWindow : Window
 
         var panel = new StackPanel { Margin = new Avalonia.Thickness(24), Spacing = 10, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.0.1-beta.2 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Version 1.0.1-beta.3 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 10, 0, 10) });
 
         var okBtn = new Button { Content = "OK", Width = 80, CornerRadius = new Avalonia.CornerRadius(4), Background = new SolidColorBrush(Color.Parse("#007ACC")), Foreground = Avalonia.Media.Brushes.White, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };

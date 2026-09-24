@@ -71,4 +71,29 @@ public class ColorTheme
 
     [JsonPropertyName("borderColor")]
     public string BorderColor { get; set; } = "#181818";
+
+    // Code Syntax Highlighting Colors
+    [JsonPropertyName("codeKeyword")]
+    public string CodeKeyword { get; set; } = "#569CD6";
+
+    [JsonPropertyName("codeComment")]
+    public string CodeComment { get; set; } = "#6A9955";
+
+    [JsonPropertyName("codeString")]
+    public string CodeString { get; set; } = "#CE9178";
+
+    [JsonPropertyName("codeNumber")]
+    public string CodeNumber { get; set; } = "#B5CEA8";
+
+    [JsonPropertyName("codeType")]
+    public string CodeType { get; set; } = "#4EC9B0";
+
+    [JsonPropertyName("codeMethod")]
+    public string CodeMethod { get; set; } = "#DCDCAA";
+
+    [JsonPropertyName("codePreprocessor")]
+    public string CodePreprocessor { get; set; } = "#9B9B9B";
+
+    [JsonPropertyName("codePunctuation")]
+    public string CodePunctuation { get; set; } = "#D4D4D4";
 }

@@ -66,7 +66,15 @@ public class ThemeService : IThemeService
             StatusBarBackground = "#007ACC",
             StatusBarForeground = "#FFFFFF",
             AccentColor = "#007ACC",
-            BorderColor = "#181818"
+            BorderColor = "#181818",
+            CodeKeyword = "#569CD6",
+            CodeComment = "#6A9955",
+            CodeString = "#CE9178",
+            CodeNumber = "#B5CEA8",
+            CodeType = "#4EC9B0",
+            CodeMethod = "#DCDCAA",
+            CodePreprocessor = "#9B9B9B",
+            CodePunctuation = "#D4D4D4"
         });
 
         _themes.Add(new ColorTheme
@@ -90,7 +98,15 @@ public class ThemeService : IThemeService
             StatusBarBackground = "#21252B",
             StatusBarForeground = "#98C379",
             AccentColor = "#61AFEF",
-            BorderColor = "#181A1F"
+            BorderColor = "#181A1F",
+            CodeKeyword = "#C678DD",
+            CodeComment = "#5C6370",
+            CodeString = "#98C379",
+            CodeNumber = "#D19A66",
+            CodeType = "#E5C07B",
+            CodeMethod = "#61AFEF",
+            CodePreprocessor = "#E06C75",
+            CodePunctuation = "#ABB2BF"
         });
 
         _themes.Add(new ColorTheme
@@ -114,7 +130,15 @@ public class ThemeService : IThemeService
             StatusBarBackground = "#FD971F",
             StatusBarForeground = "#272822",
             AccentColor = "#A6E22E",
-            BorderColor = "#1B1D16"
+            BorderColor = "#1B1D16",
+            CodeKeyword = "#F92672",
+            CodeComment = "#75715E",
+            CodeString = "#E6DB74",
+            CodeNumber = "#AE81FF",
+            CodeType = "#66D9EF",
+            CodeMethod = "#A6E22E",
+            CodePreprocessor = "#FD971F",
+            CodePunctuation = "#F8F8F2"
         });
 
         _themes.Add(new ColorTheme
@@ -138,7 +162,15 @@ public class ThemeService : IThemeService
             StatusBarBackground = "#6272A4",
             StatusBarForeground = "#F8F8F2",
             AccentColor = "#BD93F9",
-            BorderColor = "#191A21"
+            BorderColor = "#191A21",
+            CodeKeyword = "#FF79C6",
+            CodeComment = "#6272A4",
+            CodeString = "#F1FA8C",
+            CodeNumber = "#BD93F9",
+            CodeType = "#8BE9FD",
+            CodeMethod = "#50FA7B",
+            CodePreprocessor = "#FFB86C",
+            CodePunctuation = "#F8F8F2"
         });
 
         _themes.Add(new ColorTheme
@@ -162,7 +194,15 @@ public class ThemeService : IThemeService
             StatusBarBackground = "#268BD2",
             StatusBarForeground = "#002B36",
             AccentColor = "#2AA198",
-            BorderColor = "#001F27"
+            BorderColor = "#001F27",
+            CodeKeyword = "#859900",
+            CodeComment = "#586E75",
+            CodeString = "#2AA198",
+            CodeNumber = "#D33682",
+            CodeType = "#B58900",
+            CodeMethod = "#268BD2",
+            CodePreprocessor = "#CB4B16",
+            CodePunctuation = "#839496"
         });
 
         _themes.Add(new ColorTheme
@@ -186,7 +226,15 @@ public class ThemeService : IThemeService
             StatusBarBackground = "#0366D6",
             StatusBarForeground = "#FFFFFF",
             AccentColor = "#0366D6",
-            BorderColor = "#D1D5DA"
+            BorderColor = "#D1D5DA",
+            CodeKeyword = "#D73A49",
+            CodeComment = "#6A737D",
+            CodeString = "#032F62",
+            CodeNumber = "#005CC5",
+            CodeType = "#6F42C1",
+            CodeMethod = "#6F42C1",
+            CodePreprocessor = "#D73A49",
+            CodePunctuation = "#24292E"
         });
     }
 
@@ -223,7 +271,15 @@ public class ThemeService : IThemeService
                     StatusBarBackground = "#434C5E",
                     StatusBarForeground = "#ECEFF4",
                     AccentColor = "#88C0D0",
-                    BorderColor = "#1E222A"
+                    BorderColor = "#1E222A",
+                    CodeKeyword = "#81A1C1",
+                    CodeComment = "#616E88",
+                    CodeString = "#A3BE8C",
+                    CodeNumber = "#B48EAD",
+                    CodeType = "#8FBCBB",
+                    CodeMethod = "#88C0D0",
+                    CodePreprocessor = "#D08770",
+                    CodePunctuation = "#ECEFF4"
                 };
                 var json = JsonSerializer.Serialize(sample, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(samplePath, json);
@@ -319,10 +375,80 @@ public class ThemeService : IThemeService
             SetColorResource("ThemeStatusBarForeground", theme.StatusBarForeground);
             SetColorResource("ThemeAccentBrush", theme.AccentColor);
             SetColorResource("ThemeBorderBrush", theme.BorderColor);
+
+            // Code Syntax Highlight Resources
+            SetColorResource("ThemeCodeKeyword", theme.CodeKeyword);
+            SetColorResource("ThemeCodeComment", theme.CodeComment);
+            SetColorResource("ThemeCodeString", theme.CodeString);
+            SetColorResource("ThemeCodeNumber", theme.CodeNumber);
+            SetColorResource("ThemeCodeType", theme.CodeType);
+            SetColorResource("ThemeCodeMethod", theme.CodeMethod);
+            SetColorResource("ThemeCodePreprocessor", theme.CodePreprocessor);
+            SetColorResource("ThemeCodePunctuation", theme.CodePunctuation);
         }
 
         SaveThemeName(theme.Id);
         ThemeChanged?.Invoke(theme);
+    }
+
+    public void ApplyCodeColorsToHighlighting(IHighlightingDefinition? definition, ColorTheme? theme = null)
+    {
+        if (definition == null) return;
+        var t = theme ?? _currentTheme;
+        if (t == null) return;
+
+        try
+        {
+            var kwBrush = new SimpleHighlightingBrush(Color.Parse(t.CodeKeyword));
+            var commentBrush = new SimpleHighlightingBrush(Color.Parse(t.CodeComment));
+            var stringBrush = new SimpleHighlightingBrush(Color.Parse(t.CodeString));
+            var numberBrush = new SimpleHighlightingBrush(Color.Parse(t.CodeNumber));
+            var typeBrush = new SimpleHighlightingBrush(Color.Parse(t.CodeType));
+            var methodBrush = new SimpleHighlightingBrush(Color.Parse(t.CodeMethod));
+            var preprocBrush = new SimpleHighlightingBrush(Color.Parse(t.CodePreprocessor));
+            var punctBrush = new SimpleHighlightingBrush(Color.Parse(t.CodePunctuation));
+
+            foreach (var color in definition.NamedHighlightingColors)
+            {
+                var name = color.Name?.ToLowerInvariant() ?? string.Empty;
+                if (name.Contains("comment") || name.Contains("xml") && name.Contains("doc"))
+                {
+                    color.Foreground = commentBrush;
+                }
+                else if (name.Contains("string") || name.Contains("char") || name.Contains("literal") && !name.Contains("number"))
+                {
+                    color.Foreground = stringBrush;
+                }
+                else if (name.Contains("keyword") || name.Contains("truefalse") || name.Contains("null") || name.Contains("controlflow") || name.Contains("statement"))
+                {
+                    color.Foreground = kwBrush;
+                }
+                else if (name.Contains("digit") || name.Contains("number"))
+                {
+                    color.Foreground = numberBrush;
+                }
+                else if (name.Contains("type") || name.Contains("class") || name.Contains("struct") || name.Contains("interface"))
+                {
+                    color.Foreground = typeBrush;
+                }
+                else if (name.Contains("method") || name.Contains("function") || name.Contains("call"))
+                {
+                    color.Foreground = methodBrush;
+                }
+                else if (name.Contains("preprocessor") || name.Contains("directive"))
+                {
+                    color.Foreground = preprocBrush;
+                }
+                else if (name.Contains("punctuation") || name.Contains("delimiter"))
+                {
+                    color.Foreground = punctBrush;
+                }
+            }
+        }
+        catch
+        {
+            // Graceful fallback
+        }
     }
 
     private static void SetColorResource(string key, string hex)
