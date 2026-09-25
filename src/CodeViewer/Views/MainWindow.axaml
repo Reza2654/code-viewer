@@ -3,6 +3,7 @@
         xmlns:vm="using:CodeViewer.ViewModels"
         xmlns:views="using:CodeViewer.Views"
         xmlns:ae="using:AvaloniaEdit"
+        xmlns:models="using:CodeViewer.Models"
         x:Class="CodeViewer.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="{Binding WindowTitle}"
@@ -43,15 +44,17 @@
       <MenuItem Header="_File">
         <MenuItem Header="_New File" Command="{Binding CreateNewDocumentCommand}" HotKey="Ctrl+N" InputGesture="Ctrl+N"/>
         <MenuItem Header="_Open File..." Command="{Binding OpenFileCommand}" HotKey="Ctrl+O" InputGesture="Ctrl+O"/>
-        <MenuItem Header="Open _Recent" ItemsSource="{Binding RecentFiles}">
-          <MenuItem.ItemTemplate>
-            <DataTemplate>
-              <MenuItem Header="{Binding FileName}"
-                        Command="{Binding ((vm:MainViewModel)DataContext).OpenRecentFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="{Binding FilePath}"/>
-            </DataTemplate>
-          </MenuItem.ItemTemplate>
+        <MenuItem Header="Open _Recent" ItemsSource="{Binding RecentFiles}" IsEnabled="{Binding HasRecentFiles}">
+          <MenuItem.Styles>
+            <Style Selector="MenuItem > MenuItem" x:DataType="models:RecentFileItem">
+              <Setter Property="Header" Value="{Binding FileName}"/>
+              <Setter Property="ToolTip.Tip" Value="{Binding FilePath}"/>
+              <Setter Property="Command" Value="{Binding OpenCommand}"/>
+              <Setter Property="CommandParameter" Value="{Binding FilePath}"/>
+            </Style>
+          </MenuItem.Styles>
         </MenuItem>
+        <MenuItem Header="Clear Recent History" Command="{Binding ClearRecentFilesCommand}" IsEnabled="{Binding HasRecentFiles}"/>
         <Separator/>
         <MenuItem Header="_Save" Command="{Binding SaveCommand}" HotKey="Ctrl+S" InputGesture="Ctrl+S"/>
         <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" HotKey="Ctrl+Shift+S" InputGesture="Ctrl+Shift+S"/>

@@ -135,6 +135,13 @@ Get-ChildItem -Path "$distDir\*" -Include "*Setup*.exe","*.zip" -File | ForEach-
 $hashEntries | Out-File -FilePath $checksumFile -Encoding utf8
 Write-Host "  -> Checksums saved to: $checksumFile" -ForegroundColor Green
 
+# 8. Export WinGet Manifests
+Write-Host "Exporting WinGet Manifests..." -ForegroundColor Yellow
+$wingetScript = "$rootDir\scripts\export-winget-manifest.ps1"
+if (Test-Path $wingetScript) {
+    & powershell -ExecutionPolicy Bypass -File $wingetScript -Version $version
+}
+
 Write-Host "=================================================" -ForegroundColor Green
 Write-Host "   Package Release Completed Successfully!       " -ForegroundColor Green
 Write-Host "=================================================" -ForegroundColor Green

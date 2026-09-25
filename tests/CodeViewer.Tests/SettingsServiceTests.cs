@@ -133,4 +133,14 @@ public class SettingsServiceTests
         Assert.AreEqual(16.0, settingsService.CurrentSettings.FontSize);
         Assert.IsTrue(settingsService.CurrentSettings.WordWrap);
     }
+
+    [TestMethod]
+    public void AppSettings_SanitizeFontFamily_StripsCommaSeparatedLists()
+    {
+        Assert.AreEqual("Cascadia Code", AppSettings.SanitizeFontFamily("Cascadia Code, Consolas, Courier New, monospace"));
+        Assert.AreEqual("Consolas", AppSettings.SanitizeFontFamily("Consolas, Courier New"));
+        Assert.AreEqual("Fira Code", AppSettings.SanitizeFontFamily("  'Fira Code'  "));
+        Assert.AreEqual("Cascadia Code", AppSettings.SanitizeFontFamily(null));
+        Assert.AreEqual("Cascadia Code", AppSettings.SanitizeFontFamily("   "));
+    }
 }

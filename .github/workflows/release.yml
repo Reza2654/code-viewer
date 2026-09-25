@@ -37,6 +37,7 @@ jobs:
           files: |
             dist/CodeViewer-*-Setup.exe
             dist/CodeViewer-*-portable.zip
+            dist/CodeViewer-*-winget-manifests.zip
             dist/checksums.sha256
           generate_release_notes: true
           draft: false

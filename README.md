@@ -1,6 +1,6 @@
 # Code Viewer
 
-[![CI Build](https://github.com/your-username/code-viewer/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/code-viewer/actions/workflows/ci.yml)
+[![CI Build](https://github.com/Reza2654/code-viewer/actions/workflows/ci.yml/badge.svg)](https://github.com/Reza2654/code-viewer/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-purple.svg)](https://dotnet.microsoft.com/)
 [![Avalonia UI](https://img.shields.io/badge/UI-Avalonia%2011.2-1877F2.svg)](https://avaloniaui.net/)
@@ -64,8 +64,18 @@ Download and run `CodeViewer-v1.0-Setup.exe` from the [Releases](https://github.
 - Automatically registers the modern Windows 11 right-click context menu.
 
 ### Option 2: Portable ZIP
-Download `CodeViewer-v1.0-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
+Download `CodeViewer-v1.0.1-beta.5-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
 To enable the modern Windows 11 context menu for portable use, right-click `scripts\register-windows11-context-menu.ps1` and select **Run with PowerShell**.
+
+### Option 3: Windows Package Manager (WinGet)
+Install directly via WinGet:
+```powershell
+# From local manifest:
+winget install --manifest packaging/winget
+
+# Or once submitted to winget-pkgs:
+winget install Reza2654.CodeViewer
+```
 
 ---
 

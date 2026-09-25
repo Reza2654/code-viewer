@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Text.Json.Serialization;
+using System.Windows.Input;
 
 namespace CodeViewer.Models;
 
@@ -13,4 +15,7 @@ public class RecentFileItem
     public DateTime LastOpened { get; set; } = DateTime.UtcNow;
 
     public bool Exists => File.Exists(FilePath);
+
+    [JsonIgnore]
+    public ICommand? OpenCommand { get; set; }
 }

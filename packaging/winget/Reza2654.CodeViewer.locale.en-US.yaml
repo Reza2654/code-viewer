@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+
+PackageIdentifier: Reza2654.CodeViewer
+PackageVersion: 1.0.1-beta.5
+PackageLocale: en-US
+Publisher: Reza2654
+PublisherUrl: https://github.com/Reza2654
+PublisherSupportUrl: https://github.com/Reza2654/code-viewer/issues
+Author: Reza2654
+PackageName: Code Viewer
+PackageUrl: https://github.com/Reza2654/code-viewer
+License: MIT
+LicenseUrl: https://github.com/Reza2654/code-viewer/blob/main/LICENSE
+Copyright: Copyright (c) Reza2654
+ShortDescription: Fast, lightweight code viewer and editor with themes, plugins, and Windows 11 context menu integration.
+Description: Code Viewer is an open-source, fast code viewer and editor built with C# and Avalonia. Features include customizable syntax themes, font customization, plugin support, and deep Windows 11 right-click context menu integration.
+Moniker: codeviewer
+Tags:
+- code
+- developer-tools
+- editor
+- text-editor
+- viewer
+- syntax-highlighting
+- windows11
+- avalonia
+ReleaseNotesUrl: https://github.com/Reza2654/code-viewer/releases/tag/v1.0.1-beta.5
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

@@ -11,8 +11,26 @@ public class AppSettings
     [JsonPropertyName("themeId")]
     public string ThemeId { get; set; } = "dark-plus";
 
+    private string _fontFamily = "Cascadia Code";
+
     [JsonPropertyName("fontFamily")]
-    public string FontFamily { get; set; } = "Cascadia Code, Consolas, Courier New, monospace";
+    public string FontFamily
+    {
+        get => _fontFamily;
+        set => _fontFamily = SanitizeFontFamily(value);
+    }
+
+    public static string SanitizeFontFamily(string? font)
+    {
+        if (string.IsNullOrWhiteSpace(font))
+        {
+            return "Cascadia Code";
+        }
+
+        var primary = font.Contains(',') ? font.Split(',')[0] : font;
+        primary = primary.Trim().Trim('"', '\'');
+        return string.IsNullOrWhiteSpace(primary) ? "Cascadia Code" : primary;
+    }
 
     [JsonPropertyName("fontSize")]
     public double FontSize { get; set; } = 14.0;

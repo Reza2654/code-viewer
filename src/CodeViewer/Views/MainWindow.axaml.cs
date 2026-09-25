@@ -97,7 +97,34 @@ public partial class MainWindow : Window
                 var dialog = new SettingsDialog(new SettingsViewModel(vm.SettingsService, vm.ThemeService));
                 await dialog.ShowDialog(this);
             };
+
+            vm.SettingsService.SettingsChanged += OnSettingsChanged;
+            OnSettingsChanged(vm.SettingsService.CurrentSettings);
         }
+    }
+
+    private void OnSettingsChanged(AppSettings settings)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            try
+            {
+                var fontName = AppSettings.SanitizeFontFamily(settings.FontFamily);
+                var ff = new Avalonia.Media.FontFamily(fontName);
+
+                Editor.FontFamily = ff;
+                Editor.TextArea.FontFamily = ff;
+                Editor.FontSize = settings.FontSize;
+                Editor.WordWrap = settings.WordWrap;
+                Editor.ShowLineNumbers = settings.ShowLineNumbers;
+
+                Editor.TextArea.TextView.Redraw();
+            }
+            catch
+            {
+                // Fallback handled
+            }
+        });
     }
 
     private void OnThemeChanged(ColorTheme theme)
@@ -543,7 +570,7 @@ public partial class MainWindow : Window
 
         var panel = new StackPanel { Margin = new Avalonia.Thickness(24), Spacing = 10, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.0.1-beta.4 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Version 1.0.1-beta.5 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 10, 0, 10) });
 
         var okBtn = new Button { Content = "OK", Width = 80, CornerRadius = new Avalonia.CornerRadius(4), Background = new SolidColorBrush(Color.Parse("#007ACC")), Foreground = Avalonia.Media.Brushes.White, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };

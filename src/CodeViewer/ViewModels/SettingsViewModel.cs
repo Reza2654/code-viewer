@@ -38,18 +38,7 @@ public partial class SettingsViewModel : ViewModelBase
 
     public IReadOnlyList<ColorTheme> AvailableThemes => _themeService.AvailableThemes;
 
-    public ObservableCollection<string> AvailableFonts { get; } =
-    [
-        "Cascadia Code",
-        "Consolas",
-        "Fira Code",
-        "JetBrains Mono",
-        "Courier New",
-        "Lucida Console",
-        "Segoe UI Variable",
-        "Segoe UI",
-        "Cascadia Code, Consolas, Courier New, monospace"
-    ];
+    public ObservableCollection<string> AvailableFonts { get; } = [];
 
     public ObservableCollection<int> AvailableTabSizes { get; } = [2, 4, 8];
 
@@ -63,7 +52,7 @@ public partial class SettingsViewModel : ViewModelBase
         _themeService = themeService;
 
         var current = _settingsService.CurrentSettings;
-        _selectedFont = current.FontFamily;
+        _selectedFont = AppSettings.SanitizeFontFamily(current.FontFamily);
         _fontSize = current.FontSize;
         _wordWrap = current.WordWrap;
         _showLineNumbers = current.ShowLineNumbers;
@@ -73,11 +62,79 @@ public partial class SettingsViewModel : ViewModelBase
         _selectedTheme = _themeService.AvailableThemes.FirstOrDefault(t => string.Equals(t.Id, current.ThemeId, StringComparison.OrdinalIgnoreCase))
                          ?? _themeService.CurrentTheme;
 
-        // If the current font isn't in our curated list, add it so it displays correctly
+        // Discover and populate actual installed coding & monospace fonts
+        var discoveredFonts = DiscoverSystemFonts();
+        foreach (var font in discoveredFonts)
+        {
+            AvailableFonts.Add(font);
+        }
+
+        // Ensure current selected font is in the list
         if (!AvailableFonts.Contains(_selectedFont, StringComparer.OrdinalIgnoreCase))
         {
             AvailableFonts.Insert(0, _selectedFont);
         }
+    }
+
+    private static List<string> DiscoverSystemFonts()
+    {
+        var codingFonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Cascadia Code",
+            "Cascadia Mono",
+            "Consolas",
+            "Courier New",
+            "Lucida Console",
+            "JetBrains Mono",
+            "Fira Code",
+            "Source Code Pro",
+            "Inconsolata",
+            "Hack",
+            "Segoe UI Variable Text",
+            "Segoe UI"
+        };
+
+        var result = new List<string>();
+
+        try
+        {
+            var systemFonts = Avalonia.Media.FontManager.Current.SystemFonts;
+            if (systemFonts != null)
+            {
+                // First, add all recognized programming fonts that are actually installed on the system
+                foreach (var font in codingFonts)
+                {
+                    if (systemFonts.Any(f => string.Equals(f.Name, font, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        result.Add(font);
+                    }
+                }
+
+                // Next, add any other installed fonts containing Mono/Code/Console
+                foreach (var f in systemFonts.OrderBy(f => f.Name))
+                {
+                    if (!result.Contains(f.Name, StringComparer.OrdinalIgnoreCase))
+                    {
+                        var lower = f.Name.ToLowerInvariant();
+                        if (lower.Contains("mono") || lower.Contains("code") || lower.Contains("console"))
+                        {
+                            result.Add(f.Name);
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Fallback for headless / test environments
+        }
+
+        if (result.Count == 0)
+        {
+            result.AddRange(["Cascadia Code", "Consolas", "Courier New", "Lucida Console", "Segoe UI"]);
+        }
+
+        return result;
     }
 
     [RelayCommand]

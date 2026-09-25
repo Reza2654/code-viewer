@@ -41,7 +41,7 @@ public partial class MainViewModel : ViewModelBase
     private ObservableCollection<RecentFileItem> _recentFiles = [];
 
     [ObservableProperty]
-    private string _currentFontFamily = "Cascadia Code, Consolas, Courier New, monospace";
+    private string _currentFontFamily = "Cascadia Code";
 
     public IReadOnlyList<ColorTheme> AvailableThemes => _themeService.AvailableThemes;
     public ColorTheme CurrentTheme => _themeService.CurrentTheme;
@@ -171,14 +171,26 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    public bool HasRecentFiles => RecentFiles.Count > 0;
+
     public async Task LoadRecentFilesAsync()
     {
         var items = await _recentFilesService.GetRecentFilesAsync();
         RecentFiles.Clear();
         foreach (var item in items)
         {
+            item.OpenCommand = OpenRecentFileCommand;
             RecentFiles.Add(item);
         }
+        OnPropertyChanged(nameof(HasRecentFiles));
+    }
+
+    [RelayCommand]
+    public async Task ClearRecentFilesAsync()
+    {
+        await _recentFilesService.ClearAsync();
+        RecentFiles.Clear();
+        OnPropertyChanged(nameof(HasRecentFiles));
     }
 
     [RelayCommand]

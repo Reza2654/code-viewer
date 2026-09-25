@@ -112,4 +112,20 @@ public class MainViewModelTests
         _vm.ToggleLineNumbers();
         Assert.AreNotEqual(initialLineNumbers, _vm.ActiveDocument.ShowLineNumbers);
     }
+
+    [TestMethod]
+    public async Task RecentFiles_LoadAndClear_UpdatesHasRecentFiles()
+    {
+        var testFile = Path.Combine(_tempDir, "recent_test.cs");
+        File.WriteAllText(testFile, "// test");
+
+        await _vm.OpenFileInternalAsync(testFile);
+        Assert.IsTrue(_vm.HasRecentFiles);
+        Assert.IsTrue(_vm.RecentFiles.Count > 0);
+        Assert.IsNotNull(_vm.RecentFiles[0].OpenCommand);
+
+        await _vm.ClearRecentFilesAsync();
+        Assert.IsFalse(_vm.HasRecentFiles);
+        Assert.AreEqual(0, _vm.RecentFiles.Count);
+    }
 }

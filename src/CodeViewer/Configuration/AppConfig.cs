@@ -11,7 +11,7 @@ public class AppConfig
     public double DefaultFontSize { get; set; } = 14.0;
     public double MinFontSize { get; set; } = 8.0;
     public double MaxFontSize { get; set; } = 36.0;
-    public string DefaultFontFamily { get; set; } = "Cascadia Code, Consolas, Courier New, monospace";
+    public string DefaultFontFamily { get; set; } = "Cascadia Code";
     public bool WordWrap { get; set; } = false;
     public bool ShowLineNumbers { get; set; } = true;
     public int MaxRecentFiles { get; set; } = 20;

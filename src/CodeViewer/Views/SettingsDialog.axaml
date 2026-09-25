@@ -46,7 +46,16 @@
                            Foreground="#888888"/>
                 <ComboBox ItemsSource="{Binding AvailableFonts}"
                           SelectedItem="{Binding SelectedFont}"
-                          HorizontalAlignment="Stretch"/>
+                          HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                      <TextBlock Text="{Binding}"
+                                 FontFamily="{Binding}"
+                                 FontSize="13"
+                                 VerticalAlignment="Center"/>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
                 <TextBox Text="{Binding SelectedFont}"
                          Watermark="Or type custom font family name..."
                          Margin="0,4,0,0"/>
