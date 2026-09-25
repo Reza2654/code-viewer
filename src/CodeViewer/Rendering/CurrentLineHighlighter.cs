@@ -31,10 +31,13 @@ public class CurrentLineHighlighter : IBackgroundRenderer
 
     public void Draw(TextView textView, DrawingContext drawingContext)
     {
-        if (_editor.Document == null)
+        if (_editor.Document == null || !textView.VisualLinesValid || textView.VisualLines.Count == 0)
             return;
 
-        var caret = _editor.TextArea.Caret;
+        var caret = _editor.TextArea?.Caret;
+        if (caret == null || caret.Line < 1 || caret.Line > _editor.Document.LineCount)
+            return;
+
         var visualLine = textView.GetVisualLine(caret.Line);
         if (visualLine == null)
             return;

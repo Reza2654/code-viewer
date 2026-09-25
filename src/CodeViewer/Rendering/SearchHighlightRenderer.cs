@@ -53,9 +53,21 @@ public class SearchHighlightRenderer : IBackgroundRenderer
         if (_matches.Count == 0 || _searchLength <= 0 || _editor.Document == null)
             return;
 
+        if (!textView.VisualLinesValid || textView.VisualLines.Count == 0)
+            return;
+
+        var firstLine = textView.VisualLines[0];
+        var lastLine = textView.VisualLines[^1];
+        var visibleStart = firstLine.FirstDocumentLine.Offset;
+        var visibleEnd = lastLine.LastDocumentLine.EndOffset;
+
         foreach (var offset in _matches)
         {
             if (offset < 0 || offset + _searchLength > _editor.Document.TextLength)
+                continue;
+
+            // Cull matches completely outside the visible lines
+            if (offset + _searchLength < visibleStart || offset > visibleEnd)
                 continue;
 
             var isActive = offset == _activeMatchOffset;

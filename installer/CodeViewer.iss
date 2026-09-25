@@ -2,9 +2,9 @@
 ; Builds a professional Windows 64-bit installer with Windows 11 Context Menu integration.
 
 #define MyAppName "Code Viewer"
-#define MyAppVersion "1.0.1-beta.6"
+#define MyAppVersion "1.0.1-rc.1"
 #define MyAppPublisher "Code Viewer Open Source Community"
-#define MyAppURL "https://github.com"
+#define MyAppURL "https://github.com/Reza2654/code-viewer"
 #define MyAppExeName "CodeViewer.exe"
 
 [Setup]
@@ -19,7 +19,7 @@ DefaultDirName={autopf}\CodeViewer
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=..\dist
-OutputBaseFilename=CodeViewer-v1.0.1-beta.6-Setup
+OutputBaseFilename=CodeViewer-v1.0.1-rc.1-Setup
 SetupIconFile=..\src\CodeViewer\Assets\icon.ico
 Compression=lzma2/ultra64
 SolidCompression=yes

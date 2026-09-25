@@ -43,6 +43,7 @@ public class FileWatcherService : IFileWatcherService
 
                     watcher.Changed += OnFileSystemEvent;
                     watcher.Created += OnFileSystemEvent;
+                    watcher.Deleted += OnFileSystemEvent;
                     watcher.Renamed += OnFileSystemRenamed;
 
                     entry = (watcher, new HashSet<string>(StringComparer.OrdinalIgnoreCase));

@@ -3,17 +3,19 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using CodeViewer.Models;
 
 namespace CodeViewer.Services;
 
 /// <summary>
-/// Saves and restores open editor tabs to/from session.json in local application data.
+/// Saves and restores open editor tabs to/from session.json in local application data with thread-safe synchronization.
 /// </summary>
 public class SessionService : ISessionService
 {
     private readonly string _sessionFilePath;
+    private readonly SemaphoreSlim _lock = new(1, 1);
 
     public SessionService(string? customSessionFilePath = null)
     {
@@ -30,6 +32,7 @@ public class SessionService : ISessionService
 
     public async Task<SessionData?> LoadSessionAsync()
     {
+        await _lock.WaitAsync().ConfigureAwait(false);
         try
         {
             if (!File.Exists(_sessionFilePath))
@@ -37,7 +40,7 @@ public class SessionService : ISessionService
                 return null;
             }
 
-            var json = await File.ReadAllTextAsync(_sessionFilePath);
+            var json = await File.ReadAllTextAsync(_sessionFilePath).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(json))
             {
                 return null;
@@ -66,10 +69,15 @@ public class SessionService : ISessionService
         {
             return null;
         }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public async Task SaveSessionAsync(IEnumerable<string> openFilePaths, string? activeFilePath)
     {
+        await _lock.WaitAsync().ConfigureAwait(false);
         try
         {
             var dir = Path.GetDirectoryName(_sessionFilePath);
@@ -90,16 +98,39 @@ public class SessionService : ISessionService
             };
 
             var json = JsonSerializer.Serialize(session, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(_sessionFilePath, json);
+            var tempFile = _sessionFilePath + $".tmp_{Guid.NewGuid():N}";
+            await File.WriteAllTextAsync(tempFile, json).ConfigureAwait(false);
+
+            if (File.Exists(_sessionFilePath))
+            {
+                try
+                {
+                    File.Replace(tempFile, _sessionFilePath, null);
+                }
+                catch
+                {
+                    File.Copy(tempFile, _sessionFilePath, overwrite: true);
+                    try { File.Delete(tempFile); } catch { }
+                }
+            }
+            else
+            {
+                File.Move(tempFile, _sessionFilePath);
+            }
         }
         catch
         {
             // Best effort persistence
         }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
-    public Task ClearSessionAsync()
+    public async Task ClearSessionAsync()
     {
+        await _lock.WaitAsync().ConfigureAwait(false);
         try
         {
             if (File.Exists(_sessionFilePath))
@@ -111,6 +142,9 @@ public class SessionService : ISessionService
         {
             // Ignored
         }
-        return Task.CompletedTask;
+        finally
+        {
+            _lock.Release();
+        }
     }
 }

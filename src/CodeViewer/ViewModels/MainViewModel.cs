@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CodeViewer.Configuration;
 using CodeViewer.Models;
@@ -17,7 +18,7 @@ namespace CodeViewer.ViewModels;
 /// <summary>
 /// Root ViewModel orchestrating tabs, file operations, editor settings, themes, plugins, and recent files.
 /// </summary>
-public partial class MainViewModel : ViewModelBase
+public partial class MainViewModel : ViewModelBase, IDisposable
 {
     private readonly IFileService _fileService;
     private readonly ILanguageService _languageService;
@@ -31,6 +32,8 @@ public partial class MainViewModel : ViewModelBase
     private readonly AppConfig _config;
 
     private readonly HashSet<string> _activeReloadPrompts = new(StringComparer.OrdinalIgnoreCase);
+    private CancellationTokenSource? _statusCts;
+    private bool _isDisposed;
 
     [ObservableProperty]
     private DocumentViewModel? _activeDocument;
@@ -46,6 +49,9 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _currentFontFamily = "Cascadia Code";
+
+    [ObservableProperty]
+    private string? _statusMessage;
 
     public IReadOnlyList<ColorTheme> AvailableThemes => _themeService.AvailableThemes;
     public ColorTheme CurrentTheme => _themeService.CurrentTheme;
@@ -270,19 +276,56 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
+    public async Task ShowTemporaryStatusAsync(string message, int durationMs = 2500)
+    {
+        _statusCts?.Cancel();
+        _statusCts = new CancellationTokenSource();
+        var token = _statusCts.Token;
+
+        StatusMessage = message;
+        try
+        {
+            await Task.Delay(durationMs, token);
+            if (!token.IsCancellationRequested)
+            {
+                StatusMessage = null;
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // Ignored
+        }
+    }
+
     [RelayCommand]
     public async Task OpenRecentFileAsync(string? filePath)
     {
-        if (!string.IsNullOrEmpty(filePath))
+        if (string.IsNullOrWhiteSpace(filePath)) return;
+
+        if (!File.Exists(filePath))
         {
-            await OpenFileInternalAsync(filePath);
+            await _recentFilesService.RemoveRecentFileAsync(filePath);
+            await LoadRecentFilesAsync();
+            _ = ShowTemporaryStatusAsync($"File not found: {Path.GetFileName(filePath)}");
+            await _dialogService.ShowMessageAsync("File Not Found", $"The recent file '{filePath}' no longer exists on disk.\n\nIt has been removed from recent files.");
+            return;
         }
+
+        await OpenFileInternalAsync(filePath);
     }
 
     public async Task OpenFileInternalAsync(string filePath)
     {
-        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+        if (string.IsNullOrWhiteSpace(filePath))
         {
+            return;
+        }
+
+        if (!File.Exists(filePath))
+        {
+            await _recentFilesService.RemoveRecentFileAsync(filePath);
+            await LoadRecentFilesAsync();
+            _ = ShowTemporaryStatusAsync($"File not found: {Path.GetFileName(filePath)}");
             return;
         }
 
@@ -458,7 +501,8 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     public void ShowSearch()
     {
-        SearchViewModel.Open();
+        var selection = RequestSelectedText?.Invoke();
+        SearchViewModel.Open(string.IsNullOrWhiteSpace(selection) ? null : selection);
     }
 
     [RelayCommand]
@@ -704,6 +748,7 @@ public partial class MainViewModel : ViewModelBase
         if (RequestSetClipboardText != null)
         {
             await RequestSetClipboardText.Invoke(text);
+            _ = ShowTemporaryStatusAsync("✓ Copied all content to clipboard!");
         }
     }
 
@@ -729,7 +774,7 @@ public partial class MainViewModel : ViewModelBase
         Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
         {
             var doc = Documents.FirstOrDefault(d => string.Equals(d.FilePath, changedPath, StringComparison.OrdinalIgnoreCase));
-            if (doc == null || !File.Exists(changedPath)) return;
+            if (doc == null) return;
 
             lock (_activeReloadPrompts)
             {
@@ -739,6 +784,26 @@ public partial class MainViewModel : ViewModelBase
 
             try
             {
+                if (!File.Exists(changedPath))
+                {
+                    var keepOpen = await _dialogService.ShowConfirmationAsync(
+                        "File Deleted Externally",
+                        $"'{doc.DisplayName}' has been deleted on disk.\n\nDo you want to keep the document open in Code Viewer or close this tab?",
+                        confirmText: "Keep Open",
+                        cancelText: "Close Tab");
+                    if (!keepOpen)
+                    {
+                        await CloseTabAsync(doc);
+                    }
+                    else
+                    {
+                        doc.IsModified = true;
+                        OnPropertyChanged(nameof(WindowTitle));
+                        _ = ShowTemporaryStatusAsync($"File deleted on disk: {doc.DisplayName}");
+                    }
+                    return;
+                }
+
                 bool shouldReload;
                 if (doc.IsModified)
                 {
@@ -759,11 +824,12 @@ public partial class MainViewModel : ViewModelBase
 
                 if (shouldReload && File.Exists(changedPath))
                 {
-                    var newContent = await File.ReadAllTextAsync(changedPath, doc.Model.EncodingInfo.Encoding);
+                    var newContent = await ReadAllTextWithRetryAsync(changedPath, doc.Model.EncodingInfo.Encoding);
                     var fileInfo = new FileInfo(changedPath);
                     doc.TextDocument.Text = newContent;
                     doc.MarkSaved(fileInfo.FullName, fileInfo.Length, fileInfo.LastWriteTimeUtc);
                     OnPropertyChanged(nameof(WindowTitle));
+                    _ = ShowTemporaryStatusAsync($"Reloaded {doc.DisplayName} from disk");
                 }
             }
             catch (Exception ex)
@@ -780,6 +846,27 @@ public partial class MainViewModel : ViewModelBase
         });
     }
 
+    private static async Task<string> ReadAllTextWithRetryAsync(string path, System.Text.Encoding encoding, int maxRetries = 5, int delayMs = 120)
+    {
+        for (int i = 0; i < maxRetries; i++)
+        {
+            try
+            {
+                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, FileOptions.Asynchronous);
+                using var reader = new StreamReader(stream, encoding);
+                return await reader.ReadToEndAsync();
+            }
+            catch (IOException) when (i < maxRetries - 1)
+            {
+                await Task.Delay(delayMs);
+            }
+        }
+
+        using var finalStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var finalReader = new StreamReader(finalStream, encoding);
+        return await finalReader.ReadToEndAsync();
+    }
+
     private void UpdateActiveDocumentSelection()
     {
         foreach (var doc in Documents)
@@ -793,5 +880,16 @@ public partial class MainViewModel : ViewModelBase
         UpdateActiveDocumentSelection();
         OnPropertyChanged(nameof(WindowTitle));
         _ = SaveCurrentSessionAsync();
+    }
+
+    public void Dispose()
+    {
+        if (_isDisposed) return;
+        _isDisposed = true;
+        _statusCts?.Cancel();
+        _statusCts?.Dispose();
+        _fileWatcherService.FileChangedOnDisk -= OnFileChangedOnDisk;
+        _fileWatcherService.Dispose();
+        _settingsService.SettingsChanged -= OnSettingsChanged;
     }
 }

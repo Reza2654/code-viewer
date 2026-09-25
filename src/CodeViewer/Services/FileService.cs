@@ -94,7 +94,15 @@ public class FileService : IFileService
             // Atomic file swap / move
             if (File.Exists(destinationPath))
             {
-                File.Replace(tempFilePath, destinationPath, null);
+                try
+                {
+                    File.Replace(tempFilePath, destinationPath, null);
+                }
+                catch
+                {
+                    File.Copy(tempFilePath, destinationPath, overwrite: true);
+                    try { File.Delete(tempFilePath); } catch { }
+                }
             }
             else
             {

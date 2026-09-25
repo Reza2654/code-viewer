@@ -23,8 +23,10 @@
     <KeyBinding Gesture="Ctrl+Shift+C" Command="{Binding CopyAllCommand}"/>
     <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseTabCommand}" CommandParameter="{Binding ActiveDocument}"/>
 
-    <!-- Search Shortcut -->
+    <!-- Search Shortcuts -->
     <KeyBinding Gesture="Ctrl+F" Command="{Binding ShowSearchCommand}"/>
+    <KeyBinding Gesture="F3" Command="{Binding SearchViewModel.FindNextCommand}"/>
+    <KeyBinding Gesture="Shift+F3" Command="{Binding SearchViewModel.FindPreviousCommand}"/>
 
     <!-- View & Zoom Shortcuts -->
     <KeyBinding Gesture="Ctrl+OemPlus" Command="{Binding ZoomInCommand}"/>
@@ -256,7 +258,8 @@
           <!-- Left Info: Language Selector | Encoding | Line Endings -->
           <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
             <!-- Clickable Manual Language Selector -->
-            <Button ToolTip.Tip="Select Language Mode"
+            <Button x:Name="LanguageButton"
+                    ToolTip.Tip="Select Language Mode"
                     Background="Transparent"
                     BorderThickness="0"
                     Padding="4,1"
@@ -276,6 +279,7 @@
                         <ItemsControl.ItemTemplate>
                           <DataTemplate DataType="x:String">
                             <Button Content="{Binding}"
+                                    Click="OnLanguageItemClick"
                                     Command="{Binding ((vm:MainViewModel)DataContext).SetLanguageCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                     CommandParameter="{Binding}"
                                     HorizontalAlignment="Stretch"
@@ -303,6 +307,15 @@
             <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
             <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.LineEndingDisplay, FallbackValue='LF'}"/>
           </StackPanel>
+
+          <!-- Center Notification / Temporary Status Message -->
+          <TextBlock Grid.Column="1"
+                     Text="{Binding StatusMessage}"
+                     Foreground="{DynamicResource ThemeStatusBarForeground}"
+                     FontSize="11"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     Opacity="0.95"/>
 
           <!-- Right Info: Caret Position, Font Size, and Settings Button -->
           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">

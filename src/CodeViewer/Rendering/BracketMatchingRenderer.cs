@@ -42,6 +42,8 @@ public class BracketMatchingRenderer : IBackgroundRenderer
         }
     }
 
+    private const int MaxBracketSearchDistance = 30000;
+
     public void UpdateMatchingBrackets()
     {
         var doc = _editor.Document;
@@ -52,15 +54,15 @@ public class BracketMatchingRenderer : IBackgroundRenderer
         }
 
         var caretOffset = _editor.CaretOffset;
-        var text = doc.Text;
+        var textLength = doc.TextLength;
 
         // Check character right before caret first, then at caret
         var bracketOffset = -1;
         var bracketChar = '\0';
 
-        if (caretOffset > 0 && caretOffset <= text.Length)
+        if (caretOffset > 0 && caretOffset <= textLength)
         {
-            var prevChar = text[caretOffset - 1];
+            var prevChar = doc.GetCharAt(caretOffset - 1);
             if (IsBracket(prevChar))
             {
                 bracketOffset = caretOffset - 1;
@@ -68,9 +70,9 @@ public class BracketMatchingRenderer : IBackgroundRenderer
             }
         }
 
-        if (bracketOffset == -1 && caretOffset < text.Length)
+        if (bracketOffset == -1 && caretOffset < textLength)
         {
-            var currChar = text[caretOffset];
+            var currChar = doc.GetCharAt(caretOffset);
             if (IsBracket(currChar))
             {
                 bracketOffset = caretOffset;
@@ -84,7 +86,7 @@ public class BracketMatchingRenderer : IBackgroundRenderer
             return;
         }
 
-        var matchingOffset = FindMatchingBracket(text, bracketOffset, bracketChar);
+        var matchingOffset = FindMatchingBracket(doc, bracketOffset, bracketChar);
         if (matchingOffset != -1)
         {
             _firstOffset = bracketOffset;
@@ -107,7 +109,7 @@ public class BracketMatchingRenderer : IBackgroundRenderer
         return c is '(' or ')' or '[' or ']' or '{' or '}';
     }
 
-    private static int FindMatchingBracket(string text, int offset, char bracket)
+    private static int FindMatchingBracket(TextDocument doc, int offset, char bracket)
     {
         var isOpen = bracket is '(' or '[' or '{';
         var matchingBracket = bracket switch
@@ -123,12 +125,15 @@ public class BracketMatchingRenderer : IBackgroundRenderer
 
         if (matchingBracket == '\0') return -1;
 
+        var textLength = doc.TextLength;
+
         if (isOpen)
         {
+            var maxLimit = Math.Min(textLength, offset + 1 + MaxBracketSearchDistance);
             var depth = 1;
-            for (var i = offset + 1; i < text.Length; i++)
+            for (var i = offset + 1; i < maxLimit; i++)
             {
-                var c = text[i];
+                var c = doc.GetCharAt(i);
                 if (c == bracket)
                 {
                     depth++;
@@ -142,10 +147,11 @@ public class BracketMatchingRenderer : IBackgroundRenderer
         }
         else
         {
+            var minLimit = Math.Max(0, offset - MaxBracketSearchDistance);
             var depth = 1;
-            for (var i = offset - 1; i >= 0; i--)
+            for (var i = offset - 1; i >= minLimit; i--)
             {
-                var c = text[i];
+                var c = doc.GetCharAt(i);
                 if (c == bracket)
                 {
                     depth++;
