@@ -80,13 +80,13 @@
 ## Installation & Packaging
 
 ### Option 1: Installer (Recommended)
-Download and run `CodeViewer-v1.0.1-beta.7-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
+Download and run `CodeViewer-v1.0.1-rc.2-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
 - Installs Code Viewer to your system.
 - Creates Start Menu and Desktop shortcuts.
 - Automatically registers the modern Windows 11 right-click context menu.
 
 ### Option 2: Portable ZIP
-Download `CodeViewer-v1.0.1-beta.7-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
+Download `CodeViewer-v1.0.1-rc.2-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
 To enable the modern Windows 11 context menu for portable use, right-click `scripts\register-windows11-context-menu.ps1` and select **Run with PowerShell**.
 
 ### Option 3: Windows Package Manager (WinGet)
@@ -120,7 +120,7 @@ dotnet restore CodeViewer.slnx
 # Build all projects
 dotnet build CodeViewer.slnx
 
-# Run all 78 unit tests
+# Run all 80 unit tests
 dotnet test tests/CodeViewer.Tests/CodeViewer.Tests.csproj
 
 # Run the app locally
@@ -133,8 +133,8 @@ To generate both the portable ZIP and the Inno Setup executable installer:
 powershell -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
 ```
 Output artifacts are saved in `dist/`:
-- `CodeViewer-v1.0.1-beta.7-Setup.exe`
-- `CodeViewer-v1.0.1-beta.7-win-x64-portable.zip`
+- `CodeViewer-v1.0.1-rc.2-Setup.exe`
+- `CodeViewer-v1.0.1-rc.2-win-x64-portable.zip`
 - `checksums.sha256`
 
 ---

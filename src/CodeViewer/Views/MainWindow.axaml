@@ -71,7 +71,7 @@
         <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" HotKey="Ctrl+Shift+S" InputGesture="Ctrl+Shift+S"/>
         <MenuItem Header="_Close Tab" Command="{Binding CloseTabCommand}" CommandParameter="{Binding ActiveDocument}" HotKey="Ctrl+W" InputGesture="Ctrl+W"/>
         <Separator/>
-        <MenuItem Header="_Settings..." Command="{Binding ShowSettingsCommand}" HotKey="Ctrl+OemComma" InputGesture="Ctrl+,"/>
+        <MenuItem Header="_Settings..." Command="{Binding ShowSettingsCommand}" HotKey="Ctrl+OemComma"/>
         <MenuItem Header="File _Info..." Click="OnShowFileInfoClick"/>
         <Separator/>
         <MenuItem Header="E_xit" Click="OnExitClick" InputGesture="Alt+F4"/>
@@ -91,17 +91,17 @@
         <MenuItem Header="_Replace..." Command="{Binding ShowReplaceCommand}" HotKey="Ctrl+H" InputGesture="Ctrl+H"/>
         <MenuItem Header="Go to _Line..." Command="{Binding ShowGoToLineCommand}" HotKey="Ctrl+G" InputGesture="Ctrl+G"/>
         <Separator/>
-        <MenuItem Header="Toggle _Line Comment" Command="{Binding ToggleCommentCommand}" HotKey="Ctrl+OemQuestion" InputGesture="Ctrl+/"/>
+        <MenuItem Header="Toggle _Line Comment" Command="{Binding ToggleCommentCommand}" HotKey="Ctrl+OemQuestion"/>
         <MenuItem Header="_Duplicate Line / Selection" Click="OnDuplicateLineClick" HotKey="Ctrl+D" InputGesture="Ctrl+D"/>
         <MenuItem Header="_Delete Line" Click="OnDeleteLineClick" HotKey="Ctrl+Shift+K" InputGesture="Ctrl+Shift+K"/>
         <Separator/>
-        <MenuItem Header="_Settings..." Command="{Binding ShowSettingsCommand}" InputGesture="Ctrl+,"/>
+        <MenuItem Header="_Settings..." Command="{Binding ShowSettingsCommand}" HotKey="Ctrl+OemComma"/>
       </MenuItem>
 
       <MenuItem Header="_View">
-        <MenuItem Header="Zoom _In" Command="{Binding ZoomInCommand}" HotKey="Ctrl+OemPlus" InputGesture="Ctrl++"/>
-        <MenuItem Header="Zoom _Out" Command="{Binding ZoomOutCommand}" HotKey="Ctrl+OemMinus" InputGesture="Ctrl+-"/>
-        <MenuItem Header="_Reset Zoom" Command="{Binding ResetZoomCommand}" HotKey="Ctrl+D0" InputGesture="Ctrl+0"/>
+        <MenuItem Header="Zoom _In" Command="{Binding ZoomInCommand}" HotKey="Ctrl+OemPlus"/>
+        <MenuItem Header="Zoom _Out" Command="{Binding ZoomOutCommand}" HotKey="Ctrl+OemMinus"/>
+        <MenuItem Header="_Reset Zoom" Command="{Binding ResetZoomCommand}" HotKey="Ctrl+D0"/>
         <Separator/>
         <MenuItem Header="Toggle _Word Wrap" Command="{Binding ToggleWordWrapCommand}" HotKey="Alt+Z" InputGesture="Alt+Z">
           <MenuItem.Icon>

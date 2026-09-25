@@ -279,6 +279,64 @@ public class FastLightweightEditorTests
             fileWatcherService: fileWatcherService);
     }
 
+    [TestMethod]
+    public void SingleInstanceService_RegistersPrimaryAndForwardsToSecondary()
+    {
+        string[]? received = null;
+        SingleInstanceService.SetArgsHandler(args => received = args);
+
+        var first = SingleInstanceService.TryRegisterSingleInstance(Array.Empty<string>());
+        Assert.IsTrue(first, "First call should register as primary instance");
+
+        // Give background pipe server time to initialize
+        System.Threading.Thread.Sleep(100);
+
+        var second = SingleInstanceService.TryRegisterSingleInstance(new[] { "file.cs:10" });
+        Assert.IsFalse(second, "Second call should return false (forwarded to primary)");
+
+        // Wait up to 1 second for args to be delivered to handler
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (received == null && sw.ElapsedMilliseconds < 1000)
+        {
+            System.Threading.Thread.Sleep(20);
+        }
+
+        Assert.IsNotNull(received, "Arguments should have been delivered to handler via named pipe");
+        Assert.AreEqual(1, received.Length);
+        Assert.AreEqual("file.cs:10", received[0]);
+
+        SingleInstanceService.Stop();
+        System.Threading.Thread.Sleep(100);
+    }
+
+    [TestMethod]
+    public void SingleInstanceService_EmptyArgsSendsActivateToken()
+    {
+        string[]? received = null;
+        SingleInstanceService.SetArgsHandler(args => received = args);
+
+        var first = SingleInstanceService.TryRegisterSingleInstance(Array.Empty<string>());
+        Assert.IsTrue(first);
+
+        // Give background pipe server time to initialize
+        System.Threading.Thread.Sleep(100);
+
+        var second = SingleInstanceService.TryRegisterSingleInstance(Array.Empty<string>());
+        Assert.IsFalse(second);
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        while (received == null && sw.ElapsedMilliseconds < 1000)
+        {
+            System.Threading.Thread.Sleep(20);
+        }
+
+        Assert.IsNotNull(received);
+        Assert.AreEqual(1, received.Length);
+        Assert.AreEqual(SingleInstanceService.ActivateToken, received[0]);
+
+        SingleInstanceService.Stop();
+    }
+
     private class MockDialogService : IDialogService
     {
         public void Initialize(Avalonia.Controls.Window window) { }

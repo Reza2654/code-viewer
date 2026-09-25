@@ -14,44 +14,62 @@ namespace CodeViewer.Services;
 /// </summary>
 public static class SingleInstanceService
 {
-    private static readonly string PipeName = $"CodeViewer_InstancePipe_{Environment.UserName}";
+    private static readonly string SafeUserName = (Environment.UserName ?? "Default").Replace('\\', '_').Replace('/', '_').Replace(':', '_');
+    private static readonly string PipeName = $"CodeViewer_InstancePipe_{SafeUserName}";
+    private static readonly string MutexName = $@"Local\CodeViewer_Mutex_{SafeUserName}";
     private static Mutex? _mutex;
     private static Action<string[]>? _argsHandler;
+    private static CancellationTokenSource? _serverCts;
+
+    public const string ActivateToken = "__ACTIVATE__";
 
     public static bool TryRegisterSingleInstance(string[] args)
     {
+        bool isFirstInstance = false;
         try
         {
-            var mutexName = $@"Local\CodeViewer_Mutex_{Environment.UserName}";
-            _mutex = new Mutex(true, mutexName, out var isFirstInstance);
+            _mutex = new Mutex(true, MutexName, out isFirstInstance);
+        }
+        catch (AbandonedMutexException)
+        {
+            isFirstInstance = true;
+        }
+        catch
+        {
+            isFirstInstance = true;
+        }
 
-            if (isFirstInstance)
+        if (isFirstInstance)
+        {
+            StartPipeServer();
+            return true;
+        }
+
+        // Secondary instance: Forward arguments or activation signal to the primary instance
+        try
+        {
+            using var client = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
+            client.Connect(2000);
+
+            using var writer = new StreamWriter(client, Encoding.UTF8);
+            if (args.Length == 0)
             {
-                StartPipeServer();
-                return true;
+                writer.WriteLine(ActivateToken);
             }
-
-            // A primary instance is already active: forward arguments to it and exit
-            try
+            else
             {
-                using var client = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
-                client.Connect(600);
-                using var writer = new StreamWriter(client, Encoding.UTF8);
                 foreach (var arg in args)
                 {
                     writer.WriteLine(arg);
                 }
-                writer.Flush();
-                return false;
             }
-            catch
-            {
-                // Fall back to opening a second instance if communication fails
-                return true;
-            }
+            writer.Flush();
+            return false;
         }
         catch
         {
+            // Primary instance failed to respond / crashed. Fall back to opening this instance as primary.
+            StartPipeServer();
             return true;
         }
     }
@@ -61,27 +79,52 @@ public static class SingleInstanceService
         _argsHandler = handler;
     }
 
+    public static void Stop()
+    {
+        try
+        {
+            _serverCts?.Cancel();
+            _serverCts?.Dispose();
+            _serverCts = null;
+
+            if (_mutex != null)
+            {
+                try { _mutex.ReleaseMutex(); } catch { }
+                _mutex.Dispose();
+                _mutex = null;
+            }
+        }
+        catch
+        {
+            // Best effort cleanup
+        }
+    }
+
     private static void StartPipeServer()
     {
+        _serverCts?.Cancel();
+        _serverCts = new CancellationTokenSource();
+        var token = _serverCts.Token;
+
         Task.Run(async () =>
         {
-            while (true)
+            while (!token.IsCancellationRequested)
             {
                 try
                 {
                     using var server = new NamedPipeServerStream(
                         PipeName,
                         PipeDirection.In,
-                        1,
+                        NamedPipeServerStream.MaxAllowedServerInstances,
                         PipeTransmissionMode.Byte,
                         PipeOptions.Asynchronous);
 
-                    await server.WaitForConnectionAsync().ConfigureAwait(false);
+                    await server.WaitForConnectionAsync(token).ConfigureAwait(false);
 
                     using var reader = new StreamReader(server, Encoding.UTF8);
                     var receivedList = new List<string>();
                     string? line;
-                    while ((line = await reader.ReadLineAsync().ConfigureAwait(false)) != null)
+                    while ((line = await reader.ReadLineAsync(token).ConfigureAwait(false)) != null)
                     {
                         if (!string.IsNullOrWhiteSpace(line))
                         {
@@ -94,11 +137,22 @@ public static class SingleInstanceService
                         _argsHandler(receivedList.ToArray());
                     }
                 }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
                 catch
                 {
-                    // Ignore transient pipe disconnects and continue listening
+                    try
+                    {
+                        await Task.Delay(100, token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
                 }
             }
-        });
+        }, token);
     }
 }

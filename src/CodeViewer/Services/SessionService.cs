@@ -28,6 +28,34 @@ public class SessionService : ISessionService
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             _sessionFilePath = Path.Combine(appData, "CodeViewer", "session.json");
         }
+
+        CleanupOrphanedTempFiles();
+    }
+
+    private void CleanupOrphanedTempFiles()
+    {
+        try
+        {
+            var dir = Path.GetDirectoryName(_sessionFilePath);
+            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) return;
+
+            var tempFiles = Directory.GetFiles(dir, "*tmp*")
+                .Concat(Directory.GetFiles(dir, "*~*"));
+
+            foreach (var file in tempFiles)
+            {
+                try
+                {
+                    var lastWrite = File.GetLastWriteTimeUtc(file);
+                    if (DateTime.UtcNow - lastWrite > TimeSpan.FromMinutes(1))
+                    {
+                        File.Delete(file);
+                    }
+                }
+                catch { }
+            }
+        }
+        catch { }
     }
 
     public async Task<SessionData?> LoadSessionAsync()
@@ -78,6 +106,7 @@ public class SessionService : ISessionService
     public async Task SaveSessionAsync(IEnumerable<string> openFilePaths, string? activeFilePath)
     {
         await _lock.WaitAsync().ConfigureAwait(false);
+        string? tempFile = null;
         try
         {
             var dir = Path.GetDirectoryName(_sessionFilePath);
@@ -98,7 +127,7 @@ public class SessionService : ISessionService
             };
 
             var json = JsonSerializer.Serialize(session, new JsonSerializerOptions { WriteIndented = true });
-            var tempFile = _sessionFilePath + $".tmp_{Guid.NewGuid():N}";
+            tempFile = _sessionFilePath + $".tmp_{Guid.NewGuid():N}";
             await File.WriteAllTextAsync(tempFile, json).ConfigureAwait(false);
 
             if (File.Exists(_sessionFilePath))
@@ -110,7 +139,6 @@ public class SessionService : ISessionService
                 catch
                 {
                     File.Copy(tempFile, _sessionFilePath, overwrite: true);
-                    try { File.Delete(tempFile); } catch { }
                 }
             }
             else
@@ -124,6 +152,10 @@ public class SessionService : ISessionService
         }
         finally
         {
+            if (tempFile != null && File.Exists(tempFile))
+            {
+                try { File.Delete(tempFile); } catch { }
+            }
             _lock.Release();
         }
     }
