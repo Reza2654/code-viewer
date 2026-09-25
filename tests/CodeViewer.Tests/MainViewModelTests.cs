@@ -32,8 +32,17 @@ public class MainViewModelTests
             WordWrap = false,
             ShowLineNumbers = true
         };
+        var settingsService = new SettingsService(Path.Combine(_tempDir, "settings.json"));
+        var sessionService = new SessionService(Path.Combine(_tempDir, "session.json"));
 
-        _vm = new MainViewModel(fileService, languageService, recentFilesService, dialogService, config);
+        _vm = new MainViewModel(
+            fileService,
+            languageService,
+            recentFilesService,
+            dialogService,
+            config,
+            settingsService: settingsService,
+            sessionService: sessionService);
     }
 
     [TestCleanup]

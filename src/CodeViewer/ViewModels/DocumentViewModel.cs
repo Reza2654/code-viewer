@@ -44,6 +44,12 @@ public partial class DocumentViewModel : ViewModelBase
     private int _caretColumn = 1;
 
     [ObservableProperty]
+    private int _selectionLength = 0;
+
+    [ObservableProperty]
+    private int _selectedLineCount = 0;
+
+    [ObservableProperty]
     private double _fontSize = 14.0;
 
     [ObservableProperty]
@@ -61,7 +67,21 @@ public partial class DocumentViewModel : ViewModelBase
 
     public string DisplayName => IsModified ? $"{Title} *" : Title;
 
-    public string CaretDisplay => $"Ln {CaretLine}, Col {CaretColumn}";
+    public string CaretDisplay
+    {
+        get
+        {
+            if (SelectionLength > 0)
+            {
+                if (SelectedLineCount > 1)
+                {
+                    return $"Ln {CaretLine}, Col {CaretColumn} ({SelectedLineCount} lines, {SelectionLength} chars selected)";
+                }
+                return $"Ln {CaretLine}, Col {CaretColumn} ({SelectionLength} selected)";
+            }
+            return $"Ln {CaretLine}, Col {CaretColumn}";
+        }
+    }
 
     public DocumentViewModel(DocumentModel model, ILanguageService languageService, double defaultFontSize = 14.0)
     {
@@ -113,10 +133,12 @@ public partial class DocumentViewModel : ViewModelBase
         OnPropertyChanged(nameof(DisplayName));
     }
 
-    public void UpdateCaretPosition(int line, int col)
+    public void UpdateCaretPosition(int line, int col, int selectionLength = 0, int selectedLineCount = 0)
     {
         CaretLine = line;
         CaretColumn = col;
+        SelectionLength = selectionLength;
+        SelectedLineCount = selectedLineCount;
         OnPropertyChanged(nameof(CaretDisplay));
     }
 

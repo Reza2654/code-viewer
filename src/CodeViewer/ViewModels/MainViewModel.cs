@@ -53,9 +53,33 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private string? _statusMessage;
 
+    [ObservableProperty]
+    private bool _isQuickOpenOpen;
+
+    [ObservableProperty]
+    private string _quickOpenQuery = string.Empty;
+
+    [ObservableProperty]
+    private ObservableCollection<QuickOpenItem> _filteredQuickOpenItems = [];
+
+    [ObservableProperty]
+    private QuickOpenItem? _selectedQuickOpenItem;
+
+    private List<QuickOpenItem> _allQuickOpenItems = [];
+
+    [ObservableProperty]
+    private bool _isGoToLineOpen;
+
+    [ObservableProperty]
+    private string _goToLineInput = string.Empty;
+
+    [ObservableProperty]
+    private string _goToLineWatermark = "Go to line (e.g. 42 or 42:10)...";
+
     public IReadOnlyList<ColorTheme> AvailableThemes => _themeService.AvailableThemes;
     public ColorTheme CurrentTheme => _themeService.CurrentTheme;
     public IThemeService ThemeService => _themeService;
+    public ILanguageService LanguageService => _languageService;
     public IPluginService PluginService => _pluginService;
     public ISettingsService SettingsService => _settingsService;
     public ISessionService SessionService => _sessionService;
@@ -82,6 +106,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public Func<string, Task>? RequestSetClipboardText { get; set; }
     public Action? RequestOpenPluginManager { get; set; }
     public Action? RequestOpenSettings { get; set; }
+    public Action<int, int>? RequestGoToLine { get; set; }
+    public Action? RequestToggleComment { get; set; }
 
     public string WindowTitle => ActiveDocument != null
         ? $"{ActiveDocument.DisplayName} - Code Viewer"
@@ -172,15 +198,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         // 2. Load Recent Files
         await LoadRecentFilesAsync();
 
-        // 3. Handle command-line file arguments if provided (e.g. CodeViewer.exe myfile.cs)
+        // 3. Handle command-line file arguments if provided (e.g. CodeViewer.exe myfile.cs or myfile.cs:42)
         var openedAny = false;
         if (commandLineArgs != null && commandLineArgs.Length > 0)
         {
-            foreach (var arg in commandLineArgs)
+            var parsedArgs = CommandLineParser.ParseArguments(commandLineArgs);
+            foreach (var arg in parsedArgs)
             {
-                if (File.Exists(arg))
+                if (File.Exists(arg.FilePath))
                 {
-                    await OpenFileInternalAsync(arg);
+                    await OpenFileInternalAsync(arg.FilePath, arg.Line, arg.Column);
                     openedAny = true;
                 }
             }
@@ -314,7 +341,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         await OpenFileInternalAsync(filePath);
     }
 
-    public async Task OpenFileInternalAsync(string filePath)
+    public async Task OpenFileInternalAsync(string filePath, int targetLine = 1, int targetCol = 1)
     {
         if (string.IsNullOrWhiteSpace(filePath))
         {
@@ -337,6 +364,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             ActiveDocument = existing;
             UpdateActiveDocumentSelection();
+            if (targetLine > 1 || targetCol > 1)
+            {
+                RequestGoToLine?.Invoke(targetLine, targetCol);
+            }
             return;
         }
 
@@ -373,6 +404,11 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             await LoadRecentFilesAsync();
             OnPropertyChanged(nameof(WindowTitle));
             _ = SaveCurrentSessionAsync();
+
+            if (targetLine > 1 || targetCol > 1)
+            {
+                RequestGoToLine?.Invoke(targetLine, targetCol);
+            }
         }
         catch (Exception ex)
         {
@@ -498,11 +534,286 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _ = SaveCurrentSessionAsync();
     }
 
+    #region Tab Context Menu Operations
+
+    [RelayCommand]
+    public async Task CloseOtherTabsAsync(DocumentViewModel? doc)
+    {
+        var keepDoc = doc ?? ActiveDocument;
+        if (keepDoc == null) return;
+
+        var toClose = Documents.Where(d => d != keepDoc).ToList();
+        foreach (var d in toClose)
+        {
+            await CloseTabAsync(d);
+        }
+    }
+
+    [RelayCommand]
+    public async Task CloseTabsToTheRightAsync(DocumentViewModel? doc)
+    {
+        var target = doc ?? ActiveDocument;
+        if (target == null) return;
+
+        var index = Documents.IndexOf(target);
+        if (index < 0 || index >= Documents.Count - 1) return;
+
+        var toClose = Documents.Skip(index + 1).ToList();
+        foreach (var d in toClose)
+        {
+            await CloseTabAsync(d);
+        }
+    }
+
+    [RelayCommand]
+    public async Task CloseSavedTabsAsync()
+    {
+        var toClose = Documents.Where(d => !d.IsModified).ToList();
+        foreach (var d in toClose)
+        {
+            await CloseTabAsync(d);
+        }
+    }
+
+    [RelayCommand]
+    public async Task CopyDocumentPathAsync(DocumentViewModel? doc)
+    {
+        var target = doc ?? ActiveDocument;
+        if (target?.FilePath != null && RequestSetClipboardText != null)
+        {
+            await RequestSetClipboardText(target.FilePath);
+            _ = ShowTemporaryStatusAsync("✓ Copied path to clipboard");
+        }
+    }
+
+    [RelayCommand]
+    public void RevealInExplorer(DocumentViewModel? doc)
+    {
+        var target = doc ?? ActiveDocument;
+        if (!string.IsNullOrEmpty(target?.FilePath) && File.Exists(target.FilePath))
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{target.FilePath}\"",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                _ = _dialogService.ShowMessageAsync("Error", $"Could not open Explorer: {ex.Message}");
+            }
+        }
+    }
+
+    #endregion
+
+    #region Quick Open Operations
+
+    [RelayCommand]
+    public async Task ShowQuickOpenAsync()
+    {
+        _allQuickOpenItems.Clear();
+
+        // 1. Add all open tabs
+        foreach (var doc in Documents)
+        {
+            var item = new QuickOpenItem
+            {
+                FilePath = doc.FilePath ?? doc.Title,
+                DisplayName = doc.DisplayName,
+                RelativeOrFullPath = doc.FilePath ?? "Unsaved Document",
+                IsOpenTab = true
+            };
+            _allQuickOpenItems.Add(item);
+        }
+
+        // 2. Add recent files that aren't already open
+        var recent = await _recentFilesService.GetRecentFilesAsync();
+        foreach (var rf in recent)
+        {
+            if (_allQuickOpenItems.Any(i => string.Equals(i.FilePath, rf.FilePath, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            _allQuickOpenItems.Add(new QuickOpenItem
+            {
+                FilePath = rf.FilePath,
+                DisplayName = rf.FileName,
+                RelativeOrFullPath = rf.FilePath,
+                IsOpenTab = false
+            });
+        }
+
+        // 3. If active doc is a real file, add top-level sibling files in its directory (up to 40)
+        try
+        {
+            if (!string.IsNullOrEmpty(ActiveDocument?.FilePath))
+            {
+                var dir = Path.GetDirectoryName(ActiveDocument.FilePath);
+                if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+                {
+                    foreach (var file in Directory.EnumerateFiles(dir).Take(40))
+                    {
+                        if (_allQuickOpenItems.Any(i => string.Equals(i.FilePath, file, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            continue;
+                        }
+
+                        _allQuickOpenItems.Add(new QuickOpenItem
+                        {
+                            FilePath = file,
+                            DisplayName = Path.GetFileName(file),
+                            RelativeOrFullPath = Path.GetRelativePath(dir, file),
+                            IsOpenTab = false
+                        });
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // Ignore filesystem enumeration errors
+        }
+
+        QuickOpenQuery = string.Empty;
+        FilterQuickOpenItems(string.Empty);
+        IsQuickOpenOpen = true;
+    }
+
+    [RelayCommand]
+    public void CloseQuickOpen()
+    {
+        IsQuickOpenOpen = false;
+        QuickOpenQuery = string.Empty;
+    }
+
+    [RelayCommand]
+    public async Task SelectQuickOpenItemAsync(QuickOpenItem? item)
+    {
+        var target = item ?? SelectedQuickOpenItem;
+        CloseQuickOpen();
+        if (target == null) return;
+
+        if (target.IsOpenTab)
+        {
+            var doc = Documents.FirstOrDefault(d => string.Equals(d.FilePath, target.FilePath, StringComparison.OrdinalIgnoreCase) ||
+                                                    string.Equals(d.Title, target.FilePath, StringComparison.OrdinalIgnoreCase));
+            if (doc != null)
+            {
+                ActiveDocument = doc;
+                UpdateActiveDocumentSelection();
+                return;
+            }
+        }
+
+        if (File.Exists(target.FilePath))
+        {
+            await OpenFileInternalAsync(target.FilePath);
+        }
+    }
+
+    partial void OnQuickOpenQueryChanged(string value)
+    {
+        FilterQuickOpenItems(value);
+    }
+
+    private void FilterQuickOpenItems(string query)
+    {
+        FilteredQuickOpenItems.Clear();
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            foreach (var item in _allQuickOpenItems)
+            {
+                FilteredQuickOpenItems.Add(item);
+            }
+        }
+        else
+        {
+            var q = query.Trim();
+            var matches = _allQuickOpenItems
+                .Where(i => i.DisplayName.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                            i.RelativeOrFullPath.Contains(q, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(i => i.DisplayName.StartsWith(q, StringComparison.OrdinalIgnoreCase))
+                .ThenByDescending(i => i.IsOpenTab);
+
+            foreach (var item in matches)
+            {
+                FilteredQuickOpenItems.Add(item);
+            }
+        }
+
+        SelectedQuickOpenItem = FilteredQuickOpenItems.FirstOrDefault();
+    }
+
+    #endregion
+
+    #region Go to Line Operations
+
+    [RelayCommand]
+    public void ShowGoToLine()
+    {
+        GoToLineWatermark = ActiveDocument != null
+            ? $"Go to line (1 - {ActiveDocument.TextDocument.LineCount})..."
+            : "Go to line (e.g. 42 or 42:10)...";
+        GoToLineInput = string.Empty;
+        IsGoToLineOpen = true;
+    }
+
+    [RelayCommand]
+    public void CloseGoToLine()
+    {
+        IsGoToLineOpen = false;
+        GoToLineInput = string.Empty;
+    }
+
+    [RelayCommand]
+    public void ExecuteGoToLine()
+    {
+        if (string.IsNullOrWhiteSpace(GoToLineInput))
+        {
+            CloseGoToLine();
+            return;
+        }
+
+        var parts = GoToLineInput.Trim().Split(new[] { ':', ',' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length > 0 && int.TryParse(parts[0], out var line) && line > 0)
+        {
+            var col = 1;
+            if (parts.Length > 1 && int.TryParse(parts[1], out var parsedCol) && parsedCol > 0)
+            {
+                col = parsedCol;
+            }
+
+            RequestGoToLine?.Invoke(line, col);
+        }
+
+        CloseGoToLine();
+    }
+
+    #endregion
+
     [RelayCommand]
     public void ShowSearch()
     {
         var selection = RequestSelectedText?.Invoke();
-        SearchViewModel.Open(string.IsNullOrWhiteSpace(selection) ? null : selection);
+        SearchViewModel.Open(string.IsNullOrWhiteSpace(selection) ? null : selection, showReplace: false);
+    }
+
+    [RelayCommand]
+    public void ShowReplace()
+    {
+        var selection = RequestSelectedText?.Invoke();
+        SearchViewModel.Open(string.IsNullOrWhiteSpace(selection) ? null : selection, showReplace: true);
+    }
+
+    [RelayCommand]
+    public void ToggleComment()
+    {
+        RequestToggleComment?.Invoke();
     }
 
     [RelayCommand]

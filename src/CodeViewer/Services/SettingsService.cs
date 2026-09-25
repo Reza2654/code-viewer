@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using CodeViewer.Models;
 
@@ -12,6 +13,7 @@ namespace CodeViewer.Services;
 public class SettingsService : ISettingsService
 {
     private readonly string _settingsFilePath;
+    private readonly SemaphoreSlim _lock = new(1, 1);
     private AppSettings _currentSettings = new();
 
     public AppSettings CurrentSettings => _currentSettings;
@@ -80,19 +82,26 @@ public class SettingsService : ISettingsService
 
         try
         {
-            var dir = Path.GetDirectoryName(_settingsFilePath);
-            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
-            {
-                Directory.CreateDirectory(dir);
-            }
-
             _currentSettings = settings.Clone();
-
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            var json = JsonSerializer.Serialize(_currentSettings, options);
-            await File.WriteAllTextAsync(_settingsFilePath, json);
-
             SettingsChanged?.Invoke(_currentSettings);
+
+            await _lock.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                var dir = Path.GetDirectoryName(_settingsFilePath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                var json = JsonSerializer.Serialize(_currentSettings, options);
+                await File.WriteAllTextAsync(_settingsFilePath, json).ConfigureAwait(false);
+            }
+            finally
+            {
+                _lock.Release();
+            }
         }
         catch
         {

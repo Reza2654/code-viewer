@@ -11,78 +11,134 @@
           Padding="8,6"
           BoxShadow="0 4 16 0 #50000000"
           IsVisible="{Binding IsOpen}">
-    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-      <TextBox x:Name="SearchTextBox"
-               Text="{Binding SearchText, Mode=TwoWay}"
-               Watermark="Find in file..."
-               Width="200"
-               Height="28"
-               FontSize="12"
-               Background="#3C3C3C"
-               Foreground="#FFFFFF"
-               BorderBrush="#555555"
-               CornerRadius="3"
-               VerticalContentAlignment="Center"/>
+    <StackPanel Spacing="6">
+      <!-- Find Row -->
+      <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+        <ToggleButton IsChecked="{Binding IsReplaceOpen, Mode=TwoWay}"
+                      ToolTip.Tip="Toggle Replace Mode (Ctrl+H)"
+                      Width="22" Height="28"
+                      Padding="0"
+                      CornerRadius="3"
+                      Background="Transparent">
+          <TextBlock Text="{Binding IsReplaceOpen, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue='▶'}"
+                     TextAlignment="Center"
+                     FontSize="9"
+                     Foreground="#AAAAAA"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"/>
+        </ToggleButton>
 
-      <ToggleButton IsChecked="{Binding MatchCase, Mode=TwoWay}"
-                    ToolTip.Tip="Match Case (Alt+C)"
-                    Width="28" Height="28"
-                    Padding="0"
-                    CornerRadius="3"
-                    Background="Transparent">
-        <TextBlock Text="Aa"
-                   FontSize="12"
-                   FontWeight="Bold"
-                   Foreground="{Binding MatchCase, Converter={x:Static ObjectConverters.IsNotNull}}"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"/>
-      </ToggleButton>
+        <TextBox x:Name="SearchTextBox"
+                 Text="{Binding SearchText, Mode=TwoWay}"
+                 Watermark="Find in file..."
+                 Width="220"
+                 Height="28"
+                 FontSize="12"
+                 Background="#3C3C3C"
+                 Foreground="#FFFFFF"
+                 BorderBrush="#555555"
+                 CornerRadius="3"
+                 VerticalContentAlignment="Center"/>
 
-      <Button Command="{Binding FindPreviousCommand}"
-              ToolTip.Tip="Find Previous (Shift+F3)"
-              Width="28" Height="28"
-              Padding="0"
-              CornerRadius="3"
-              Background="Transparent">
-        <TextBlock Text="▲"
-                   FontSize="10"
-                   Foreground="#CCCCCC"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"/>
-      </Button>
+        <ToggleButton IsChecked="{Binding MatchCase, Mode=TwoWay}"
+                      ToolTip.Tip="Match Case (Alt+C)"
+                      Width="28" Height="28"
+                      Padding="0"
+                      CornerRadius="3"
+                      Background="Transparent">
+          <TextBlock Text="Aa"
+                     FontSize="12"
+                     FontWeight="Bold"
+                     Foreground="{Binding MatchCase, Converter={x:Static ObjectConverters.IsNotNull}}"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"/>
+        </ToggleButton>
 
-      <Button Command="{Binding FindNextCommand}"
-              ToolTip.Tip="Find Next (F3 / Enter)"
-              Width="28" Height="28"
-              Padding="0"
-              CornerRadius="3"
-              Background="Transparent">
-        <TextBlock Text="▼"
-                   FontSize="10"
-                   Foreground="#CCCCCC"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"/>
-      </Button>
+        <Button Command="{Binding FindPreviousCommand}"
+                ToolTip.Tip="Find Previous (Shift+F3)"
+                Width="28" Height="28"
+                Padding="0"
+                CornerRadius="3"
+                Background="Transparent">
+          <TextBlock Text="▲"
+                     FontSize="10"
+                     Foreground="#CCCCCC"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"/>
+        </Button>
 
-      <TextBlock Text="{Binding StatusText}"
-                 FontSize="11"
-                 Foreground="#888888"
-                 VerticalAlignment="Center"
-                 Margin="4,0"
-                 IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        <Button Command="{Binding FindNextCommand}"
+                ToolTip.Tip="Find Next (F3 / Enter)"
+                Width="28" Height="28"
+                Padding="0"
+                CornerRadius="3"
+                Background="Transparent">
+          <TextBlock Text="▼"
+                     FontSize="10"
+                     Foreground="#CCCCCC"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"/>
+        </Button>
 
-      <Button Command="{Binding CloseCommand}"
-              ToolTip.Tip="Close (Esc)"
-              Width="24" Height="28"
-              Padding="0"
-              CornerRadius="3"
-              Background="Transparent">
-        <TextBlock Text="✕"
-                   FontSize="12"
-                   Foreground="#AAAAAA"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"/>
-      </Button>
+        <TextBlock Text="{Binding StatusText}"
+                   FontSize="11"
+                   Foreground="#888888"
+                   VerticalAlignment="Center"
+                   Margin="4,0"
+                   IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+        <Button Command="{Binding CloseCommand}"
+                ToolTip.Tip="Close (Esc)"
+                Width="24" Height="28"
+                Padding="0"
+                CornerRadius="3"
+                Background="Transparent">
+          <TextBlock Text="✕"
+                     FontSize="12"
+                     Foreground="#AAAAAA"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"/>
+        </Button>
+      </StackPanel>
+
+      <!-- Replace Row (Collapsible) -->
+      <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" IsVisible="{Binding IsReplaceOpen}">
+        <Border Width="22"/>
+
+        <TextBox x:Name="ReplaceTextBox"
+                 Text="{Binding ReplaceText, Mode=TwoWay}"
+                 Watermark="Replace with..."
+                 Width="220"
+                 Height="28"
+                 FontSize="12"
+                 Background="#3C3C3C"
+                 Foreground="#FFFFFF"
+                 BorderBrush="#555555"
+                 CornerRadius="3"
+                 VerticalContentAlignment="Center"/>
+
+        <Button Command="{Binding ReplaceCommand}"
+                ToolTip.Tip="Replace Active Match (Enter in Replace box)"
+                Height="28"
+                Padding="8,4"
+                CornerRadius="3"
+                Background="#3A3D41"
+                Foreground="#FFFFFF"
+                FontSize="11">
+          <TextBlock Text="Replace" VerticalAlignment="Center"/>
+        </Button>
+
+        <Button Command="{Binding ReplaceAllCommand}"
+                ToolTip.Tip="Replace All Occurrences (Alt+A)"
+                Height="28"
+                Padding="8,4"
+                CornerRadius="3"
+                Background="#3A3D41"
+                Foreground="#FFFFFF"
+                FontSize="11">
+          <TextBlock Text="Replace All" VerticalAlignment="Center"/>
+        </Button>
+      </StackPanel>
     </StackPanel>
   </Border>
 </UserControl>

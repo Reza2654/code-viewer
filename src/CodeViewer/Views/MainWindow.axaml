@@ -18,15 +18,22 @@
     <!-- File Operation Shortcuts -->
     <KeyBinding Gesture="Ctrl+N" Command="{Binding CreateNewDocumentCommand}"/>
     <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}"/>
+    <KeyBinding Gesture="Ctrl+P" Command="{Binding ShowQuickOpenCommand}"/>
     <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}"/>
     <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}"/>
     <KeyBinding Gesture="Ctrl+Shift+C" Command="{Binding CopyAllCommand}"/>
     <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseTabCommand}" CommandParameter="{Binding ActiveDocument}"/>
 
-    <!-- Search Shortcuts -->
+    <!-- Search & Replace Shortcuts -->
     <KeyBinding Gesture="Ctrl+F" Command="{Binding ShowSearchCommand}"/>
+    <KeyBinding Gesture="Ctrl+H" Command="{Binding ShowReplaceCommand}"/>
+    <KeyBinding Gesture="Ctrl+G" Command="{Binding ShowGoToLineCommand}"/>
     <KeyBinding Gesture="F3" Command="{Binding SearchViewModel.FindNextCommand}"/>
     <KeyBinding Gesture="Shift+F3" Command="{Binding SearchViewModel.FindPreviousCommand}"/>
+
+    <!-- Code Editing Shortcuts -->
+    <KeyBinding Gesture="Ctrl+OemQuestion" Command="{Binding ToggleCommentCommand}"/>
+    <KeyBinding Gesture="Ctrl+Divide" Command="{Binding ToggleCommentCommand}"/>
 
     <!-- View & Zoom Shortcuts -->
     <KeyBinding Gesture="Ctrl+OemPlus" Command="{Binding ZoomInCommand}"/>
@@ -47,6 +54,7 @@
       <MenuItem Header="_File">
         <MenuItem Header="_New File" Command="{Binding CreateNewDocumentCommand}" HotKey="Ctrl+N" InputGesture="Ctrl+N"/>
         <MenuItem Header="_Open File..." Command="{Binding OpenFileCommand}" HotKey="Ctrl+O" InputGesture="Ctrl+O"/>
+        <MenuItem Header="Quick _Open..." Command="{Binding ShowQuickOpenCommand}" HotKey="Ctrl+P" InputGesture="Ctrl+P"/>
         <MenuItem Header="Open _Recent" ItemsSource="{Binding RecentFiles}" IsEnabled="{Binding HasRecentFiles}">
           <MenuItem.Styles>
             <Style Selector="MenuItem > MenuItem" x:DataType="models:RecentFileItem">
@@ -80,6 +88,12 @@
         <MenuItem Header="Select _All" Click="OnSelectAllClick" HotKey="Ctrl+A" InputGesture="Ctrl+A"/>
         <Separator/>
         <MenuItem Header="_Find..." Command="{Binding ShowSearchCommand}" HotKey="Ctrl+F" InputGesture="Ctrl+F"/>
+        <MenuItem Header="_Replace..." Command="{Binding ShowReplaceCommand}" HotKey="Ctrl+H" InputGesture="Ctrl+H"/>
+        <MenuItem Header="Go to _Line..." Command="{Binding ShowGoToLineCommand}" HotKey="Ctrl+G" InputGesture="Ctrl+G"/>
+        <Separator/>
+        <MenuItem Header="Toggle _Line Comment" Command="{Binding ToggleCommentCommand}" HotKey="Ctrl+OemQuestion" InputGesture="Ctrl+/"/>
+        <MenuItem Header="_Duplicate Line / Selection" Click="OnDuplicateLineClick" HotKey="Ctrl+D" InputGesture="Ctrl+D"/>
+        <MenuItem Header="_Delete Line" Click="OnDeleteLineClick" HotKey="Ctrl+Shift+K" InputGesture="Ctrl+Shift+K"/>
         <Separator/>
         <MenuItem Header="_Settings..." Command="{Binding ShowSettingsCommand}" InputGesture="Ctrl+,"/>
       </MenuItem>
@@ -152,7 +166,7 @@
     <!-- Main Editor Workspace -->
     <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto">
       <!-- Tab Bar Area with Modern Rounded Corners -->
-      <Border x:Name="TabBarBorder" Grid.Row="0" Background="{DynamicResource ThemeTabBarBackground}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="0,0,0,1" Padding="4,4,4,0">
+      <Border x:Name="TabBarBorder" Grid.Row="0" Background="{DynamicResource ThemeTabBarBackground}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="0,0,0,1" Padding="4,4,4,0" DoubleTapped="OnTabBarDoubleTapped">
         <Grid ColumnDefinitions="*,Auto">
           <!-- Tabs Strip -->
           <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
@@ -171,6 +185,29 @@
                           Classes.tabActive="{Binding IsActive}"
                           Classes.tabInactive="{Binding !IsActive}"
                           PointerPressed="OnTabPointerPressed">
+                    <Border.ContextMenu>
+                      <ContextMenu>
+                        <MenuItem Header="Close Tab"
+                                  Command="{Binding ((vm:MainViewModel)DataContext).CloseTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  CommandParameter="{Binding}"
+                                  InputGesture="Ctrl+W"/>
+                        <MenuItem Header="Close Other Tabs"
+                                  Command="{Binding ((vm:MainViewModel)DataContext).CloseOtherTabsCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  CommandParameter="{Binding}"/>
+                        <MenuItem Header="Close Tabs to the Right"
+                                  Command="{Binding ((vm:MainViewModel)DataContext).CloseTabsToTheRightCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  CommandParameter="{Binding}"/>
+                        <MenuItem Header="Close Saved Tabs"
+                                  Command="{Binding ((vm:MainViewModel)DataContext).CloseSavedTabsCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                        <Separator/>
+                        <MenuItem Header="Copy Full Path"
+                                  Command="{Binding ((vm:MainViewModel)DataContext).CopyDocumentPathCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  CommandParameter="{Binding}"/>
+                        <MenuItem Header="Reveal in File Explorer"
+                                  Command="{Binding ((vm:MainViewModel)DataContext).RevealInExplorerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                  CommandParameter="{Binding}"/>
+                      </ContextMenu>
+                    </Border.ContextMenu>
                     <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                       <TextBlock Text="{Binding DisplayName}"
                                  FontSize="12"
@@ -229,7 +266,7 @@
         </Grid>
       </Border>
 
-      <!-- Editor Viewport with Floating Search Overlay -->
+      <!-- Editor Viewport with Floating Search Overlay and Command Palettes -->
       <Grid Grid.Row="1">
         <ae:TextEditor x:Name="Editor"
                        Document="{Binding ActiveDocument.TextDocument}"
@@ -245,7 +282,87 @@
                        LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"
                        DragDrop.AllowDrop="True"/>
 
-        <!-- Search Overlay (Floating on top right) with Modern Rounded Corners -->
+        <!-- Quick Open Palette (Ctrl+P) -->
+        <Border IsVisible="{Binding IsQuickOpenOpen}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,20,0,0"
+                Width="520"
+                MaxHeight="380"
+                Background="{DynamicResource ThemeMenuBackground}"
+                BorderBrush="{DynamicResource ThemeBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                BoxShadow="0 8 24 #66000000"
+                ZIndex="100">
+          <Grid RowDefinitions="Auto,*">
+            <TextBox x:Name="QuickOpenTextBox"
+                     Grid.Row="0"
+                     Text="{Binding QuickOpenQuery, Mode=TwoWay}"
+                     Watermark="Type file or tab name to open (Esc to close)..."
+                     Margin="8,8,8,6"
+                     CornerRadius="4"
+                     KeyDown="OnQuickOpenTextBoxKeyDown"/>
+            <ListBox x:Name="QuickOpenListBox"
+                     Grid.Row="1"
+                     ItemsSource="{Binding FilteredQuickOpenItems}"
+                     SelectedItem="{Binding SelectedQuickOpenItem, Mode=TwoWay}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     MaxHeight="300"
+                     DoubleTapped="OnQuickOpenItemDoubleTapped"
+                     KeyDown="OnQuickOpenListBoxKeyDown">
+              <ListBox.ItemTemplate>
+                <DataTemplate DataType="models:QuickOpenItem">
+                  <Grid ColumnDefinitions="*,Auto" Margin="4,2">
+                    <StackPanel Grid.Column="0" Orientation="Vertical">
+                      <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                      <TextBlock Text="{Binding RelativeOrFullPath}" FontSize="11" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.75" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding TabBadge}"
+                               FontSize="10"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource ThemeAccentBrush}"
+                               Opacity="0.85"
+                               Margin="8,0,0,0"/>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Grid>
+        </Border>
+
+        <!-- Go to Line Palette (Ctrl+G) -->
+        <Border IsVisible="{Binding IsGoToLineOpen}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,20,0,0"
+                Width="320"
+                Background="{DynamicResource ThemeMenuBackground}"
+                BorderBrush="{DynamicResource ThemeBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="8"
+                BoxShadow="0 8 24 #66000000"
+                Padding="8"
+                ZIndex="100">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBox x:Name="GoToLineTextBox"
+                     Grid.Column="0"
+                     Text="{Binding GoToLineInput, Mode=TwoWay}"
+                     Watermark="{Binding GoToLineWatermark}"
+                     CornerRadius="4"
+                     KeyDown="OnGoToLineTextBoxKeyDown"/>
+            <Button Grid.Column="1"
+                    Command="{Binding ExecuteGoToLineCommand}"
+                    Content="Go"
+                    Margin="6,0,0,0"
+                    Padding="12,4"
+                    CornerRadius="4"/>
+          </Grid>
+        </Border>
+
+        <!-- Search & Replace Overlay (Floating on top right) with Modern Rounded Corners -->
         <views:SearchOverlayView DataContext="{Binding SearchViewModel}"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Top"

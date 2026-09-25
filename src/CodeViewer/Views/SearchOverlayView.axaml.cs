@@ -21,8 +21,21 @@ public partial class SearchOverlayView : UserControl
             {
                 if (args.PropertyName == nameof(SearchViewModel.IsOpen) && vm.IsOpen)
                 {
-                    SearchTextBox.Focus();
-                    SearchTextBox.SelectAll();
+                    if (vm.IsReplaceOpen && !string.IsNullOrEmpty(vm.SearchText))
+                    {
+                        ReplaceTextBox.Focus();
+                        ReplaceTextBox.SelectAll();
+                    }
+                    else
+                    {
+                        SearchTextBox.Focus();
+                        SearchTextBox.SelectAll();
+                    }
+                }
+                else if (args.PropertyName == nameof(SearchViewModel.IsReplaceOpen) && vm.IsReplaceOpen && vm.IsOpen)
+                {
+                    ReplaceTextBox.Focus();
+                    ReplaceTextBox.SelectAll();
                 }
             };
         }
@@ -32,17 +45,20 @@ public partial class SearchOverlayView : UserControl
     {
         base.OnKeyDown(e);
 
+        if (DataContext is not SearchViewModel vm) return;
+
         if (e.Key == Key.Escape)
         {
-            if (DataContext is SearchViewModel vm)
-            {
-                vm.Close();
-                e.Handled = true;
-            }
+            vm.Close();
+            e.Handled = true;
         }
         else if (e.Key == Key.Enter)
         {
-            if (DataContext is SearchViewModel vm)
+            if (ReplaceTextBox.IsFocused)
+            {
+                vm.Replace();
+            }
+            else
             {
                 if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
                 {
@@ -52,6 +68,14 @@ public partial class SearchOverlayView : UserControl
                 {
                     vm.FindNext();
                 }
+            }
+            e.Handled = true;
+        }
+        else if (e.Key == Key.A && e.KeyModifiers.HasFlag(KeyModifiers.Alt))
+        {
+            if (vm.IsReplaceOpen)
+            {
+                vm.ReplaceAll();
                 e.Handled = true;
             }
         }

@@ -231,5 +231,16 @@ public class LanguageService : ILanguageService
     };
 
     public IReadOnlyList<string> GetSupportedLanguages() => AllSupportedLanguages;
+
+    public string? GetCommentPrefix(string language)
+    {
+        return language switch
+        {
+            "Python" or "Shell / Bash" or "PowerShell" or "YAML" or "Docker" or "Ruby" or "R" or "Perl" => "# ",
+            "SQL" or "Lua" => "-- ",
+            "Plain Text" or "Markdown" or "JSON" or "HTML" or "XML" => null,
+            _ => "// "
+        };
+    }
 }
 

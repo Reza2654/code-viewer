@@ -23,5 +23,10 @@ public interface ILanguageService
     /// Returns the list of all supported programming languages and formats.
     /// </summary>
     IReadOnlyList<string> GetSupportedLanguages();
+
+    /// <summary>
+    /// Returns the single-line comment prefix for the specified programming language.
+    /// </summary>
+    string? GetCommentPrefix(string language);
 }
 

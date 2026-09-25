@@ -54,14 +54,18 @@ public partial class App : Application
             // 5. Run async initialization (recent files, command-line arguments)
             await mainViewModel.InitializeAsync(desktop.Args);
 
-            // 6. Listen for incoming file open requests from secondary instances (e.g. File Explorer context menu)
+            // 6. Listen for incoming file open requests from secondary instances (e.g. File Explorer context menu or CLI)
             SingleInstanceService.SetArgsHandler(files =>
             {
                 Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
                 {
-                    foreach (var file in files)
+                    var parsedArgs = CommandLineParser.ParseArguments(files);
+                    foreach (var arg in parsedArgs)
                     {
-                        await mainViewModel.OpenFileInternalAsync(file);
+                        if (System.IO.File.Exists(arg.FilePath))
+                        {
+                            await mainViewModel.OpenFileInternalAsync(arg.FilePath, arg.Line, arg.Column);
+                        }
                     }
 
                     if (mainWindow.WindowState == Avalonia.Controls.WindowState.Minimized)

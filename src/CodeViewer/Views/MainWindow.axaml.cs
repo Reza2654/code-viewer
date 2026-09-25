@@ -42,8 +42,9 @@ public partial class MainWindow : Window
         Editor.AddHandler(DragDrop.DragOverEvent, OnDragOver, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
         Editor.AddHandler(DragDrop.DropEvent, OnDrop, RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
 
-        // Editor caret position tracking
+        // Editor caret position and selection tracking
         Editor.TextArea.Caret.PositionChanged += OnCaretPositionChanged;
+        Editor.TextArea.SelectionChanged += (s, e) => OnCaretPositionChanged(s, EventArgs.Empty);
 
         // Ctrl + Mouse Wheel Zooming on Editor
         Editor.AddHandler(PointerWheelChangedEvent, (s, e) =>
@@ -71,16 +72,22 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainViewModel vm)
         {
-            // Wire search events to editor actions
+            // Wire search and replace events to editor actions
             vm.SearchViewModel.RequestUpdateMatches += UpdateSearchMatches;
             vm.SearchViewModel.RequestFindNext += OnFindNext;
             vm.SearchViewModel.RequestFindPrevious += OnFindPrevious;
+            vm.SearchViewModel.RequestReplace += OnReplace;
+            vm.SearchViewModel.RequestReplaceAll += OnReplaceAll;
             vm.SearchViewModel.RequestClose += () =>
             {
                 _searchHighlightRenderer.Clear();
                 Editor.TextArea.TextView.InvalidateVisual();
                 Editor.Focus();
             };
+
+            // Wire Go to Line and Comment callbacks
+            vm.RequestGoToLine = (line, col) => OnGoToLine(line, col);
+            vm.RequestToggleComment = ToggleComment;
 
             // Wire theme change listener for guaranteed instant visual update
             vm.ThemeService.ThemeChanged += OnThemeChanged;
@@ -130,7 +137,7 @@ public partial class MainWindow : Window
                 await dialog.ShowDialog(this);
             };
 
-            // Keep word wrap, bracket matching, and search updated on active document change
+            // Keep word wrap, bracket matching, search, and palettes updated on property changes
             vm.PropertyChanged += (s, args) =>
             {
                 if (args.PropertyName == nameof(MainViewModel.ActiveDocument))
@@ -141,6 +148,28 @@ public partial class MainWindow : Window
                         _bracketMatchingRenderer.UpdateMatchingBrackets();
                         UpdateSearchMatches();
                         Editor.TextArea.TextView.InvalidateVisual();
+                    }
+                }
+                else if (args.PropertyName == nameof(MainViewModel.IsQuickOpenOpen))
+                {
+                    if (vm.IsQuickOpenOpen)
+                    {
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                        {
+                            QuickOpenTextBox?.Focus();
+                            QuickOpenTextBox?.SelectAll();
+                        });
+                    }
+                }
+                else if (args.PropertyName == nameof(MainViewModel.IsGoToLineOpen))
+                {
+                    if (vm.IsGoToLineOpen)
+                    {
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                        {
+                            GoToLineTextBox?.Focus();
+                            GoToLineTextBox?.SelectAll();
+                        });
                     }
                 }
             };
@@ -231,6 +260,96 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainViewModel vm)
         {
+            // Escape: Close any open palette/overlay
+            if (e.Key == Key.Escape)
+            {
+                if (vm.IsQuickOpenOpen)
+                {
+                    vm.CloseQuickOpen();
+                    Editor.Focus();
+                    e.Handled = true;
+                    return;
+                }
+                if (vm.IsGoToLineOpen)
+                {
+                    vm.CloseGoToLine();
+                    Editor.Focus();
+                    e.Handled = true;
+                    return;
+                }
+                if (vm.SearchViewModel.IsOpen)
+                {
+                    vm.SearchViewModel.Close();
+                    Editor.Focus();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            // Ctrl + P: Quick Open
+            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.P)
+            {
+                _ = vm.ShowQuickOpenCommand.ExecuteAsync(null);
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl + G: Go to Line
+            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.G)
+            {
+                vm.ShowGoToLine();
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl + H: Replace
+            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.H)
+            {
+                vm.ShowReplace();
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl + / : Toggle Line Comment
+            if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.OemQuestion || e.Key == Key.Divide))
+            {
+                ToggleComment();
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl + D: Duplicate Line or Selection
+            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.D)
+            {
+                DuplicateLineOrSelection();
+                e.Handled = true;
+                return;
+            }
+
+            // Ctrl + Shift + K: Delete Line
+            if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.K)
+            {
+                DeleteCurrentLine();
+                e.Handled = true;
+                return;
+            }
+
+            // Alt + Up: Move Line Up
+            if (e.KeyModifiers == KeyModifiers.Alt && e.Key == Key.Up)
+            {
+                MoveSelectedLinesUp();
+                e.Handled = true;
+                return;
+            }
+
+            // Alt + Down: Move Line Down
+            if (e.KeyModifiers == KeyModifiers.Alt && e.Key == Key.Down)
+            {
+                MoveSelectedLinesDown();
+                e.Handled = true;
+                return;
+            }
+
             // Ctrl + S: Save
             if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.S)
             {
@@ -345,7 +464,16 @@ public partial class MainWindow : Window
         if (DataContext is MainViewModel vm && vm.ActiveDocument != null)
         {
             var caret = Editor.TextArea.Caret;
-            vm.ActiveDocument.UpdateCaretPosition(caret.Line, caret.Column);
+            var selectionLength = Editor.SelectionLength;
+            var selectedLineCount = 0;
+            if (selectionLength > 0 && Editor.Document != null)
+            {
+                var startLine = Editor.Document.GetLineByOffset(Editor.SelectionStart).LineNumber;
+                var endLine = Editor.Document.GetLineByOffset(Editor.SelectionStart + Editor.SelectionLength).LineNumber;
+                selectedLineCount = endLine - startLine + 1;
+            }
+
+            vm.ActiveDocument.UpdateCaretPosition(caret.Line, caret.Column, selectionLength, selectedLineCount);
             _bracketMatchingRenderer.UpdateMatchingBrackets();
             Editor.TextArea.TextView.InvalidateVisual();
         }
@@ -355,12 +483,28 @@ public partial class MainWindow : Window
     {
         if (sender is Border border && border.DataContext is DocumentViewModel doc && DataContext is MainViewModel vm)
         {
+            var pointerProps = e.GetCurrentPoint(border).Properties;
+            if (pointerProps.IsMiddleButtonPressed)
+            {
+                _ = vm.CloseTabCommand.ExecuteAsync(doc);
+                e.Handled = true;
+                return;
+            }
+
             vm.ActiveDocument = doc;
             Editor.WordWrap = doc.WordWrap;
             _bracketMatchingRenderer.UpdateMatchingBrackets();
             UpdateSearchMatches();
             Editor.TextArea.TextView.InvalidateVisual();
             Editor.Focus();
+        }
+    }
+
+    private void OnTabBarDoubleTapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            vm.CreateNewDocument();
         }
     }
 
@@ -588,6 +732,353 @@ public partial class MainWindow : Window
         Editor.TextArea.TextView.InvalidateVisual();
     }
 
+    private void OnReplace()
+    {
+        if (DataContext is not MainViewModel vm || string.IsNullOrEmpty(vm.SearchViewModel.SearchText) || Editor.Document == null) return;
+
+        if (_currentSearchMatchIndex >= 0 && _currentSearchMatchIndex < _searchMatchOffsets.Count)
+        {
+            var offset = _searchMatchOffsets[_currentSearchMatchIndex];
+            var query = vm.SearchViewModel.SearchText;
+            var replacement = vm.SearchViewModel.ReplaceText ?? string.Empty;
+
+            using (Editor.Document.RunUpdate())
+            {
+                Editor.Document.Replace(offset, query.Length, replacement);
+            }
+
+            UpdateSearchMatches();
+        }
+        else
+        {
+            OnFindNext();
+        }
+    }
+
+    private void OnReplaceAll()
+    {
+        if (DataContext is not MainViewModel vm || string.IsNullOrEmpty(vm.SearchViewModel.SearchText) || Editor.Document == null) return;
+
+        var query = vm.SearchViewModel.SearchText;
+        var replacement = vm.SearchViewModel.ReplaceText ?? string.Empty;
+
+        UpdateSearchMatches();
+        if (_searchMatchOffsets.Count == 0) return;
+
+        var count = _searchMatchOffsets.Count;
+
+        using (Editor.Document.RunUpdate())
+        {
+            for (int i = _searchMatchOffsets.Count - 1; i >= 0; i--)
+            {
+                var offset = _searchMatchOffsets[i];
+                Editor.Document.Replace(offset, query.Length, replacement);
+            }
+        }
+
+        UpdateSearchMatches();
+        _ = vm.ShowTemporaryStatusAsync($"Replaced {count} occurrence(s)");
+    }
+
+    #endregion
+
+    #region Advanced Editor Actions & Palettes
+
+    private void OnGoToLine(int line, int col)
+    {
+        if (Editor.Document == null) return;
+
+        var targetLine = Math.Clamp(line, 1, Editor.Document.LineCount);
+        var docLine = Editor.Document.GetLineByNumber(targetLine);
+        var targetCol = Math.Clamp(col, 1, Math.Max(1, docLine.Length + 1));
+        var targetOffset = docLine.Offset + targetCol - 1;
+
+        Editor.TextArea.Caret.Offset = targetOffset;
+        Editor.ScrollTo(targetLine, targetCol);
+        Editor.Focus();
+    }
+
+    private void ToggleComment()
+    {
+        if (DataContext is not MainViewModel vm || Editor.Document == null || vm.ActiveDocument == null) return;
+
+        var prefix = vm.LanguageService.GetCommentPrefix(vm.ActiveDocument.Language);
+        if (string.IsNullOrEmpty(prefix)) return;
+
+        var prefixTrimmed = prefix.Trim();
+        var startOffset = Editor.SelectionStart;
+        var length = Editor.SelectionLength;
+
+        var startLineNum = Editor.Document.GetLineByOffset(startOffset).LineNumber;
+        var endLineNum = length > 0
+            ? Editor.Document.GetLineByOffset(startOffset + length).LineNumber
+            : startLineNum;
+
+        var allCommented = true;
+        var hasNonEmptyLine = false;
+
+        for (int l = startLineNum; l <= endLineNum; l++)
+        {
+            var line = Editor.Document.GetLineByNumber(l);
+            var lineText = Editor.Document.GetText(line.Offset, line.Length);
+            var trimmed = lineText.TrimStart();
+            if (trimmed.Length == 0) continue;
+
+            hasNonEmptyLine = true;
+            if (!trimmed.StartsWith(prefixTrimmed, StringComparison.Ordinal))
+            {
+                allCommented = false;
+                break;
+            }
+        }
+
+        if (!hasNonEmptyLine) return;
+
+        using (Editor.Document.RunUpdate())
+        {
+            for (int l = startLineNum; l <= endLineNum; l++)
+            {
+                var line = Editor.Document.GetLineByNumber(l);
+                var lineText = Editor.Document.GetText(line.Offset, line.Length);
+                var leadingSpaces = lineText.Length - lineText.TrimStart().Length;
+
+                if (allCommented)
+                {
+                    var trimmed = lineText.TrimStart();
+                    if (trimmed.StartsWith(prefixTrimmed, StringComparison.Ordinal))
+                    {
+                        var removeLen = prefixTrimmed.Length;
+                        if (trimmed.Length > prefixTrimmed.Length && trimmed[prefixTrimmed.Length] == ' ')
+                        {
+                            removeLen++;
+                        }
+                        Editor.Document.Remove(line.Offset + leadingSpaces, removeLen);
+                    }
+                }
+                else
+                {
+                    if (lineText.Trim().Length > 0)
+                    {
+                        Editor.Document.Insert(line.Offset + leadingSpaces, prefix);
+                    }
+                }
+            }
+        }
+    }
+
+    private void DuplicateLineOrSelection()
+    {
+        if (Editor.Document == null) return;
+
+        using (Editor.Document.RunUpdate())
+        {
+            if (Editor.SelectionLength > 0)
+            {
+                var selectedText = Editor.SelectedText;
+                var insertPos = Editor.SelectionStart + Editor.SelectionLength;
+                Editor.Document.Insert(insertPos, selectedText);
+                Editor.Select(insertPos, selectedText.Length);
+            }
+            else
+            {
+                var line = Editor.Document.GetLineByOffset(Editor.CaretOffset);
+                var lineText = Editor.Document.GetText(line.Offset, line.Length);
+                var delimiter = Editor.Document.GetText(line.Offset + line.Length, line.DelimiterLength);
+                if (string.IsNullOrEmpty(delimiter)) delimiter = Environment.NewLine;
+
+                var insertOffset = line.EndOffset;
+                var textToInsert = delimiter + lineText;
+                Editor.Document.Insert(insertOffset, textToInsert);
+                Editor.CaretOffset = Math.Min(Editor.Document.TextLength, insertOffset + textToInsert.Length);
+            }
+        }
+    }
+
+    private void DeleteCurrentLine()
+    {
+        if (Editor.Document == null) return;
+
+        using (Editor.Document.RunUpdate())
+        {
+            var startOffset = Editor.SelectionStart;
+            var length = Editor.SelectionLength;
+            var startLine = Editor.Document.GetLineByOffset(startOffset);
+            var endLine = length > 0 ? Editor.Document.GetLineByOffset(startOffset + length) : startLine;
+
+            var removeOffset = startLine.Offset;
+            var removeLength = endLine.TotalLength;
+            if (endLine.LineNumber == Editor.Document.LineCount && startLine.LineNumber > 1)
+            {
+                var prevLine = Editor.Document.GetLineByNumber(startLine.LineNumber - 1);
+                removeOffset = prevLine.EndOffset;
+                removeLength = endLine.EndOffset - prevLine.EndOffset;
+            }
+
+            Editor.Document.Remove(removeOffset, removeLength);
+        }
+    }
+
+    private void MoveSelectedLinesUp()
+    {
+        if (Editor.Document == null) return;
+
+        var startOffset = Editor.SelectionStart;
+        var length = Editor.SelectionLength;
+        var startLine = Editor.Document.GetLineByOffset(startOffset);
+        var endLine = length > 0 ? Editor.Document.GetLineByOffset(startOffset + length) : startLine;
+
+        if (startLine.LineNumber <= 1) return;
+
+        var prevLine = Editor.Document.GetLineByNumber(startLine.LineNumber - 1);
+
+        using (Editor.Document.RunUpdate())
+        {
+            var pStart = prevLine.Offset;
+            var pEnd = prevLine.EndOffset;
+            var blockStart = startLine.Offset;
+            var blockEnd = endLine.EndOffset;
+
+            var pText = Editor.Document.GetText(pStart, pEnd - pStart);
+            var delimiter = Editor.Document.GetText(pEnd, blockStart - pEnd);
+            var blockText = Editor.Document.GetText(blockStart, blockEnd - blockStart);
+
+            var combinedNewText = blockText + delimiter + pText;
+            var totalOldLength = blockEnd - pStart;
+
+            Editor.Document.Replace(pStart, totalOldLength, combinedNewText);
+
+            var shift = blockStart - pStart;
+            Editor.Select(Math.Max(0, startOffset - shift), length);
+        }
+    }
+
+    private void MoveSelectedLinesDown()
+    {
+        if (Editor.Document == null) return;
+
+        var startOffset = Editor.SelectionStart;
+        var length = Editor.SelectionLength;
+        var startLine = Editor.Document.GetLineByOffset(startOffset);
+        var endLine = length > 0 ? Editor.Document.GetLineByOffset(startOffset + length) : startLine;
+
+        if (endLine.LineNumber >= Editor.Document.LineCount) return;
+
+        var nextLine = Editor.Document.GetLineByNumber(endLine.LineNumber + 1);
+
+        using (Editor.Document.RunUpdate())
+        {
+            var blockStart = startLine.Offset;
+            var blockEnd = endLine.EndOffset;
+            var nStart = nextLine.Offset;
+            var nEnd = nextLine.EndOffset;
+
+            var blockText = Editor.Document.GetText(blockStart, blockEnd - blockStart);
+            var delimiter = Editor.Document.GetText(blockEnd, nStart - blockEnd);
+            var nText = Editor.Document.GetText(nStart, nEnd - nStart);
+
+            var combinedNewText = nText + delimiter + blockText;
+            var totalOldLength = nEnd - blockStart;
+
+            Editor.Document.Replace(blockStart, totalOldLength, combinedNewText);
+
+            var shift = nEnd - blockEnd;
+            Editor.Select(startOffset + shift, length);
+        }
+    }
+
+    private void OnQuickOpenTextBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        if (e.Key == Key.Escape)
+        {
+            vm.CloseQuickOpen();
+            Editor.Focus();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Enter)
+        {
+            _ = vm.SelectQuickOpenItemCommand.ExecuteAsync(vm.SelectedQuickOpenItem);
+            Editor.Focus();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Down && QuickOpenListBox != null)
+        {
+            if (vm.FilteredQuickOpenItems.Count > 0)
+            {
+                var next = Math.Min(QuickOpenListBox.SelectedIndex + 1, vm.FilteredQuickOpenItems.Count - 1);
+                QuickOpenListBox.SelectedIndex = next;
+                vm.SelectedQuickOpenItem = vm.FilteredQuickOpenItems[next];
+                QuickOpenListBox.ScrollIntoView(vm.SelectedQuickOpenItem);
+                e.Handled = true;
+            }
+        }
+        else if (e.Key == Key.Up && QuickOpenListBox != null)
+        {
+            if (vm.FilteredQuickOpenItems.Count > 0)
+            {
+                var prev = Math.Max(QuickOpenListBox.SelectedIndex - 1, 0);
+                QuickOpenListBox.SelectedIndex = prev;
+                vm.SelectedQuickOpenItem = vm.FilteredQuickOpenItems[prev];
+                QuickOpenListBox.ScrollIntoView(vm.SelectedQuickOpenItem);
+                e.Handled = true;
+            }
+        }
+    }
+
+    private void OnQuickOpenListBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        if (e.Key == Key.Enter)
+        {
+            _ = vm.SelectQuickOpenItemCommand.ExecuteAsync(vm.SelectedQuickOpenItem);
+            Editor.Focus();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            vm.CloseQuickOpen();
+            Editor.Focus();
+            e.Handled = true;
+        }
+    }
+
+    private void OnQuickOpenItemDoubleTapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            _ = vm.SelectQuickOpenItemCommand.ExecuteAsync(vm.SelectedQuickOpenItem);
+            Editor.Focus();
+        }
+    }
+
+    private void OnGoToLineTextBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        if (e.Key == Key.Escape)
+        {
+            vm.CloseGoToLine();
+            Editor.Focus();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Enter)
+        {
+            vm.ExecuteGoToLine();
+            e.Handled = true;
+        }
+    }
+
+    private void OnDuplicateLineClick(object? sender, RoutedEventArgs e) => DuplicateLineOrSelection();
+    private void OnDeleteLineClick(object? sender, RoutedEventArgs e) => DeleteCurrentLine();
+
     #endregion
 
     #region Window Closing Verification
@@ -689,7 +1180,7 @@ public partial class MainWindow : Window
 
         var panel = new StackPanel { Margin = new Avalonia.Thickness(24), Spacing = 10, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.0.1-rc.1 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Version 1.0.1-beta.7 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 10, 0, 10) });
 
         var okBtn = new Button { Content = "OK", Width = 80, CornerRadius = new Avalonia.CornerRadius(4), Background = new SolidColorBrush(Color.Parse("#007ACC")), Foreground = Avalonia.Media.Brushes.White, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };

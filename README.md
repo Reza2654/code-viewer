@@ -16,6 +16,20 @@
 
 - ⚡ **Instant Startup**: Sub-25ms startup time; opens directly to your code without loading screens or bloated background tasks.
 - 🪟 **Native Windows 11 Context Menu**: Directly integrates into the modern Windows 11 right-click context menu (no "Show more options" extra click required) powered by a native `IExplorerCommand` Sparse Package shell extension.
+- 🚀 **CLI Line & Column Navigation**: Jump straight to any line from terminal or scripts (e.g. `codeviewer file.cs:42` or `codeviewer C:\repo\file.cs:105:14`), correctly parsing Windows drive letters without splitting drive colons.
+- 🔍 **Quick Open (Ctrl+P)**: Instant fuzzy palette searching across currently open tabs, recent files history, and folder sibling files.
+- 🔎 **Floating Search & Replace (Ctrl+F / Ctrl+H)**: Minimal, non-intrusive in-editor find and replace with real-time match highlighting, match count badges, and atomic batch replacement.
+- 🎯 **Go to Line (Ctrl+G)**: Rapid line and column navigation palette with instant preview.
+- ⌨️ **Fluid Code Editing Shortcuts**:
+  - Toggle Line Comment (`Ctrl+/`): Smart syntax comment prefix resolution (`//`, `#`, `--`).
+  - Duplicate Line / Selection (`Ctrl+D`): Instant duplication.
+  - Move Lines Up / Down (`Alt+Up` / `Alt+Down`): Swap lines or multi-line selections with clean atomic undo (`Ctrl+Z`).
+  - Delete Line (`Ctrl+Shift+K`): Remove current line cleanly.
+- 📑 **Power Tab Management**:
+  - Tab context menu: Close Other Tabs, Close Tabs to the Right, Close Saved Tabs, Copy Full Path, Reveal in Explorer.
+  - Middle-click any tab to close instantly.
+  - Double-click empty tab bar space to open a new document.
+- 📊 **Enhanced Status Bar**: Real-time line and column tracking with selection length and selected line count, plus live language selector, encoding, and line ending indicators.
 - 🎨 **Rich Theme System**:
   - **6 Built-in Themes**: Dark+ (VS Code style), One Dark Pro, Monokai, Dracula, Solarized Dark, and GitHub Light.
   - **Dynamic App & Editor Styling**: Instant live theme switching without restarting.
@@ -27,9 +41,7 @@
   - **Case Transform**: Convert text to UPPERCASE, lowercase, and Title Case.
   - **Text Statistics**: Comprehensive character, word, line, non-empty line, and byte counts.
   - **Dynamic DLL Plugin Importer**: Drop third-party `.dll` assemblies implementing `IPlugin` into the plugins directory or load them via **Tools -> Import Plugin (.dll)...** without locking the file on disk.
-- 📑 **Modern Multi-Tab Editor**: Open multiple documents simultaneously with modification markers (`*`), drag-and-drop tab reordering, and close verification.
-- 🔍 **Interactive Floating Search**: Find in document with `Ctrl+F`, match case, and wrap-around search navigation.
-- 💾 **Safe Local Single-Instance IPC**: Right-clicking multiple files opens them as new tabs inside the existing window using a high-performance local Named Pipe, preventing duplicate heavy processes.
+- 💾 **Safe Local Single-Instance IPC**: Opening files via CLI or File Explorer opens them as tabs inside the existing window using a high-performance local Named Pipe, passing file:line coordinates directly.
 - 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.0-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
@@ -39,18 +51,28 @@
 
 | Shortcut | Action |
 | :--- | :--- |
-| `Ctrl + N` | New Document |
+| `Ctrl + P` | Quick Open (Search tabs & recent files) |
+| `Ctrl + G` | Go to Line (e.g. `42` or `42:10`) |
+| `Ctrl + F` | Find in Document |
+| `Ctrl + H` | Find and Replace |
+| `F3` / `Shift + F3` | Next / Previous Match |
+| `Ctrl + /` | Toggle Line Comment |
+| `Ctrl + D` | Duplicate Line or Selection |
+| `Ctrl + Shift + K` | Delete Current Line |
+| `Alt + Up` | Move Selected Line(s) Up |
+| `Alt + Down` | Move Selected Line(s) Down |
+| `Ctrl + N` | New Document (or double-click tab bar) |
 | `Ctrl + O` | Open File |
 | `Ctrl + S` | Save File |
 | `Ctrl + Shift + S` | Save As |
-| `Ctrl + W` | Close Active Tab |
-| `Ctrl + F` | Find in Document |
-| `Ctrl + Z` | Undo |
+| `Ctrl + Shift + C` | Copy All Content to Clipboard |
+| `Ctrl + W` | Close Active Tab (or middle-click tab) |
+| `Ctrl + Z` | Undo (Atomic) |
 | `Ctrl + Y` | Redo |
-| `Ctrl + +` | Zoom In |
-| `Ctrl + -` | Zoom Out |
+| `Ctrl + +` / `Ctrl + -` | Zoom In / Out |
 | `Ctrl + 0` | Reset Zoom (14 pt) |
 | `Alt + Z` | Toggle Word Wrap |
+| `Ctrl + ,` | Settings |
 | `Alt + F4` | Exit |
 
 ---
@@ -58,13 +80,13 @@
 ## Installation & Packaging
 
 ### Option 1: Installer (Recommended)
-Download and run `CodeViewer-v1.0-Setup.exe` from the [Releases](https://github.com/your-username/code-viewer/releases) page.
+Download and run `CodeViewer-v1.0.1-beta.7-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
 - Installs Code Viewer to your system.
 - Creates Start Menu and Desktop shortcuts.
 - Automatically registers the modern Windows 11 right-click context menu.
 
 ### Option 2: Portable ZIP
-Download `CodeViewer-v1.0.1-beta.5-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
+Download `CodeViewer-v1.0.1-beta.7-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
 To enable the modern Windows 11 context menu for portable use, right-click `scripts\register-windows11-context-menu.ps1` and select **Run with PowerShell**.
 
 ### Option 3: Windows Package Manager (WinGet)
@@ -89,7 +111,7 @@ winget install Reza2654.CodeViewer
 ### Quick Start
 ```powershell
 # Clone the repository
-git clone https://github.com/your-username/code-viewer.git
+git clone https://github.com/Reza2654/code-viewer.git
 cd code-viewer
 
 # Restore dependencies
@@ -98,7 +120,7 @@ dotnet restore CodeViewer.slnx
 # Build all projects
 dotnet build CodeViewer.slnx
 
-# Run all 48 unit tests
+# Run all 78 unit tests
 dotnet test tests/CodeViewer.Tests/CodeViewer.Tests.csproj
 
 # Run the app locally
@@ -111,8 +133,8 @@ To generate both the portable ZIP and the Inno Setup executable installer:
 powershell -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
 ```
 Output artifacts are saved in `dist/`:
-- `CodeViewer-v1.0-Setup.exe`
-- `CodeViewer-v1.0-win-x64-portable.zip`
+- `CodeViewer-v1.0.1-beta.7-Setup.exe`
+- `CodeViewer-v1.0.1-beta.7-win-x64-portable.zip`
 - `checksums.sha256`
 
 ---
