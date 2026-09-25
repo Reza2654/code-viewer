@@ -199,4 +199,37 @@ public class LanguageService : ILanguageService
         // Try extension-based lookup
         return null;
     }
+
+    private static readonly string[] AllSupportedLanguages = new[]
+    {
+        "Plain Text",
+        "C#",
+        "C",
+        "C++",
+        "C/C++ Header",
+        "CSS",
+        "Dart",
+        "Docker",
+        "Go",
+        "HTML",
+        "Java",
+        "JavaScript",
+        "JSON",
+        "Kotlin",
+        "Lua",
+        "Markdown",
+        "PHP",
+        "PowerShell",
+        "Python",
+        "Rust",
+        "Shell / Bash",
+        "SQL",
+        "Swift",
+        "TypeScript",
+        "XML",
+        "YAML"
+    };
+
+    public IReadOnlyList<string> GetSupportedLanguages() => AllSupportedLanguages;
 }
+

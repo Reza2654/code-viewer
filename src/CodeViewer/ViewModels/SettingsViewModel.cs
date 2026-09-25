@@ -36,6 +36,9 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private int _maxRecentFiles;
 
+    [ObservableProperty]
+    private bool _restorePreviousSession;
+
     public IReadOnlyList<ColorTheme> AvailableThemes => _themeService.AvailableThemes;
 
     public ObservableCollection<string> AvailableFonts { get; } = [];
@@ -58,6 +61,7 @@ public partial class SettingsViewModel : ViewModelBase
         _showLineNumbers = current.ShowLineNumbers;
         _tabSize = current.TabSize;
         _maxRecentFiles = current.MaxRecentFiles;
+        _restorePreviousSession = current.RestorePreviousSession;
 
         _selectedTheme = _themeService.AvailableThemes.FirstOrDefault(t => string.Equals(t.Id, current.ThemeId, StringComparison.OrdinalIgnoreCase))
                          ?? _themeService.CurrentTheme;
@@ -148,7 +152,8 @@ public partial class SettingsViewModel : ViewModelBase
             WordWrap = WordWrap,
             ShowLineNumbers = ShowLineNumbers,
             TabSize = TabSize,
-            MaxRecentFiles = MaxRecentFiles
+            MaxRecentFiles = MaxRecentFiles,
+            RestorePreviousSession = RestorePreviousSession
         };
 
         await _settingsService.SaveAsync(settings);
@@ -175,6 +180,7 @@ public partial class SettingsViewModel : ViewModelBase
         ShowLineNumbers = defaults.ShowLineNumbers;
         TabSize = defaults.TabSize;
         MaxRecentFiles = defaults.MaxRecentFiles;
+        RestorePreviousSession = defaults.RestorePreviousSession;
 
         var defaultTheme = AvailableThemes.FirstOrDefault(t => t.Id == defaults.ThemeId) ?? AvailableThemes[0];
         SelectedTheme = defaultTheme;

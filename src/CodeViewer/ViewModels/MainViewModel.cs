@@ -26,7 +26,11 @@ public partial class MainViewModel : ViewModelBase
     private readonly IThemeService _themeService;
     private readonly IPluginService _pluginService;
     private readonly ISettingsService _settingsService;
+    private readonly ISessionService _sessionService;
+    private readonly IFileWatcherService _fileWatcherService;
     private readonly AppConfig _config;
+
+    private readonly HashSet<string> _activeReloadPrompts = new(StringComparer.OrdinalIgnoreCase);
 
     [ObservableProperty]
     private DocumentViewModel? _activeDocument;
@@ -48,6 +52,9 @@ public partial class MainViewModel : ViewModelBase
     public IThemeService ThemeService => _themeService;
     public IPluginService PluginService => _pluginService;
     public ISettingsService SettingsService => _settingsService;
+    public ISessionService SessionService => _sessionService;
+    public IFileWatcherService FileWatcherService => _fileWatcherService;
+    public IReadOnlyList<string> AvailableLanguages => _languageService.GetSupportedLanguages();
 
     public void SelectThemeById(string themeId)
     {
@@ -66,6 +73,7 @@ public partial class MainViewModel : ViewModelBase
     public Action<string>? RequestReplaceSelection { get; set; }
     public Action<string>? RequestReplaceAll { get; set; }
     public Action<string>? RequestInsertText { get; set; }
+    public Func<string, Task>? RequestSetClipboardText { get; set; }
     public Action? RequestOpenPluginManager { get; set; }
     public Action? RequestOpenSettings { get; set; }
 
@@ -81,7 +89,9 @@ public partial class MainViewModel : ViewModelBase
         AppConfig config,
         IThemeService? themeService = null,
         IPluginService? pluginService = null,
-        ISettingsService? settingsService = null)
+        ISettingsService? settingsService = null,
+        ISessionService? sessionService = null,
+        IFileWatcherService? fileWatcherService = null)
     {
         _fileService = fileService;
         _languageService = languageService;
@@ -91,6 +101,10 @@ public partial class MainViewModel : ViewModelBase
         _themeService = themeService ?? new ThemeService();
         _pluginService = pluginService ?? new PluginService();
         _settingsService = settingsService ?? new SettingsService();
+        _sessionService = sessionService ?? new SessionService();
+        _fileWatcherService = fileWatcherService ?? new FileWatcherService();
+
+        _fileWatcherService.FileChangedOnDisk += OnFileChangedOnDisk;
 
         var settings = _settingsService.CurrentSettings;
         _currentFontFamily = settings.FontFamily;
@@ -153,6 +167,7 @@ public partial class MainViewModel : ViewModelBase
         await LoadRecentFilesAsync();
 
         // 3. Handle command-line file arguments if provided (e.g. CodeViewer.exe myfile.cs)
+        var openedAny = false;
         if (commandLineArgs != null && commandLineArgs.Length > 0)
         {
             foreach (var arg in commandLineArgs)
@@ -160,11 +175,39 @@ public partial class MainViewModel : ViewModelBase
                 if (File.Exists(arg))
                 {
                     await OpenFileInternalAsync(arg);
+                    openedAny = true;
                 }
             }
         }
 
-        // 4. If no file opened, open a default empty document
+        // 4. If no command-line files provided, restore previous session if enabled
+        if (!openedAny && settings.RestorePreviousSession)
+        {
+            var session = await _sessionService.LoadSessionAsync();
+            if (session != null && session.OpenFiles.Count > 0)
+            {
+                foreach (var file in session.OpenFiles)
+                {
+                    if (File.Exists(file))
+                    {
+                        await OpenFileInternalAsync(file);
+                        openedAny = true;
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(session.ActiveFile))
+                {
+                    var target = Documents.FirstOrDefault(d => string.Equals(d.FilePath, session.ActiveFile, StringComparison.OrdinalIgnoreCase));
+                    if (target != null)
+                    {
+                        ActiveDocument = target;
+                        UpdateActiveDocumentSelection();
+                    }
+                }
+            }
+        }
+
+        // 5. If no file opened, open a default empty document
         if (Documents.Count == 0)
         {
             CreateNewDocument();
@@ -214,6 +257,7 @@ public partial class MainViewModel : ViewModelBase
         ActiveDocument = docVm;
         UpdateActiveDocumentSelection();
         OnPropertyChanged(nameof(WindowTitle));
+        _ = SaveCurrentSessionAsync();
     }
 
     [RelayCommand]
@@ -281,9 +325,11 @@ public partial class MainViewModel : ViewModelBase
 
             ActiveDocument = docVm;
             UpdateActiveDocumentSelection();
+            _fileWatcherService.WatchFile(fullPath);
             await _recentFilesService.AddRecentFileAsync(fullPath);
             await LoadRecentFilesAsync();
             OnPropertyChanged(nameof(WindowTitle));
+            _ = SaveCurrentSessionAsync();
         }
         catch (Exception ex)
         {
@@ -304,11 +350,18 @@ public partial class MainViewModel : ViewModelBase
 
         try
         {
+            if (ActiveDocument.FilePath != null)
+            {
+                _fileWatcherService.TemporarilyIgnore(ActiveDocument.FilePath);
+            }
+
             ActiveDocument.SyncToModel();
             await _fileService.SaveFileAsync(ActiveDocument.Model);
             var fileInfo = new FileInfo(ActiveDocument.FilePath!);
             ActiveDocument.MarkSaved(fileInfo.FullName, fileInfo.Length, fileInfo.LastWriteTimeUtc);
+            _fileWatcherService.WatchFile(fileInfo.FullName);
             OnPropertyChanged(nameof(WindowTitle));
+            _ = SaveCurrentSessionAsync();
         }
         catch (Exception ex)
         {
@@ -327,14 +380,17 @@ public partial class MainViewModel : ViewModelBase
 
         try
         {
+            _fileWatcherService.TemporarilyIgnore(targetPath);
             ActiveDocument.SyncToModel();
             await _fileService.SaveFileAsync(ActiveDocument.Model, targetPath);
             var fileInfo = new FileInfo(targetPath);
             ActiveDocument.MarkSaved(fileInfo.FullName, fileInfo.Length, fileInfo.LastWriteTimeUtc);
+            _fileWatcherService.WatchFile(fileInfo.FullName);
 
             await _recentFilesService.AddRecentFileAsync(targetPath);
             await LoadRecentFilesAsync();
             OnPropertyChanged(nameof(WindowTitle));
+            _ = SaveCurrentSessionAsync();
         }
         catch (Exception ex)
         {
@@ -362,13 +418,23 @@ public partial class MainViewModel : ViewModelBase
                 {
                     var targetPath = await _dialogService.ShowSaveFileDialogAsync(targetDoc.Title);
                     if (string.IsNullOrEmpty(targetPath)) return;
+                    _fileWatcherService.TemporarilyIgnore(targetPath);
                     await _fileService.SaveFileAsync(targetDoc.Model, targetPath);
                 }
                 else
                 {
+                    if (targetDoc.FilePath != null)
+                    {
+                        _fileWatcherService.TemporarilyIgnore(targetDoc.FilePath);
+                    }
                     await _fileService.SaveFileAsync(targetDoc.Model);
                 }
             }
+        }
+
+        if (!string.IsNullOrEmpty(targetDoc.FilePath))
+        {
+            _fileWatcherService.UnwatchFile(targetDoc.FilePath);
         }
 
         var index = Documents.IndexOf(targetDoc);
@@ -386,6 +452,7 @@ public partial class MainViewModel : ViewModelBase
 
         UpdateActiveDocumentSelection();
         OnPropertyChanged(nameof(WindowTitle));
+        _ = SaveCurrentSessionAsync();
     }
 
     [RelayCommand]
@@ -613,6 +680,106 @@ public partial class MainViewModel : ViewModelBase
 
     #endregion
 
+    [RelayCommand]
+    public void SetLanguage(string? language)
+    {
+        if (ActiveDocument == null || string.IsNullOrWhiteSpace(language)) return;
+
+        ActiveDocument.Language = language;
+        var def = _languageService.GetHighlightingDefinition(language);
+        if (def != null && CurrentTheme != null)
+        {
+            _themeService.ApplyCodeColorsToHighlighting(def, CurrentTheme);
+        }
+        ActiveDocument.HighlightingDefinition = def;
+    }
+
+    [RelayCommand]
+    public async Task CopyAllAsync()
+    {
+        if (ActiveDocument == null) return;
+        var text = ActiveDocument.TextDocument.Text;
+        if (string.IsNullOrEmpty(text)) return;
+
+        if (RequestSetClipboardText != null)
+        {
+            await RequestSetClipboardText.Invoke(text);
+        }
+    }
+
+    public async Task SaveCurrentSessionAsync()
+    {
+        var settings = _settingsService.CurrentSettings;
+        if (!settings.RestorePreviousSession)
+        {
+            await _sessionService.ClearSessionAsync();
+            return;
+        }
+
+        var openPaths = Documents
+            .Select(d => d.FilePath)
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Cast<string>();
+
+        await _sessionService.SaveSessionAsync(openPaths, ActiveDocument?.FilePath);
+    }
+
+    private void OnFileChangedOnDisk(object? sender, string changedPath)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
+        {
+            var doc = Documents.FirstOrDefault(d => string.Equals(d.FilePath, changedPath, StringComparison.OrdinalIgnoreCase));
+            if (doc == null || !File.Exists(changedPath)) return;
+
+            lock (_activeReloadPrompts)
+            {
+                if (_activeReloadPrompts.Contains(changedPath)) return;
+                _activeReloadPrompts.Add(changedPath);
+            }
+
+            try
+            {
+                bool shouldReload;
+                if (doc.IsModified)
+                {
+                    shouldReload = await _dialogService.ShowConfirmationAsync(
+                        "File Changed Externally",
+                        $"'{doc.DisplayName}' has been modified outside of Code Viewer, but you have unsaved local changes.\n\nDo you want to reload it from disk and overwrite your local changes?",
+                        confirmText: "Reload",
+                        cancelText: "Keep Local");
+                }
+                else
+                {
+                    shouldReload = await _dialogService.ShowConfirmationAsync(
+                        "File Changed Externally",
+                        $"'{doc.DisplayName}' has been modified outside of Code Viewer.\n\nDo you want to reload it from disk?",
+                        confirmText: "Reload",
+                        cancelText: "Ignore");
+                }
+
+                if (shouldReload && File.Exists(changedPath))
+                {
+                    var newContent = await File.ReadAllTextAsync(changedPath, doc.Model.EncodingInfo.Encoding);
+                    var fileInfo = new FileInfo(changedPath);
+                    doc.TextDocument.Text = newContent;
+                    doc.MarkSaved(fileInfo.FullName, fileInfo.Length, fileInfo.LastWriteTimeUtc);
+                    OnPropertyChanged(nameof(WindowTitle));
+                }
+            }
+            catch (Exception ex)
+            {
+                await _dialogService.ShowMessageAsync("Reload Error", $"Could not reload file: {ex.Message}");
+            }
+            finally
+            {
+                lock (_activeReloadPrompts)
+                {
+                    _activeReloadPrompts.Remove(changedPath);
+                }
+            }
+        });
+    }
+
     private void UpdateActiveDocumentSelection()
     {
         foreach (var doc in Documents)
@@ -625,5 +792,6 @@ public partial class MainViewModel : ViewModelBase
     {
         UpdateActiveDocumentSelection();
         OnPropertyChanged(nameof(WindowTitle));
+        _ = SaveCurrentSessionAsync();
     }
 }

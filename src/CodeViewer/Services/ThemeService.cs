@@ -408,6 +408,8 @@ public class ThemeService : IThemeService
             var preprocBrush = new SimpleHighlightingBrush(Color.Parse(t.CodePreprocessor));
             var punctBrush = new SimpleHighlightingBrush(Color.Parse(t.CodePunctuation));
 
+            var varBrush = new SimpleHighlightingBrush(Color.Parse(t.Foreground));
+
             foreach (var color in definition.NamedHighlightingColors)
             {
                 var name = color.Name?.ToLowerInvariant() ?? string.Empty;
@@ -415,33 +417,41 @@ public class ThemeService : IThemeService
                 {
                     color.Foreground = commentBrush;
                 }
-                else if (name.Contains("string") || name.Contains("char") || name.Contains("literal") && !name.Contains("number"))
+                else if (name.Contains("string") || name.Contains("char") || name.Contains("regex") || name.Contains("literal") && !name.Contains("number"))
                 {
                     color.Foreground = stringBrush;
                 }
-                else if (name.Contains("keyword") || name.Contains("truefalse") || name.Contains("null") || name.Contains("controlflow") || name.Contains("statement"))
+                else if (name.Contains("keyword") || name.Contains("truefalse") || name.Contains("null") || name.Contains("controlflow") || name.Contains("statement") || name.Contains("modifier") || name.Contains("visibility"))
                 {
                     color.Foreground = kwBrush;
                 }
-                else if (name.Contains("digit") || name.Contains("number"))
+                else if (name.Contains("digit") || name.Contains("number") || name.Contains("float") || name.Contains("hex") || name.Contains("integer"))
                 {
                     color.Foreground = numberBrush;
                 }
-                else if (name.Contains("type") || name.Contains("class") || name.Contains("struct") || name.Contains("interface"))
+                else if (name.Contains("type") || name.Contains("class") || name.Contains("struct") || name.Contains("interface") || name.Contains("enum") || name.Contains("typedef"))
                 {
                     color.Foreground = typeBrush;
                 }
-                else if (name.Contains("method") || name.Contains("function") || name.Contains("call"))
+                else if (name.Contains("method") || name.Contains("function") || name.Contains("call") || name.Contains("invoc"))
                 {
                     color.Foreground = methodBrush;
                 }
-                else if (name.Contains("preprocessor") || name.Contains("directive"))
+                else if (name.Contains("preprocessor") || name.Contains("directive") || name.Contains("include") || name.Contains("define") || name.Contains("macro"))
                 {
                     color.Foreground = preprocBrush;
                 }
-                else if (name.Contains("punctuation") || name.Contains("delimiter"))
+                else if (name.Contains("punctuation") || name.Contains("delimiter") || name.Contains("operator") || name.Contains("parenthes") || name.Contains("bracket") || name.Contains("brace") || name.Contains("colon") || name.Contains("semicolon"))
                 {
                     color.Foreground = punctBrush;
+                }
+                else if (name.Contains("attribute") || name.Contains("annotation") || name.Contains("tag"))
+                {
+                    color.Foreground = typeBrush;
+                }
+                else if (name.Contains("variable") || name.Contains("property") || name.Contains("field") || name.Contains("parameter"))
+                {
+                    color.Foreground = varBrush;
                 }
             }
         }

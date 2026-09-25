@@ -218,4 +218,74 @@ public class DialogService : IDialogService
         dialog.Content = panel;
         await dialog.ShowDialog(_ownerWindow);
     }
+
+    public async Task<bool> ShowConfirmationAsync(string title, string message, string confirmText = "Yes", string cancelText = "No")
+    {
+        if (_ownerWindow == null) return false;
+
+        var tcs = new TaskCompletionSource<bool>();
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 440,
+            Height = 190,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            Background = new SolidColorBrush(Color.Parse("#1E1E1E")),
+            ShowInTaskbar = false
+        };
+
+        var panel = new StackPanel
+        {
+            Margin = new Thickness(20),
+            Spacing = 16
+        };
+
+        var textBlock = new TextBlock
+        {
+            Text = message,
+            Foreground = Brushes.White,
+            FontSize = 13,
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        var buttonsPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Spacing = 10
+        };
+
+        var btnConfirm = new Button
+        {
+            Content = confirmText,
+            Width = 80,
+            Background = new SolidColorBrush(Color.Parse("#007ACC")),
+            Foreground = Brushes.White,
+            HorizontalContentAlignment = HorizontalAlignment.Center
+        };
+        btnConfirm.Click += (_, _) => { tcs.TrySetResult(true); dialog.Close(); };
+
+        var btnCancel = new Button
+        {
+            Content = cancelText,
+            Width = 80,
+            Background = new SolidColorBrush(Color.Parse("#2D2D2D")),
+            Foreground = Brushes.White,
+            HorizontalContentAlignment = HorizontalAlignment.Center
+        };
+        btnCancel.Click += (_, _) => { tcs.TrySetResult(false); dialog.Close(); };
+
+        buttonsPanel.Children.Add(btnConfirm);
+        buttonsPanel.Children.Add(btnCancel);
+
+        panel.Children.Add(textBlock);
+        panel.Children.Add(buttonsPanel);
+
+        dialog.Content = panel;
+        dialog.Closed += (_, _) => tcs.TrySetResult(false);
+
+        await dialog.ShowDialog(_ownerWindow);
+        return await tcs.Task;
+    }
 }

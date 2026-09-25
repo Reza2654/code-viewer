@@ -48,7 +48,7 @@ public class AppSettings
     public int MaxRecentFiles { get; set; } = 20;
 
     [JsonPropertyName("restorePreviousSession")]
-    public bool RestorePreviousSession { get; set; } = false;
+    public bool RestorePreviousSession { get; set; } = true;
 
     public AppSettings Clone()
     {

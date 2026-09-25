@@ -20,6 +20,7 @@
     <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}"/>
     <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}"/>
     <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}"/>
+    <KeyBinding Gesture="Ctrl+Shift+C" Command="{Binding CopyAllCommand}"/>
     <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseTabCommand}" CommandParameter="{Binding ActiveDocument}"/>
 
     <!-- Search Shortcut -->
@@ -72,6 +73,7 @@
         <Separator/>
         <MenuItem Header="Cu_t" Click="OnCutClick" HotKey="Ctrl+X" InputGesture="Ctrl+X"/>
         <MenuItem Header="_Copy" Click="OnCopyClick" HotKey="Ctrl+C" InputGesture="Ctrl+C"/>
+        <MenuItem Header="Copy _All" Command="{Binding CopyAllCommand}" HotKey="Ctrl+Shift+C" InputGesture="Ctrl+Shift+C"/>
         <MenuItem Header="_Paste" Click="OnPasteClick" HotKey="Ctrl+V" InputGesture="Ctrl+V"/>
         <MenuItem Header="Select _All" Click="OnSelectAllClick" HotKey="Ctrl+A" InputGesture="Ctrl+A"/>
         <Separator/>
@@ -85,7 +87,11 @@
         <MenuItem Header="Zoom _Out" Command="{Binding ZoomOutCommand}" HotKey="Ctrl+OemMinus" InputGesture="Ctrl+-"/>
         <MenuItem Header="_Reset Zoom" Command="{Binding ResetZoomCommand}" HotKey="Ctrl+D0" InputGesture="Ctrl+0"/>
         <Separator/>
-        <MenuItem Header="Toggle _Word Wrap" Command="{Binding ToggleWordWrapCommand}" HotKey="Alt+Z" InputGesture="Alt+Z"/>
+        <MenuItem Header="Toggle _Word Wrap" Command="{Binding ToggleWordWrapCommand}" HotKey="Alt+Z" InputGesture="Alt+Z">
+          <MenuItem.Icon>
+            <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding ActiveDocument.WordWrap, FallbackValue=False}"/>
+          </MenuItem.Icon>
+        </MenuItem>
         <MenuItem Header="Toggle _Line Numbers" Command="{Binding ToggleLineNumbersCommand}"/>
       </MenuItem>
 
@@ -188,22 +194,36 @@
             </ItemsControl>
           </ScrollViewer>
 
-          <!-- New Tab '+' Button with Rounded Corners -->
-          <Button Grid.Column="1"
-                  Command="{Binding CreateNewDocumentCommand}"
-                  ToolTip.Tip="New Tab (Ctrl+N)"
-                  Width="28" Height="26"
-                  Padding="0"
-                  CornerRadius="5"
-                  Margin="4,2"
-                  Background="Transparent"
-                  BorderThickness="0">
-            <TextBlock Text="+"
-                       FontSize="16"
-                       Foreground="{DynamicResource ThemeMenuForeground}"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"/>
-          </Button>
+          <!-- Tab Bar Action Buttons: Copy All & New Tab -->
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+            <Button Command="{Binding CopyAllCommand}"
+                    ToolTip.Tip="Copy All Content to Clipboard (Ctrl+Shift+C)"
+                    Padding="6,3"
+                    CornerRadius="4"
+                    Margin="2,1"
+                    Background="Transparent"
+                    BorderThickness="0">
+              <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <TextBlock Text="📋" FontSize="11" VerticalAlignment="Center"/>
+                <TextBlock Text="Copy All" FontSize="11" Foreground="{DynamicResource ThemeMenuForeground}" VerticalAlignment="Center"/>
+              </StackPanel>
+            </Button>
+
+            <Button Command="{Binding CreateNewDocumentCommand}"
+                    ToolTip.Tip="New Tab (Ctrl+N)"
+                    Width="28" Height="26"
+                    Padding="0"
+                    CornerRadius="5"
+                    Margin="2,1,4,1"
+                    Background="Transparent"
+                    BorderThickness="0">
+              <TextBlock Text="+"
+                         FontSize="16"
+                         Foreground="{DynamicResource ThemeMenuForeground}"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"/>
+            </Button>
+          </StackPanel>
         </Grid>
       </Border>
 
@@ -233,9 +253,51 @@
       <!-- Modern Status Bar -->
       <Border x:Name="StatusBarBorder" Grid.Row="2" Classes="statusbar" Background="{DynamicResource ThemeStatusBarBackground}" Height="24">
         <Grid ColumnDefinitions="Auto,*,Auto">
-          <!-- Left Info: Language | Encoding | Line Endings -->
+          <!-- Left Info: Language Selector | Encoding | Line Endings -->
           <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-            <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.Language, FallbackValue='Plain Text'}"/>
+            <!-- Clickable Manual Language Selector -->
+            <Button ToolTip.Tip="Select Language Mode"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="4,1"
+                    CornerRadius="3"
+                    Cursor="Hand">
+              <Button.Flyout>
+                <Flyout Placement="Top">
+                  <Border Background="{DynamicResource ThemeMenuBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
+                          CornerRadius="4"
+                          Padding="4"
+                          MaxHeight="320"
+                          Width="180">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                      <ItemsControl ItemsSource="{Binding AvailableLanguages}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate DataType="x:String">
+                            <Button Content="{Binding}"
+                                    Command="{Binding ((vm:MainViewModel)DataContext).SetLanguageCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="8,4"
+                                    CornerRadius="3"
+                                    FontSize="12"
+                                    Foreground="{DynamicResource ThemeWindowForeground}"/>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </ScrollViewer>
+                  </Border>
+                </Flyout>
+              </Button.Flyout>
+              <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.Language, FallbackValue='Plain Text'}"/>
+                <TextBlock Text="▾" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.8"/>
+              </StackPanel>
+            </Button>
             <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
             <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.EncodingName, FallbackValue='UTF-8'}"/>
             <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>

@@ -21,9 +21,39 @@ public partial class SearchViewModel : ViewModelBase
     [ObservableProperty]
     private string _statusText = string.Empty;
 
+    [ObservableProperty]
+    private int _totalMatches = 0;
+
+    [ObservableProperty]
+    private int _currentMatchIndex = 0;
+
     public event Action? RequestFindNext;
     public event Action? RequestFindPrevious;
     public event Action? RequestClose;
+    public event Action? RequestUpdateMatches;
+
+    partial void OnSearchTextChanged(string value)
+    {
+        RequestUpdateMatches?.Invoke();
+    }
+
+    partial void OnMatchCaseChanged(bool value)
+    {
+        RequestUpdateMatches?.Invoke();
+    }
+
+    partial void OnIsOpenChanged(bool value)
+    {
+        if (value)
+        {
+            RequestUpdateMatches?.Invoke();
+        }
+        else
+        {
+            StatusText = string.Empty;
+            RequestClose?.Invoke();
+        }
+    }
 
     [RelayCommand]
     public void FindNext()
@@ -47,7 +77,6 @@ public partial class SearchViewModel : ViewModelBase
     public void Close()
     {
         IsOpen = false;
-        RequestClose?.Invoke();
     }
 
     public void Open(string? initialText = null)

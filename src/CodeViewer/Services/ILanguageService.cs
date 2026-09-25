@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using AvaloniaEdit.Highlighting;
 
 namespace CodeViewer.Services;
@@ -17,4 +18,10 @@ public interface ILanguageService
     /// Resolves the AvaloniaEdit syntax highlighting definition for a language.
     /// </summary>
     IHighlightingDefinition? GetHighlightingDefinition(string language);
+
+    /// <summary>
+    /// Returns the list of all supported programming languages and formats.
+    /// </summary>
+    IReadOnlyList<string> GetSupportedLanguages();
 }
+

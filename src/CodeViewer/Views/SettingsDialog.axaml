@@ -114,6 +114,10 @@
                           Content="Enable word wrap by default"
                           Foreground="{DynamicResource ThemeWindowForeground}"/>
 
+                <CheckBox IsChecked="{Binding RestorePreviousSession}"
+                          Content="Restore previously opened tabs on startup"
+                          Foreground="{DynamicResource ThemeWindowForeground}"/>
+
                 <Grid ColumnDefinitions="Auto,12,100" Margin="0,4,0,0">
                   <TextBlock Grid.Column="0"
                              Text="Tab Size (spaces):"

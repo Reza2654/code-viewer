@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -8,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using CodeViewer.Models;
+using CodeViewer.Rendering;
 using CodeViewer.Services;
 using CodeViewer.ViewModels;
 
@@ -15,9 +17,23 @@ namespace CodeViewer.Views;
 
 public partial class MainWindow : Window
 {
+    private readonly CurrentLineHighlighter _currentLineHighlighter;
+    private readonly BracketMatchingRenderer _bracketMatchingRenderer;
+    private readonly SearchHighlightRenderer _searchHighlightRenderer;
+    private readonly List<int> _searchMatchOffsets = new();
+    private int _currentSearchMatchIndex = -1;
+
     public MainWindow()
     {
         InitializeComponent();
+
+        _currentLineHighlighter = new CurrentLineHighlighter(Editor);
+        _bracketMatchingRenderer = new BracketMatchingRenderer(Editor);
+        _searchHighlightRenderer = new SearchHighlightRenderer(Editor);
+
+        Editor.TextArea.TextView.BackgroundRenderers.Add(_currentLineHighlighter);
+        Editor.TextArea.TextView.BackgroundRenderers.Add(_bracketMatchingRenderer);
+        Editor.TextArea.TextView.BackgroundRenderers.Add(_searchHighlightRenderer);
 
         DataContextChanged += OnDataContextChanged;
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
@@ -55,13 +71,28 @@ public partial class MainWindow : Window
         if (DataContext is MainViewModel vm)
         {
             // Wire search events to editor actions
+            vm.SearchViewModel.RequestUpdateMatches += UpdateSearchMatches;
             vm.SearchViewModel.RequestFindNext += OnFindNext;
             vm.SearchViewModel.RequestFindPrevious += OnFindPrevious;
-            vm.SearchViewModel.RequestClose += () => Editor.Focus();
+            vm.SearchViewModel.RequestClose += () =>
+            {
+                _searchHighlightRenderer.Clear();
+                Editor.TextArea.TextView.InvalidateVisual();
+                Editor.Focus();
+            };
 
             // Wire theme change listener for guaranteed instant visual update
             vm.ThemeService.ThemeChanged += OnThemeChanged;
             OnThemeChanged(vm.CurrentTheme);
+
+            // Wire clipboard copy callback
+            vm.RequestSetClipboardText = async (text) =>
+            {
+                if (Clipboard != null)
+                {
+                    await Clipboard.SetTextAsync(text);
+                }
+            };
 
             // Wire plugin and editor interaction callbacks
             vm.RequestSelectedText = () => Editor.SelectedText ?? string.Empty;
@@ -96,6 +127,21 @@ public partial class MainWindow : Window
             {
                 var dialog = new SettingsDialog(new SettingsViewModel(vm.SettingsService, vm.ThemeService));
                 await dialog.ShowDialog(this);
+            };
+
+            // Keep word wrap, bracket matching, and search updated on active document change
+            vm.PropertyChanged += (s, args) =>
+            {
+                if (args.PropertyName == nameof(MainViewModel.ActiveDocument))
+                {
+                    if (vm.ActiveDocument != null)
+                    {
+                        Editor.WordWrap = vm.ActiveDocument.WordWrap;
+                        _bracketMatchingRenderer.UpdateMatchingBrackets();
+                        UpdateSearchMatches();
+                        Editor.TextArea.TextView.InvalidateVisual();
+                    }
+                }
             };
 
             vm.SettingsService.SettingsChanged += OnSettingsChanged;
@@ -147,6 +193,9 @@ public partial class MainWindow : Window
 
                 if (StatusBarBorder != null) StatusBarBorder.Background = statusBg;
                 if (TabBarBorder != null) TabBarBorder.Background = tabBg;
+
+                _currentLineHighlighter?.UpdateTheme(theme.IsDark);
+                _bracketMatchingRenderer?.UpdateTheme(theme);
 
                 if (DataContext is MainViewModel vm)
                 {
@@ -275,6 +324,8 @@ public partial class MainWindow : Window
         {
             var caret = Editor.TextArea.Caret;
             vm.ActiveDocument.UpdateCaretPosition(caret.Line, caret.Column);
+            _bracketMatchingRenderer.UpdateMatchingBrackets();
+            Editor.TextArea.TextView.InvalidateVisual();
         }
     }
 
@@ -283,6 +334,10 @@ public partial class MainWindow : Window
         if (sender is Border border && border.DataContext is DocumentViewModel doc && DataContext is MainViewModel vm)
         {
             vm.ActiveDocument = doc;
+            Editor.WordWrap = doc.WordWrap;
+            _bracketMatchingRenderer.UpdateMatchingBrackets();
+            UpdateSearchMatches();
+            Editor.TextArea.TextView.InvalidateVisual();
             Editor.Focus();
         }
     }
@@ -394,6 +449,71 @@ public partial class MainWindow : Window
 
     #region Search Implementation
 
+    private void UpdateSearchMatches()
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        var query = vm.SearchViewModel.SearchText;
+        _searchMatchOffsets.Clear();
+        _currentSearchMatchIndex = -1;
+
+        if (string.IsNullOrEmpty(query) || !vm.SearchViewModel.IsOpen)
+        {
+            _searchHighlightRenderer.Clear();
+            Editor.TextArea.TextView.InvalidateVisual();
+            vm.SearchViewModel.StatusText = string.Empty;
+            vm.SearchViewModel.TotalMatches = 0;
+            vm.SearchViewModel.CurrentMatchIndex = 0;
+            return;
+        }
+
+        var text = Editor.Text ?? string.Empty;
+        if (text.Length == 0)
+        {
+            _searchHighlightRenderer.Clear();
+            Editor.TextArea.TextView.InvalidateVisual();
+            vm.SearchViewModel.StatusText = "No results";
+            vm.SearchViewModel.TotalMatches = 0;
+            vm.SearchViewModel.CurrentMatchIndex = 0;
+            return;
+        }
+
+        var comparison = vm.SearchViewModel.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+
+        var index = 0;
+        while (index < text.Length)
+        {
+            var found = text.IndexOf(query, index, comparison);
+            if (found == -1) break;
+            _searchMatchOffsets.Add(found);
+            index = found + Math.Max(query.Length, 1);
+        }
+
+        vm.SearchViewModel.TotalMatches = _searchMatchOffsets.Count;
+
+        if (_searchMatchOffsets.Count == 0)
+        {
+            _searchHighlightRenderer.Clear();
+            vm.SearchViewModel.StatusText = "No results";
+            vm.SearchViewModel.CurrentMatchIndex = 0;
+        }
+        else
+        {
+            var caret = Editor.SelectionStart;
+            var closest = _searchMatchOffsets.FindIndex(m => m >= caret);
+            if (closest == -1) closest = 0;
+            _currentSearchMatchIndex = closest;
+
+            vm.SearchViewModel.CurrentMatchIndex = _currentSearchMatchIndex + 1;
+            vm.SearchViewModel.StatusText = $"{_currentSearchMatchIndex + 1} of {_searchMatchOffsets.Count}";
+
+            var activeOffset = _searchMatchOffsets[_currentSearchMatchIndex];
+            _searchHighlightRenderer.SetMatches(_searchMatchOffsets, query.Length, activeOffset);
+        }
+
+        Editor.TextArea.TextView.InvalidateVisual();
+    }
+
     private void OnFindNext()
     {
         if (DataContext is not MainViewModel vm || string.IsNullOrEmpty(vm.SearchViewModel.SearchText))
@@ -401,35 +521,14 @@ public partial class MainWindow : Window
             return;
         }
 
-        var text = Editor.Text;
-        if (string.IsNullOrEmpty(text)) return;
-
-        var query = vm.SearchViewModel.SearchText;
-        var comparison = vm.SearchViewModel.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-
-        var startIndex = Editor.SelectionStart + Editor.SelectionLength;
-        if (startIndex >= text.Length)
+        if (_searchMatchOffsets.Count == 0)
         {
-            startIndex = 0;
+            UpdateSearchMatches();
+            if (_searchMatchOffsets.Count == 0) return;
         }
 
-        var index = text.IndexOf(query, startIndex, comparison);
-        if (index == -1 && startIndex > 0)
-        {
-            index = text.IndexOf(query, 0, comparison);
-        }
-
-        if (index != -1)
-        {
-            Editor.Select(index, query.Length);
-            var loc = Editor.Document.GetLocation(index);
-            Editor.ScrollTo(loc.Line, loc.Column);
-            vm.SearchViewModel.StatusText = string.Empty;
-        }
-        else
-        {
-            vm.SearchViewModel.StatusText = "No match";
-        }
+        _currentSearchMatchIndex = (_currentSearchMatchIndex + 1) % _searchMatchOffsets.Count;
+        NavigateToMatch(vm, _currentSearchMatchIndex);
     }
 
     private void OnFindPrevious()
@@ -439,35 +538,32 @@ public partial class MainWindow : Window
             return;
         }
 
-        var text = Editor.Text;
-        if (string.IsNullOrEmpty(text)) return;
+        if (_searchMatchOffsets.Count == 0)
+        {
+            UpdateSearchMatches();
+            if (_searchMatchOffsets.Count == 0) return;
+        }
 
+        _currentSearchMatchIndex = (_currentSearchMatchIndex - 1 + _searchMatchOffsets.Count) % _searchMatchOffsets.Count;
+        NavigateToMatch(vm, _currentSearchMatchIndex);
+    }
+
+    private void NavigateToMatch(MainViewModel vm, int matchIndex)
+    {
+        if (matchIndex < 0 || matchIndex >= _searchMatchOffsets.Count) return;
+
+        var offset = _searchMatchOffsets[matchIndex];
         var query = vm.SearchViewModel.SearchText;
-        var comparison = vm.SearchViewModel.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 
-        var startIndex = Editor.SelectionStart - 1;
-        if (startIndex < 0)
-        {
-            startIndex = text.Length - 1;
-        }
+        Editor.Select(offset, query.Length);
+        var loc = Editor.Document.GetLocation(offset);
+        Editor.ScrollTo(loc.Line, loc.Column);
 
-        var index = text.LastIndexOf(query, startIndex, comparison);
-        if (index == -1 && startIndex < text.Length - 1)
-        {
-            index = text.LastIndexOf(query, text.Length - 1, comparison);
-        }
+        vm.SearchViewModel.CurrentMatchIndex = matchIndex + 1;
+        vm.SearchViewModel.StatusText = $"{matchIndex + 1} of {_searchMatchOffsets.Count}";
 
-        if (index != -1)
-        {
-            Editor.Select(index, query.Length);
-            var loc = Editor.Document.GetLocation(index);
-            Editor.ScrollTo(loc.Line, loc.Column);
-            vm.SearchViewModel.StatusText = string.Empty;
-        }
-        else
-        {
-            vm.SearchViewModel.StatusText = "No match";
-        }
+        _searchHighlightRenderer.SetActiveMatch(offset);
+        Editor.TextArea.TextView.InvalidateVisual();
     }
 
     #endregion
@@ -494,6 +590,7 @@ public partial class MainWindow : Window
         }
 
         Closing -= OnWindowClosing;
+        _ = vm.SaveCurrentSessionAsync();
         Close();
     }
 
@@ -570,7 +667,7 @@ public partial class MainWindow : Window
 
         var panel = new StackPanel { Margin = new Avalonia.Thickness(24), Spacing = 10, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.0.1-beta.5 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Version 1.0.1-beta.6 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 10, 0, 10) });
 
         var okBtn = new Button { Content = "OK", Width = 80, CornerRadius = new Avalonia.CornerRadius(4), Background = new SolidColorBrush(Color.Parse("#007ACC")), Foreground = Avalonia.Media.Brushes.White, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };

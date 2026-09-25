@@ -41,4 +41,10 @@ public interface IDialogService
     /// Displays a message box or alert dialog.
     /// </summary>
     Task ShowMessageAsync(string title, string message);
+
+    /// <summary>
+    /// Displays a confirmation dialog returning true if confirmed.
+    /// </summary>
+    Task<bool> ShowConfirmationAsync(string title, string message, string confirmText = "Yes", string cancelText = "No");
 }
+
