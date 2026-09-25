@@ -66,6 +66,21 @@ public partial class MainWindow : Window
         // Window closing prompt for unsaved changes
         Closing += OnWindowClosing;
         Closed += (s, e) => (DataContext as IDisposable)?.Dispose();
+
+        // Code Mode Language Flyout autofocus and scroll reset
+        if (LanguageButton?.Flyout is Flyout langFlyout)
+        {
+            langFlyout.Opened += (s, e) =>
+            {
+                if (DataContext is MainViewModel vm)
+                {
+                    vm.LanguageFilter = string.Empty;
+                }
+                LanguageScrollViewer.Offset = new Avalonia.Vector(0, 0);
+                LanguageSearchBox?.Focus();
+                LanguageSearchBox?.SelectAll();
+            };
+        }
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
@@ -207,6 +222,24 @@ public partial class MainWindow : Window
     private void OnLanguageItemClick(object? sender, RoutedEventArgs e)
     {
         LanguageButton?.Flyout?.Hide();
+    }
+
+    private void OnLanguageSearchKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.ApplyFirstFilteredLanguage();
+            }
+            LanguageButton?.Flyout?.Hide();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            LanguageButton?.Flyout?.Hide();
+            e.Handled = true;
+        }
     }
 
     private void OnThemeChanged(ColorTheme theme)
@@ -1180,7 +1213,7 @@ public partial class MainWindow : Window
 
         var panel = new StackPanel { Margin = new Avalonia.Thickness(24), Spacing = 10, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.0.1-rc.2 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Version 1.0.1-rc.3 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 10, 0, 10) });
 
         var okBtn = new Button { Content = "OK", Width = 80, CornerRadius = new Avalonia.CornerRadius(4), Background = new SolidColorBrush(Color.Parse("#007ACC")), Foreground = Avalonia.Media.Brushes.White, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };

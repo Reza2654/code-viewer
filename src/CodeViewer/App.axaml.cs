@@ -33,6 +33,7 @@ public partial class App : Application
 
                 var themeService = new ThemeService();
                 var pluginService = new PluginService();
+                var integrationsUpdateService = new IntegrationsUpdateService();
 
                 // 3. Create Main ViewModel
                 var mainViewModel = new MainViewModel(
@@ -42,7 +43,8 @@ public partial class App : Application
                     dialogService,
                     config,
                     themeService,
-                    pluginService);
+                    pluginService,
+                    integrationsUpdateService: integrationsUpdateService);
 
                 // 4. Create and show MainWindow
                 var mainWindow = new MainWindow

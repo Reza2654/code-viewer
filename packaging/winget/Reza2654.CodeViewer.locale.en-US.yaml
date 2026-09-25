@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 
 PackageIdentifier: Reza2654.CodeViewer
-PackageVersion: 1.0.1-rc.2
+PackageVersion: 1.0.1-rc.3
 PackageLocale: en-US
 Publisher: Reza2654
 PublisherUrl: https://github.com/Reza2654
@@ -24,6 +24,6 @@ Tags:
 - syntax-highlighting
 - windows11
 - avalonia
-ReleaseNotesUrl: https://github.com/Reza2654/code-viewer/releases/tag/v1.0.1-rc.2
+ReleaseNotesUrl: https://github.com/Reza2654/code-viewer/releases/tag/v1.0.1-rc.3
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0

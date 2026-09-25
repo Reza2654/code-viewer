@@ -1,0 +1,141 @@
+<?xml version="1.0"?>
+<SyntaxDefinition name="AgentLang" extensions=".agent" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" foreground="#6A9955" exampleText="// comment" />
+  <Color name="String" foreground="#CE9178" exampleText="string text" />
+  <Color name="Keywords" foreground="#C586C0" fontWeight="bold" exampleText="agent MyAgent {}" />
+  <Color name="ControlKeywords" foreground="#C586C0" exampleText="if (a) return;" />
+  <Color name="TypeKeywords" foreground="#4EC9B0" exampleText="string text;" />
+  <Color name="MethodCall" foreground="#DCDCAA" exampleText="think()" />
+  <Color name="Numbers" foreground="#B5CEA8" exampleText="123" />
+  <Color name="Punctuation" foreground="#D4D4D4" exampleText=";" />
+
+  <RuleSet>
+    <!-- Single line comments (// and #) -->
+    <Span color="Comment">
+      <Begin>//</Begin>
+    </Span>
+    <Span color="Comment">
+      <Begin>#</Begin>
+    </Span>
+
+    <!-- Block comments -->
+    <Span color="Comment" multiline="true">
+      <Begin>/\*</Begin>
+      <End>\*/</End>
+    </Span>
+
+    <!-- Double-quoted strings -->
+    <Span color="String">
+      <Begin>"</Begin>
+      <End>"</End>
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+
+    <!-- Single-quoted strings -->
+    <Span color="String">
+      <Begin>'</Begin>
+      <End>'</End>
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+
+    <!-- Numbers -->
+    <Rule color="Numbers">
+      \b0[xX][0-9a-fA-F]+\b|\b\d+(\.[0-9]+)?([eE][+-]?[0-9]+)?\b
+    </Rule>
+
+    <!-- AgentLang Core Declaration Keywords -->
+    <Keywords color="Keywords">
+      <Word>main</Word>
+      <Word>agent</Word>
+      <Word>multiagent</Word>
+      <Word>task</Word>
+      <Word>context</Word>
+      <Word>permission</Word>
+      <Word>tool</Word>
+      <Word>memory</Word>
+      <Word>model</Word>
+      <Word>tools</Word>
+      <Word>event</Word>
+      <Word>parallel</Word>
+      <Word>function</Word>
+      <Word>importapi</Word>
+      <Word>dependencies</Word>
+      <Word>allow</Word>
+      <Word>ask</Word>
+      <Word>cannot</Word>
+      <Word>description</Word>
+      <Word>input</Word>
+      <Word>execute</Word>
+      <Word>send</Word>
+      <Word>to</Word>
+      <Word>tag</Word>
+      <Word>true</Word>
+      <Word>false</Word>
+      <Word>null</Word>
+      <Word>and</Word>
+      <Word>or</Word>
+      <Word>not</Word>
+    </Keywords>
+
+    <!-- Control Flow Keywords -->
+    <Keywords color="ControlKeywords">
+      <Word>if</Word>
+      <Word>else</Word>
+      <Word>for</Word>
+      <Word>in</Word>
+      <Word>while</Word>
+      <Word>repeat</Word>
+      <Word>return</Word>
+      <Word>try</Word>
+      <Word>catch</Word>
+      <Word>retry</Word>
+    </Keywords>
+
+    <!-- AgentLang Built-in Types -->
+    <Keywords color="TypeKeywords">
+      <Word>string</Word>
+      <Word>number</Word>
+      <Word>boolean</Word>
+      <Word>list</Word>
+      <Word>map</Word>
+      <Word>agent</Word>
+      <Word>task</Word>
+      <Word>operation</Word>
+      <Word>tool</Word>
+    </Keywords>
+
+    <!-- Native Operations, Built-in Tools, and Standard Providers -->
+    <Keywords color="MethodCall">
+      <Word>think</Word>
+      <Word>research</Word>
+      <Word>print</Word>
+      <Word>type</Word>
+      <Word>filesystem</Word>
+      <Word>browser</Word>
+      <Word>terminal</Word>
+      <Word>http</Word>
+      <Word>calculator</Word>
+      <Word>mock</Word>
+      <Word>openai</Word>
+      <Word>gemini</Word>
+      <Word>anthropic</Word>
+      <Word>tavily</Word>
+      <Word>serper</Word>
+      <Word>brave</Word>
+    </Keywords>
+
+    <!-- Function / Method Calls -->
+    <Rule color="MethodCall">
+      \b[a-zA-Z_][a-zA-Z0-9_]*(?=\s*\()
+    </Rule>
+
+    <!-- Punctuation and Operators -->
+    <Rule color="Punctuation">
+      [?,.;()\[\]{}+\-/%*&lt;&gt;^=!~&amp;|]
+    </Rule>
+  </RuleSet>
+</SyntaxDefinition>

@@ -93,7 +93,10 @@ public class LanguageService : ILanguageService
         { ".swift", "Swift" },
         { ".txt", "Plain Text" },
         { ".log", "Plain Text" },
-        { ".env", "Plain Text" }
+        { ".env", "Plain Text" },
+        { ".agent", "AgentLang" },
+        { ".ps2", "PS2" },
+        { ".ps2bundle", "PS2" }
     };
 
     public LanguageService()
@@ -103,15 +106,22 @@ public class LanguageService : ILanguageService
 
     private void RegisterCustomHighlighters()
     {
+        var asm = typeof(LanguageService).Assembly;
+        RegisterHighlighter(asm, "CodeViewer.Assets.Syntax.Dart.xshd", "Dart", new[] { ".dart" });
+        RegisterHighlighter(asm, "CodeViewer.Assets.Syntax.AgentLang.xshd", "AgentLang", new[] { ".agent" });
+        RegisterHighlighter(asm, "CodeViewer.Assets.Syntax.PS2.xshd", "PS2", new[] { ".ps2", ".ps2bundle" });
+    }
+
+    private static void RegisterHighlighter(System.Reflection.Assembly asm, string resourceName, string name, string[] extensions)
+    {
         try
         {
-            var asm = typeof(LanguageService).Assembly;
-            using var stream = asm.GetManifestResourceStream("CodeViewer.Assets.Syntax.Dart.xshd");
+            using var stream = asm.GetManifestResourceStream(resourceName);
             if (stream != null)
             {
                 using var reader = System.Xml.XmlReader.Create(stream);
-                var dartDef = AvaloniaEdit.Highlighting.Xshd.HighlightingLoader.Load(reader, HighlightingManager.Instance);
-                HighlightingManager.Instance.RegisterHighlighting("Dart", new[] { ".dart" }, dartDef);
+                var def = AvaloniaEdit.Highlighting.Xshd.HighlightingLoader.Load(reader, HighlightingManager.Instance);
+                HighlightingManager.Instance.RegisterHighlighting(name, extensions, def);
             }
         }
         catch
@@ -181,6 +191,8 @@ public class LanguageService : ILanguageService
             "Markdown" => "MarkDown",
             "PowerShell" => "PowerShell",
             "Dart" => "Java", // C-family syntax highlighting fallback
+            "AgentLang" => "JavaScript", // High compatibility fallback for AgentLang
+            "PS2" => "PowerShell", // Scripting syntax fallback for PS2
             "Rust" or "Go" or "Swift" => "C++",
             "Shell / Bash" => "PowerShell",
             "SQL" => "SQL",
@@ -203,6 +215,7 @@ public class LanguageService : ILanguageService
     private static readonly string[] AllSupportedLanguages = new[]
     {
         "Plain Text",
+        "AgentLang",
         "C#",
         "C",
         "C++",
@@ -220,6 +233,7 @@ public class LanguageService : ILanguageService
         "Markdown",
         "PHP",
         "PowerShell",
+        "PS2",
         "Python",
         "Rust",
         "Shell / Bash",

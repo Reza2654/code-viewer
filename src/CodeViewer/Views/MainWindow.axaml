@@ -14,6 +14,25 @@
         Background="{DynamicResource ThemeWindowBackground}"
         DragDrop.AllowDrop="True">
 
+  <Window.Styles>
+    <Style Selector="FlyoutPresenter.language-flyout">
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}"/>
+      <Setter Property="Background" Value="{DynamicResource ThemeMenuBackground}"/>
+      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="MinWidth" Value="240"/>
+      <Setter Property="MaxWidth" Value="260"/>
+      <Setter Property="MaxHeight" Value="400"/>
+      <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled"/>
+      <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+    </Style>
+    <Style Selector="Button.active-lang">
+      <Setter Property="Background" Value="{DynamicResource ThemeSelectionBackground}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+  </Window.Styles>
+
   <Window.KeyBindings>
     <!-- File Operation Shortcuts -->
     <KeyBinding Gesture="Ctrl+N" Command="{Binding CreateNewDocumentCommand}"/>
@@ -159,6 +178,7 @@
 
       <MenuItem Header="_Help">
         <MenuItem Header="_About Code Viewer" Click="OnAboutClick"/>
+        <MenuItem Header="Check Language &amp; Integration _Updates..." Command="{Binding CheckIntegrationsUpdateCommand}"/>
         <MenuItem Header="_GitHub Repository" Click="OnGitHubRepoClick"/>
       </MenuItem>
     </Menu>
@@ -383,35 +403,88 @@
                     CornerRadius="3"
                     Cursor="Hand">
               <Button.Flyout>
-                <Flyout Placement="Top">
-                  <Border Background="{DynamicResource ThemeMenuBackground}"
-                          BorderBrush="{DynamicResource ThemeBorderBrush}"
-                          BorderThickness="1"
-                          CornerRadius="4"
-                          Padding="4"
-                          MaxHeight="320"
-                          Width="180">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                      <ItemsControl ItemsSource="{Binding AvailableLanguages}">
+                <Flyout Placement="TopEdgeAlignedLeft"
+                        FlyoutPresenterClasses="language-flyout">
+                  <Grid RowDefinitions="Auto,*,Auto" MaxHeight="380" Width="240">
+                    <!-- Search Header -->
+                    <Border Grid.Row="0"
+                            Padding="8,8,8,6"
+                            BorderBrush="{DynamicResource ThemeBorderBrush}"
+                            BorderThickness="0,0,0,1">
+                      <TextBox x:Name="LanguageSearchBox"
+                               Text="{Binding LanguageFilter, Mode=TwoWay}"
+                               Watermark="Search language..."
+                               FontSize="12"
+                               Padding="6,4"
+                               KeyDown="OnLanguageSearchKeyDown"
+                               CornerRadius="4"/>
+                    </Border>
+
+                    <!-- Language List -->
+                    <ScrollViewer Grid.Row="1"
+                                  x:Name="LanguageScrollViewer"
+                                  MaxHeight="290"
+                                  VerticalScrollBarVisibility="Auto">
+                      <ItemsControl ItemsSource="{Binding FilteredLanguageOptions}"
+                                    Padding="4,4">
                         <ItemsControl.ItemTemplate>
-                          <DataTemplate DataType="x:String">
-                            <Button Content="{Binding}"
-                                    Click="OnLanguageItemClick"
+                          <DataTemplate x:DataType="models:LanguageOption">
+                            <Button Click="OnLanguageItemClick"
                                     Command="{Binding ((vm:MainViewModel)DataContext).SetLanguageCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CommandParameter="{Binding}"
+                                    CommandParameter="{Binding Name}"
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Left"
                                     Background="Transparent"
                                     BorderThickness="0"
-                                    Padding="8,4"
-                                    CornerRadius="3"
+                                    Padding="8,5"
+                                    Margin="0,1"
+                                    CornerRadius="4"
                                     FontSize="12"
-                                    Foreground="{DynamicResource ThemeWindowForeground}"/>
+                                    Foreground="{DynamicResource ThemeWindowForeground}"
+                                    Classes.active-lang="{Binding IsSelected}">
+                              <Grid ColumnDefinitions="20,*">
+                                <TextBlock Grid.Column="0"
+                                           Text="✓"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource ThemeAccentBrush}"
+                                           IsVisible="{Binding IsSelected}"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Name}"
+                                           VerticalAlignment="Center"/>
+                              </Grid>
+                            </Button>
                           </DataTemplate>
                         </ItemsControl.ItemTemplate>
                       </ItemsControl>
                     </ScrollViewer>
-                  </Border>
+
+                    <!-- Footer: Updates check & status -->
+                    <Border Grid.Row="2"
+                            Padding="8,6"
+                            BorderBrush="{DynamicResource ThemeBorderBrush}"
+                            BorderThickness="0,1,0,0"
+                            Background="{DynamicResource ThemeTabBarBackground}">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="Language Mode"
+                                   FontSize="11"
+                                   Opacity="0.7"
+                                   Foreground="{DynamicResource ThemeStatusBarForeground}"
+                                   VerticalAlignment="Center"/>
+                        <Button Grid.Column="1"
+                                Content="Check Updates 🔄"
+                                Command="{Binding CheckIntegrationsUpdateCommand}"
+                                Click="OnLanguageItemClick"
+                                FontSize="10"
+                                Padding="6,2"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="{DynamicResource ThemeAccentBrush}"
+                                Cursor="Hand"/>
+                      </Grid>
+                    </Border>
+                  </Grid>
                 </Flyout>
               </Button.Flyout>
               <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">

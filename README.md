@@ -28,8 +28,7 @@
 - 📑 **Power Tab Management**:
   - Tab context menu: Close Other Tabs, Close Tabs to the Right, Close Saved Tabs, Copy Full Path, Reveal in Explorer.
   - Middle-click any tab to close instantly.
-  - Double-click empty tab bar space to open a new document.
-- 📊 **Enhanced Status Bar**: Real-time line and column tracking with selection length and selected line count, plus live language selector, encoding, and line ending indicators.
+- 📊 **Enhanced Status Bar & Redesigned Code Mode**: Real-time line and column tracking with selection length and selected line count, live encoding, line ending indicators, and a redesigned Language Mode flyout with instant search, checkmark indicators, in-app update checking, and syntax highlighting for **AgentLang** (`.agent`), **PS2** (`.ps2`, `.ps2bundle`), and 25+ languages.
 - 🎨 **Rich Theme System**:
   - **6 Built-in Themes**: Dark+ (VS Code style), One Dark Pro, Monokai, Dracula, Solarized Dark, and GitHub Light.
   - **Dynamic App & Editor Styling**: Instant live theme switching without restarting.
@@ -80,13 +79,13 @@
 ## Installation & Packaging
 
 ### Option 1: Installer (Recommended)
-Download and run `CodeViewer-v1.0.1-rc.2-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
+Download and run `CodeViewer-v1.0.1-rc.3-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
 - Installs Code Viewer to your system.
 - Creates Start Menu and Desktop shortcuts.
 - Automatically registers the modern Windows 11 right-click context menu.
 
 ### Option 2: Portable ZIP
-Download `CodeViewer-v1.0.1-rc.2-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
+Download `CodeViewer-v1.0.1-rc.3-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
 To enable the modern Windows 11 context menu for portable use, right-click `scripts\register-windows11-context-menu.ps1` and select **Run with PowerShell**.
 
 ### Option 3: Windows Package Manager (WinGet)
@@ -120,7 +119,7 @@ dotnet restore CodeViewer.slnx
 # Build all projects
 dotnet build CodeViewer.slnx
 
-# Run all 80 unit tests
+# Run all 90 unit tests
 dotnet test tests/CodeViewer.Tests/CodeViewer.Tests.csproj
 
 # Run the app locally
@@ -133,8 +132,8 @@ To generate both the portable ZIP and the Inno Setup executable installer:
 powershell -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
 ```
 Output artifacts are saved in `dist/`:
-- `CodeViewer-v1.0.1-rc.2-Setup.exe`
-- `CodeViewer-v1.0.1-rc.2-win-x64-portable.zip`
+- `CodeViewer-v1.0.1-rc.3-Setup.exe`
+- `CodeViewer-v1.0.1-rc.3-win-x64-portable.zip`
 - `checksums.sha256`
 
 ---

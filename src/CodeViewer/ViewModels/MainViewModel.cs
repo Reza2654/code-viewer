@@ -29,6 +29,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private readonly ISettingsService _settingsService;
     private readonly ISessionService _sessionService;
     private readonly IFileWatcherService _fileWatcherService;
+    private readonly IIntegrationsUpdateService _integrationsUpdateService;
     private readonly AppConfig _config;
 
     private readonly HashSet<string> _activeReloadPrompts = new(StringComparer.OrdinalIgnoreCase);
@@ -86,6 +87,33 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public IFileWatcherService FileWatcherService => _fileWatcherService;
     public IReadOnlyList<string> AvailableLanguages => _languageService.GetSupportedLanguages();
 
+    [ObservableProperty]
+    private string _languageFilter = string.Empty;
+
+    public IEnumerable<LanguageOption> FilteredLanguageOptions
+    {
+        get
+        {
+            var activeLang = ActiveDocument?.Language;
+            var list = _languageService.GetSupportedLanguages();
+            if (!string.IsNullOrWhiteSpace(LanguageFilter))
+            {
+                list = list.Where(l => l.Contains(LanguageFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            return list.Select(name => new LanguageOption
+            {
+                Name = name,
+                IsSelected = string.Equals(name, activeLang, StringComparison.OrdinalIgnoreCase)
+            });
+        }
+    }
+
+    partial void OnLanguageFilterChanged(string value)
+    {
+        OnPropertyChanged(nameof(FilteredLanguageOptions));
+    }
+
     public void SelectThemeById(string themeId)
     {
         var target = AvailableThemes.FirstOrDefault(t => string.Equals(t.Id, themeId, StringComparison.OrdinalIgnoreCase));
@@ -123,7 +151,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         IPluginService? pluginService = null,
         ISettingsService? settingsService = null,
         ISessionService? sessionService = null,
-        IFileWatcherService? fileWatcherService = null)
+        IFileWatcherService? fileWatcherService = null,
+        IIntegrationsUpdateService? integrationsUpdateService = null)
     {
         _fileService = fileService;
         _languageService = languageService;
@@ -135,6 +164,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _settingsService = settingsService ?? new SettingsService();
         _sessionService = sessionService ?? new SessionService();
         _fileWatcherService = fileWatcherService ?? new FileWatcherService();
+        _integrationsUpdateService = integrationsUpdateService ?? new IntegrationsUpdateService();
 
         _fileWatcherService.FileChangedOnDisk += OnFileChangedOnDisk;
 
@@ -1047,6 +1077,79 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             _themeService.ApplyCodeColorsToHighlighting(def, CurrentTheme);
         }
         ActiveDocument.HighlightingDefinition = def;
+        OnPropertyChanged(nameof(FilteredLanguageOptions));
+    }
+
+    public void ApplyFirstFilteredLanguage()
+    {
+        var first = FilteredLanguageOptions.FirstOrDefault();
+        if (first != null)
+        {
+            SetLanguage(first.Name);
+        }
+    }
+
+    [RelayCommand]
+    public async Task CheckIntegrationsUpdateAsync()
+    {
+        _ = ShowTemporaryStatusAsync("Checking language integration updates on GitHub...");
+        var statuses = await _integrationsUpdateService.CheckIntegrationsAsync();
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Language & Integration Status:");
+        sb.AppendLine();
+
+        bool hasAnyUpdate = false;
+        foreach (var status in statuses)
+        {
+            var icon = status.IsUpToDate ? "✓" : "⚡";
+            sb.AppendLine($"{icon} {status.LanguageName}:");
+            sb.AppendLine($"   • Status: {status.StatusSummary}");
+            sb.AppendLine($"   • Repository: {status.RepositoryUrl}");
+            sb.AppendLine();
+
+            if (!status.IsUpToDate)
+            {
+                hasAnyUpdate = true;
+            }
+        }
+
+        if (hasAnyUpdate)
+        {
+            sb.AppendLine("A newer version is available on GitHub.");
+            var openRepo = await _dialogService.ShowConfirmationAsync(
+                "Language Integrations",
+                sb.ToString(),
+                "Visit GitHub",
+                "Close");
+
+            if (openRepo)
+            {
+                var updateItem = statuses.FirstOrDefault(s => !s.IsUpToDate);
+                if (updateItem != null)
+                {
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = updateItem.RepositoryUrl,
+                            UseShellExecute = true
+                        });
+                    }
+                    catch
+                    {
+                        // Ignore
+                    }
+                }
+            }
+        }
+        else
+        {
+            sb.AppendLine("All integrated languages and syntax definitions are up to date!");
+            await _dialogService.ShowMessageAsync("Language Integrations", sb.ToString());
+        }
+
+        _ = ShowTemporaryStatusAsync("Language integrations check completed");
     }
 
     [RelayCommand]
@@ -1190,6 +1293,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         UpdateActiveDocumentSelection();
         OnPropertyChanged(nameof(WindowTitle));
+        OnPropertyChanged(nameof(FilteredLanguageOptions));
         _ = SaveCurrentSessionAsync();
     }
 

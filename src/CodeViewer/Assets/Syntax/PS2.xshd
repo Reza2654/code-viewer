@@ -1,0 +1,141 @@
+<?xml version="1.0"?>
+<SyntaxDefinition name="PS2" extensions=".ps2;.ps2bundle" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" foreground="#6A9955" exampleText="// comment" />
+  <Color name="String" foreground="#CE9178" exampleText="&quot;string&quot;" />
+  <Color name="Keywords" foreground="#C586C0" fontWeight="bold" exampleText="let mut x = 1;" />
+  <Color name="ControlKeywords" foreground="#C586C0" exampleText="if (a) return;" />
+  <Color name="TypeKeywords" foreground="#4EC9B0" exampleText="Some(val)" />
+  <Color name="Preprocessor" foreground="#569CD6" exampleText="#manifest" />
+  <Color name="MethodCall" foreground="#DCDCAA" exampleText="println()" />
+  <Color name="Numbers" foreground="#B5CEA8" exampleText="123" />
+  <Color name="Punctuation" foreground="#D4D4D4" exampleText=";" />
+
+  <RuleSet>
+    <!-- Shebang -->
+    <Span color="Comment">
+      <Begin>#!</Begin>
+    </Span>
+
+    <!-- Single line comments -->
+    <Span color="Comment">
+      <Begin>//</Begin>
+    </Span>
+
+    <!-- Block comments -->
+    <Span color="Comment" multiline="true">
+      <Begin>/\*</Begin>
+      <End>\*/</End>
+    </Span>
+
+    <!-- Manifest Directives -->
+    <Span color="Preprocessor">
+      <Begin>#manifest\b</Begin>
+    </Span>
+    <Span color="Preprocessor">
+      <Begin>#endmanifest\b</Begin>
+    </Span>
+    <Span color="Preprocessor">
+      <Begin>#signature:</Begin>
+    </Span>
+
+    <!-- Strings -->
+    <Span color="String">
+      <Begin>"</Begin>
+      <End>"</End>
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+
+    <!-- Numbers -->
+    <Rule color="Numbers">
+      \b0[xX][0-9a-fA-F]+\b|\b\d+(\.[0-9]+)?([eE][+-]?[0-9]+)?\b
+    </Rule>
+
+    <!-- Manifest & Capability Directives -->
+    <Keywords color="Preprocessor">
+      <Word>requires</Word>
+      <Word>fs.read</Word>
+      <Word>fs.write</Word>
+      <Word>net.http</Word>
+      <Word>env</Word>
+      <Word>proc.exec</Word>
+    </Keywords>
+
+    <!-- Core Keywords & Storage -->
+    <Keywords color="Keywords">
+      <Word>let</Word>
+      <Word>mut</Word>
+      <Word>fn</Word>
+      <Word>async</Word>
+      <Word>await</Word>
+      <Word>as</Word>
+      <Word>true</Word>
+      <Word>false</Word>
+      <Word>null</Word>
+    </Keywords>
+
+    <!-- Control Flow Keywords -->
+    <Keywords color="ControlKeywords">
+      <Word>if</Word>
+      <Word>else</Word>
+      <Word>while</Word>
+      <Word>for</Word>
+      <Word>in</Word>
+      <Word>match</Word>
+      <Word>return</Word>
+    </Keywords>
+
+    <!-- Algebraic Data Types -->
+    <Keywords color="TypeKeywords">
+      <Word>Some</Word>
+      <Word>None</Word>
+      <Word>Ok</Word>
+      <Word>Err</Word>
+      <Word>Option</Word>
+      <Word>Result</Word>
+    </Keywords>
+
+    <!-- Standard Modules -->
+    <Keywords color="TypeKeywords">
+      <Word>fs</Word>
+      <Word>net</Word>
+      <Word>json</Word>
+      <Word>str</Word>
+      <Word>sys</Word>
+      <Word>path</Word>
+      <Word>time</Word>
+      <Word>table</Word>
+      <Word>math</Word>
+    </Keywords>
+
+    <!-- Built-in Functions -->
+    <Keywords color="MethodCall">
+      <Word>println</Word>
+      <Word>print</Word>
+      <Word>len</Word>
+      <Word>map</Word>
+      <Word>filter</Word>
+      <Word>reduce</Word>
+      <Word>sort</Word>
+      <Word>take</Word>
+      <Word>unwrap</Word>
+      <Word>unwrap_or</Word>
+      <Word>is_some</Word>
+      <Word>is_none</Word>
+      <Word>is_ok</Word>
+      <Word>is_err</Word>
+      <Word>secret</Word>
+    </Keywords>
+
+    <!-- Function / Method Calls -->
+    <Rule color="MethodCall">
+      \b[a-zA-Z_][a-zA-Z0-9_]*(?=\s*\()
+    </Rule>
+
+    <!-- Punctuation and Pipeline Operators -->
+    <Rule color="Punctuation">
+      [?,.;()\[\]{}+\-/%*&lt;&gt;^=!~&amp;|]
+    </Rule>
+  </RuleSet>
+</SyntaxDefinition>
