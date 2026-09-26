@@ -54,6 +54,15 @@
     <KeyBinding Gesture="Ctrl+OemQuestion" Command="{Binding ToggleCommentCommand}"/>
     <KeyBinding Gesture="Ctrl+Divide" Command="{Binding ToggleCommentCommand}"/>
 
+    <!-- View & Productivity Shortcuts (v1.2.0-beta.1) -->
+    <KeyBinding Gesture="Ctrl+B" Command="{Binding ToggleSidebarCommand}"/>
+    <KeyBinding Gesture="Ctrl+OemBackslash" Command="{Binding ToggleSplitViewCommand}"/>
+    <KeyBinding Gesture="Ctrl+Shift+P" Command="{Binding ShowCommandPaletteCommand}"/>
+    <KeyBinding Gesture="F1" Command="{Binding ShowCommandPaletteCommand}"/>
+    <KeyBinding Gesture="F5" Command="{Binding RunActiveScriptCommand}"/>
+    <KeyBinding Gesture="Ctrl+Shift+M" Command="{Binding ToggleMarkdownPreviewCommand}"/>
+    <KeyBinding Gesture="Ctrl+Shift+D" Command="{Binding ShowDiffCommand}"/>
+
     <!-- View & Zoom Shortcuts -->
     <KeyBinding Gesture="Ctrl+OemPlus" Command="{Binding ZoomInCommand}"/>
     <KeyBinding Gesture="Ctrl+Add" Command="{Binding ZoomInCommand}"/>
@@ -73,7 +82,10 @@
       <MenuItem Header="_File">
         <MenuItem Header="_New File" Command="{Binding CreateNewDocumentCommand}" HotKey="Ctrl+N" InputGesture="Ctrl+N"/>
         <MenuItem Header="_Open File..." Command="{Binding OpenFileCommand}" HotKey="Ctrl+O" InputGesture="Ctrl+O"/>
+        <MenuItem Header="Open _Folder..." Command="{Binding OpenFolderCommand}" InputGesture="Ctrl+K Ctrl+O"/>
+        <MenuItem Header="Close Folder" Command="{Binding CloseFolderCommand}" IsEnabled="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNotNull}}"/>
         <MenuItem Header="Quick _Open..." Command="{Binding ShowQuickOpenCommand}" HotKey="Ctrl+P" InputGesture="Ctrl+P"/>
+        <MenuItem Header="_Command Palette..." Command="{Binding ShowCommandPaletteCommand}" HotKey="Ctrl+Shift+P" InputGesture="Ctrl+Shift+P"/>
         <MenuItem Header="Open _Recent" ItemsSource="{Binding RecentFiles}" IsEnabled="{Binding HasRecentFiles}">
           <MenuItem.Styles>
             <Style Selector="MenuItem > MenuItem" x:DataType="models:RecentFileItem">
@@ -118,6 +130,22 @@
       </MenuItem>
 
       <MenuItem Header="_View">
+        <MenuItem Header="Toggle _Folder Sidebar" Command="{Binding ToggleSidebarCommand}" HotKey="Ctrl+B" InputGesture="Ctrl+B">
+          <MenuItem.Icon>
+            <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding IsSidebarOpen}"/>
+          </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="Toggle _Split View" Command="{Binding ToggleSplitViewCommand}" HotKey="Ctrl+OemBackslash" InputGesture="Ctrl+\">
+          <MenuItem.Icon>
+            <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding IsSplitViewActive}"/>
+          </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="Toggle _Markdown Live Preview" Command="{Binding ToggleMarkdownPreviewCommand}" HotKey="Ctrl+Shift+M" InputGesture="Ctrl+Shift+M">
+          <MenuItem.Icon>
+            <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding IsMarkdownPreviewActive}"/>
+          </MenuItem.Icon>
+        </MenuItem>
+        <Separator/>
         <MenuItem Header="Zoom _In" Command="{Binding ZoomInCommand}" HotKey="Ctrl+OemPlus"/>
         <MenuItem Header="Zoom _Out" Command="{Binding ZoomOutCommand}" HotKey="Ctrl+OemMinus"/>
         <MenuItem Header="_Reset Zoom" Command="{Binding ResetZoomCommand}" HotKey="Ctrl+D0"/>
@@ -147,6 +175,10 @@
 
       <!-- Developer Tools & Plugins Menu -->
       <MenuItem Header="_Tools">
+        <MenuItem Header="▶ _Run Active Script" Command="{Binding RunActiveScriptCommand}" HotKey="F5" InputGesture="F5"/>
+        <MenuItem Header="🔍 _Compare / Diff Files..." Command="{Binding ShowDiffCommand}" HotKey="Ctrl+Shift+D" InputGesture="Ctrl+Shift+D"/>
+        <MenuItem Header="⚡ _Command Palette..." Command="{Binding ShowCommandPaletteCommand}" HotKey="Ctrl+Shift+P" InputGesture="Ctrl+Shift+P"/>
+        <Separator/>
         <MenuItem Header="_JSON Tools">
           <MenuItem Header="_Format JSON (2 spaces)" Click="OnJsonFormatClick"/>
           <MenuItem Header="_Minify JSON" Click="OnJsonMinifyClick"/>
@@ -253,13 +285,40 @@
             </ItemsControl>
           </ScrollViewer>
 
-          <!-- Tab Bar Action Buttons: Copy All & New Tab -->
-          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+          <!-- Tab Bar Action Buttons: Sidebar, Split, Markdown, Run, Commands, Copy All & New Tab -->
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Margin="0,0,4,0">
+            <Button Command="{Binding ToggleSidebarCommand}"
+                    ToolTip.Tip="Toggle Folder Sidebar (Ctrl+B)"
+                    Padding="5,3" CornerRadius="4" Background="Transparent" BorderThickness="0">
+              <TextBlock Text="📁" FontSize="12" VerticalAlignment="Center"/>
+            </Button>
+            <Button Command="{Binding ToggleSplitViewCommand}"
+                    ToolTip.Tip="Toggle Split View (Ctrl+\)"
+                    Padding="5,3" CornerRadius="4" Background="Transparent" BorderThickness="0">
+              <TextBlock Text="🔀" FontSize="12" VerticalAlignment="Center"/>
+            </Button>
+            <Button Command="{Binding ToggleMarkdownPreviewCommand}"
+                    ToolTip.Tip="Toggle Markdown Live Preview (Ctrl+Shift+M)"
+                    Padding="5,3" CornerRadius="4" Background="Transparent" BorderThickness="0">
+              <TextBlock Text="📝" FontSize="12" VerticalAlignment="Center"/>
+            </Button>
+            <Button Command="{Binding RunActiveScriptCommand}"
+                    ToolTip.Tip="Run Active Script (AgentLang, PS2, Python, Dart, PowerShell) (F5)"
+                    Padding="5,3" CornerRadius="4" Background="Transparent" BorderThickness="0">
+              <TextBlock Text="▶" FontSize="11" Foreground="#4CAF50" VerticalAlignment="Center"/>
+            </Button>
+            <Button Command="{Binding ShowCommandPaletteCommand}"
+                    ToolTip.Tip="Command Palette (Ctrl+Shift+P / F1)"
+                    Padding="5,3" CornerRadius="4" Background="Transparent" BorderThickness="0">
+              <TextBlock Text="⚡" FontSize="12" VerticalAlignment="Center"/>
+            </Button>
+
+            <Border Width="1" Height="16" Background="{DynamicResource ThemeBorderBrush}" Margin="4,0" Opacity="0.5"/>
+
             <Button Command="{Binding CopyAllCommand}"
                     ToolTip.Tip="Copy All Content to Clipboard (Ctrl+Shift+C)"
                     Padding="6,3"
                     CornerRadius="4"
-                    Margin="2,1"
                     Background="Transparent"
                     BorderThickness="0">
               <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
@@ -270,10 +329,10 @@
 
             <Button Command="{Binding CreateNewDocumentCommand}"
                     ToolTip.Tip="New Tab (Ctrl+N)"
-                    Width="28" Height="26"
+                    Width="26" Height="26"
                     Padding="0"
-                    CornerRadius="5"
-                    Margin="2,1,4,1"
+                    CornerRadius="4"
+                    Margin="2,1,2,1"
                     Background="Transparent"
                     BorderThickness="0">
               <TextBlock Text="+"
@@ -286,107 +345,334 @@
         </Grid>
       </Border>
 
-      <!-- Editor Viewport with Floating Search Overlay and Command Palettes -->
-      <Grid Grid.Row="1">
-        <ae:TextEditor x:Name="Editor"
-                       Document="{Binding ActiveDocument.TextDocument}"
-                       SyntaxHighlighting="{Binding ActiveDocument.HighlightingDefinition}"
-                       FontSize="{Binding ActiveDocument.FontSize, FallbackValue=14.0}"
-                       WordWrap="{Binding ActiveDocument.WordWrap, FallbackValue=False}"
-                       ShowLineNumbers="{Binding ActiveDocument.ShowLineNumbers, FallbackValue=True}"
-                       FontFamily="{Binding CurrentFontFamily}"
+      <!-- Main Content Area: Left Folder Sidebar + Center Work Area (Editor/Split/Markdown/Diff) + Runner Console -->
+      <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
+        <!-- 📁 Left Folder Sidebar -->
+        <Border Grid.Column="0"
+                Width="240"
+                Background="{DynamicResource ThemeTabBarBackground}"
+                BorderBrush="{DynamicResource ThemeBorderBrush}"
+                BorderThickness="0,0,1,0"
+                IsVisible="{Binding IsSidebarOpen}">
+          <Grid RowDefinitions="Auto,*,Auto">
+            <!-- Sidebar Header -->
+            <Border Grid.Row="0" Padding="10,6" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="0,0,0,1">
+              <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBlock Grid.Column="0" Text="EXPLORER" FontSize="11" FontWeight="Bold" Opacity="0.75" VerticalAlignment="Center" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                <Button Grid.Column="1" Command="{Binding OpenFolderCommand}" ToolTip.Tip="Open Folder..." Background="Transparent" BorderThickness="0" Padding="4,2" Margin="2,0">
+                  <TextBlock Text="📂" FontSize="12"/>
+                </Button>
+                <Button Grid.Column="2" Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="Hide Sidebar (Ctrl+B)" Background="Transparent" BorderThickness="0" Padding="4,2">
+                  <TextBlock Text="✕" FontSize="10" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                </Button>
+              </Grid>
+            </Border>
+
+            <!-- Tree View or Placeholder -->
+            <Panel Grid.Row="1">
+              <!-- When No Folder Opened -->
+              <StackPanel IsVisible="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNull}}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="16">
+                <TextBlock Text="📁" FontSize="36" HorizontalAlignment="Center" Opacity="0.4"/>
+                <TextBlock Text="No Folder Opened" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                <TextBlock Text="Open a folder or project workspace" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" Opacity="0.6" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                <Button Content="Open Folder" Command="{Binding OpenFolderCommand}" HorizontalAlignment="Center" Padding="12,5" Margin="0,6,0,0" CornerRadius="4"/>
+              </StackPanel>
+
+              <!-- Folder Tree -->
+              <ScrollViewer IsVisible="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNotNull}}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <TreeView ItemsSource="{Binding RootFolder.Children}"
+                          SelectedItem="{Binding SelectedFolderItem, Mode=TwoWay}"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          Padding="2,4">
+                  <TreeView.ItemTemplate>
+                    <TreeDataTemplate DataType="models:FolderItem" ItemsSource="{Binding Children}">
+                      <Grid ColumnDefinitions="Auto,*" Margin="0,1" Cursor="Hand" Background="Transparent" DoubleTapped="OnFolderItemDoubleTapped">
+                        <TextBlock Grid.Column="0" Text="{Binding IconGlyph}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}" VerticalAlignment="Center"/>
+                      </Grid>
+                    </TreeDataTemplate>
+                  </TreeView.ItemTemplate>
+                </TreeView>
+              </ScrollViewer>
+            </Panel>
+
+            <!-- Sidebar Footer -->
+            <Border Grid.Row="2" Padding="8,4" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="0,1,0,0" Background="{DynamicResource ThemeStatusBarBackground}">
+              <TextBlock Text="{Binding RootFolder.Name, FallbackValue='No Workspace'}" FontSize="10" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.8" TextTrimming="CharacterEllipsis"/>
+            </Border>
+          </Grid>
+        </Border>
+
+        <!-- Right Side: Editors, Markdown Preview, Diff Viewer & Runner Dock -->
+        <Grid Grid.Column="1" RowDefinitions="*,Auto">
+          <!-- Main Work Viewports -->
+          <Grid Grid.Row="0">
+            <!-- Normal Editor & Split View & Markdown Layout (Visible when not in Diff mode) -->
+            <Grid IsVisible="{Binding !DiffViewModel.IsActive}" ColumnDefinitions="*,Auto,*,Auto">
+              <!-- Primary Editor Viewport -->
+              <Grid Grid.Column="0">
+                <ae:TextEditor x:Name="Editor"
+                               Document="{Binding ActiveDocument.TextDocument}"
+                               SyntaxHighlighting="{Binding ActiveDocument.HighlightingDefinition}"
+                               FontSize="{Binding ActiveDocument.FontSize, FallbackValue=14.0}"
+                               WordWrap="{Binding ActiveDocument.WordWrap, FallbackValue=False}"
+                               ShowLineNumbers="{Binding ActiveDocument.ShowLineNumbers, FallbackValue=True}"
+                               FontFamily="{Binding CurrentFontFamily}"
+                               Background="{DynamicResource ThemeEditorBackground}"
+                               Foreground="{DynamicResource ThemeEditorForeground}"
+                               HorizontalScrollBarVisibility="Auto"
+                               VerticalScrollBarVisibility="Visible"
+                               LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"
+                               DragDrop.AllowDrop="True"/>
+              </Grid>
+
+              <!-- Splitter between Primary and Secondary -->
+              <GridSplitter Grid.Column="1"
+                            Width="3"
+                            Background="{DynamicResource ThemeBorderBrush}"
+                            ResizeDirection="Columns"
+                            IsVisible="{Binding IsSplitViewActive}"/>
+
+              <!-- Secondary Split Editor -->
+              <Grid Grid.Column="2" IsVisible="{Binding IsSplitViewActive}">
+                <ae:TextEditor x:Name="SecondaryEditor"
+                               Document="{Binding SecondaryDocument.TextDocument}"
+                               SyntaxHighlighting="{Binding SecondaryDocument.HighlightingDefinition}"
+                               FontSize="{Binding SecondaryDocument.FontSize, FallbackValue=14.0}"
+                               WordWrap="{Binding SecondaryDocument.WordWrap, FallbackValue=False}"
+                               ShowLineNumbers="{Binding SecondaryDocument.ShowLineNumbers, FallbackValue=True}"
+                               FontFamily="{Binding CurrentFontFamily}"
+                               Background="{DynamicResource ThemeEditorBackground}"
+                               Foreground="{DynamicResource ThemeEditorForeground}"
+                               HorizontalScrollBarVisibility="Auto"
+                               VerticalScrollBarVisibility="Visible"
+                               LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"/>
+              </Grid>
+
+              <!-- Markdown Preview Splitter -->
+              <GridSplitter Grid.Column="3"
+                            Width="3"
+                            Background="{DynamicResource ThemeBorderBrush}"
+                            ResizeDirection="Columns"
+                            IsVisible="{Binding IsMarkdownPreviewActive}"/>
+            </Grid>
+
+            <!-- Markdown Live Preview Panel -->
+            <Border IsVisible="{Binding IsMarkdownPreviewActive}"
+                    Background="{DynamicResource ThemeEditorBackground}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="1,0,0,0"
+                    HorizontalAlignment="Right"
+                    Width="460"
+                    ZIndex="5">
+              <Grid RowDefinitions="Auto,*">
+                <Border Grid.Row="0"
+                        Background="{DynamicResource ThemeTabBarBackground}"
+                        BorderBrush="{DynamicResource ThemeBorderBrush}"
+                        BorderThickness="0,0,0,1"
+                        Padding="10,6">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0" Text="📝 Markdown Live Preview" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource ThemeWindowForeground}" VerticalAlignment="Center"/>
+                    <Button Grid.Column="1" Command="{Binding ToggleMarkdownPreviewCommand}" ToolTip.Tip="Close Preview (Ctrl+Shift+M)" Padding="4,1" Background="Transparent" BorderThickness="0">
+                      <TextBlock Text="✕" FontSize="10" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                    </Button>
+                  </Grid>
+                </Border>
+                <ScrollViewer Grid.Row="1" x:Name="MarkdownScrollViewer" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"/>
+              </Grid>
+            </Border>
+
+            <!-- 🔍 Diff View (when DiffViewModel.IsActive) -->
+            <views:DiffView DataContext="{Binding DiffViewModel}"
+                            IsVisible="{Binding IsActive}"
+                            ZIndex="10"/>
+
+            <!-- Quick Open Palette (Ctrl+P) -->
+            <Border IsVisible="{Binding IsQuickOpenOpen}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Margin="0,20,0,0"
+                    Width="520"
+                    MaxHeight="380"
+                    Background="{DynamicResource ThemeMenuBackground}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    BoxShadow="0 8 24 #66000000"
+                    ZIndex="100">
+              <Grid RowDefinitions="Auto,*">
+                <TextBox x:Name="QuickOpenTextBox"
+                         Grid.Row="0"
+                         Text="{Binding QuickOpenQuery, Mode=TwoWay}"
+                         Watermark="Type file or tab name to open (Esc to close)..."
+                         Margin="8,8,8,6"
+                         CornerRadius="4"
+                         KeyDown="OnQuickOpenTextBoxKeyDown"/>
+                <ListBox x:Name="QuickOpenListBox"
+                         Grid.Row="1"
+                         ItemsSource="{Binding FilteredQuickOpenItems}"
+                         SelectedItem="{Binding SelectedQuickOpenItem, Mode=TwoWay}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         MaxHeight="300"
+                         DoubleTapped="OnQuickOpenItemDoubleTapped"
+                         KeyDown="OnQuickOpenListBoxKeyDown">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate DataType="models:QuickOpenItem">
+                      <Grid ColumnDefinitions="*,Auto" Margin="4,2">
+                        <StackPanel Grid.Column="0" Orientation="Vertical">
+                          <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                          <TextBlock Text="{Binding RelativeOrFullPath}" FontSize="11" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.75" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding TabBadge}"
+                                   FontSize="10"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource ThemeAccentBrush}"
+                                   Opacity="0.85"
+                                   Margin="8,0,0,0"/>
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </Grid>
+            </Border>
+
+            <!-- Go to Line Palette (Ctrl+G) -->
+            <Border IsVisible="{Binding IsGoToLineOpen}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Margin="0,20,0,0"
+                    Width="320"
+                    Background="{DynamicResource ThemeMenuBackground}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    BoxShadow="0 8 24 #66000000"
+                    Padding="8"
+                    ZIndex="100">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBox x:Name="GoToLineTextBox"
+                         Grid.Column="0"
+                         Text="{Binding GoToLineInput, Mode=TwoWay}"
+                         Watermark="{Binding GoToLineWatermark}"
+                         CornerRadius="4"
+                         KeyDown="OnGoToLineTextBoxKeyDown"/>
+                <Button Grid.Column="1"
+                        Command="{Binding ExecuteGoToLineCommand}"
+                        Content="Go"
+                        Margin="6,0,0,0"
+                        Padding="12,4"
+                        CornerRadius="4"/>
+              </Grid>
+            </Border>
+
+            <!-- ⚡ Command Palette (Ctrl+Shift+P / F1) -->
+            <Border IsVisible="{Binding IsCommandPaletteOpen}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    Margin="0,20,0,0"
+                    Width="560"
+                    MaxHeight="420"
+                    Background="{DynamicResource ThemeMenuBackground}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    BoxShadow="0 8 28 #66000000"
+                    ZIndex="110">
+              <Grid RowDefinitions="Auto,*">
+                <TextBox x:Name="CommandPaletteTextBox"
+                         Grid.Row="0"
+                         Text="{Binding CommandPaletteQuery, Mode=TwoWay}"
+                         Watermark="> Type a command or action (Esc to close)..."
+                         Margin="8,8,8,6"
+                         CornerRadius="4"
+                         KeyDown="OnCommandPaletteTextBoxKeyDown"/>
+                <ListBox x:Name="CommandPaletteListBox"
+                         Grid.Row="1"
+                         ItemsSource="{Binding FilteredCommands}"
+                         SelectedItem="{Binding SelectedCommandPaletteItem, Mode=TwoWay}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         MaxHeight="340"
+                         DoubleTapped="OnCommandPaletteItemDoubleTapped"
+                         KeyDown="OnCommandPaletteListBoxKeyDown">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate DataType="models:CommandPaletteItem">
+                      <Grid ColumnDefinitions="Auto,*,Auto" Margin="4,3">
+                        <TextBlock Grid.Column="0" Text="{Binding Icon}" FontSize="13" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                          <TextBlock Text="{Binding Category}" FontSize="12" Foreground="{DynamicResource ThemeAccentBrush}" FontWeight="SemiBold"/>
+                          <TextBlock Text=":" FontSize="12" Opacity="0.5"/>
+                          <TextBlock Text="{Binding Title}" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                        </StackPanel>
+                        <Border Grid.Column="2" Background="{DynamicResource ThemeSelectionBackground}" CornerRadius="3" Padding="5,1" IsVisible="{Binding ShortcutText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                          <TextBlock Text="{Binding ShortcutText}" FontSize="10" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.85"/>
+                        </Border>
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </Grid>
+            </Border>
+
+            <!-- Search & Replace Overlay (Floating on top right) with Modern Rounded Corners -->
+            <views:SearchOverlayView DataContext="{Binding SearchViewModel}"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Margin="0,12,24,0"/>
+          </Grid>
+
+          <!-- ▶ Runner Console Output Dock -->
+          <Border Grid.Row="1"
+                  Height="190"
+                  Background="{DynamicResource ThemeWindowBackground}"
+                  BorderBrush="{DynamicResource ThemeBorderBrush}"
+                  BorderThickness="0,1,0,0"
+                  DataContext="{Binding RunnerViewModel}"
+                  IsVisible="{Binding IsVisible}">
+            <Grid RowDefinitions="Auto,*">
+              <!-- Runner Toolbar -->
+              <Border Grid.Row="0"
+                      Background="{DynamicResource ThemeTabBarBackground}"
+                      BorderBrush="{DynamicResource ThemeBorderBrush}"
+                      BorderThickness="0,0,0,1"
+                      Padding="10,4">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="▶ Console Output" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                    <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="{DynamicResource ThemeAccentBrush}"/>
+                  </StackPanel>
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <Button Command="{Binding ClearOutputCommand}" ToolTip.Tip="Clear Console" Padding="6,2" Background="Transparent" BorderThickness="0" CornerRadius="3">
+                      <TextBlock Text="🧹 Clear" FontSize="11" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                    </Button>
+                    <Button Command="{Binding CancelCommand}" IsEnabled="{Binding IsRunning}" ToolTip.Tip="Stop Execution" Padding="6,2" Background="Transparent" BorderThickness="0" CornerRadius="3">
+                      <TextBlock Text="⏹ Stop" FontSize="11" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                    </Button>
+                    <Button Command="{Binding CloseCommand}" ToolTip.Tip="Close Console" Padding="6,2" Background="Transparent" BorderThickness="0" CornerRadius="3">
+                      <TextBlock Text="✕" FontSize="11" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </Border>
+
+              <!-- Console Output Text Viewer -->
+              <TextBox x:Name="RunnerOutputTextBox"
+                       Grid.Row="1"
+                       Text="{Binding OutputText}"
+                       IsReadOnly="True"
+                       FontFamily="Cascadia Code, Consolas, monospace"
+                       FontSize="12"
                        Background="{DynamicResource ThemeEditorBackground}"
                        Foreground="{DynamicResource ThemeEditorForeground}"
-                       HorizontalScrollBarVisibility="Auto"
-                       VerticalScrollBarVisibility="Visible"
-                       LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"
-                       DragDrop.AllowDrop="True"/>
-
-        <!-- Quick Open Palette (Ctrl+P) -->
-        <Border IsVisible="{Binding IsQuickOpenOpen}"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Top"
-                Margin="0,20,0,0"
-                Width="520"
-                MaxHeight="380"
-                Background="{DynamicResource ThemeMenuBackground}"
-                BorderBrush="{DynamicResource ThemeBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="8"
-                BoxShadow="0 8 24 #66000000"
-                ZIndex="100">
-          <Grid RowDefinitions="Auto,*">
-            <TextBox x:Name="QuickOpenTextBox"
-                     Grid.Row="0"
-                     Text="{Binding QuickOpenQuery, Mode=TwoWay}"
-                     Watermark="Type file or tab name to open (Esc to close)..."
-                     Margin="8,8,8,6"
-                     CornerRadius="4"
-                     KeyDown="OnQuickOpenTextBoxKeyDown"/>
-            <ListBox x:Name="QuickOpenListBox"
-                     Grid.Row="1"
-                     ItemsSource="{Binding FilteredQuickOpenItems}"
-                     SelectedItem="{Binding SelectedQuickOpenItem, Mode=TwoWay}"
-                     Background="Transparent"
-                     BorderThickness="0"
-                     MaxHeight="300"
-                     DoubleTapped="OnQuickOpenItemDoubleTapped"
-                     KeyDown="OnQuickOpenListBoxKeyDown">
-              <ListBox.ItemTemplate>
-                <DataTemplate DataType="models:QuickOpenItem">
-                  <Grid ColumnDefinitions="*,Auto" Margin="4,2">
-                    <StackPanel Grid.Column="0" Orientation="Vertical">
-                      <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource ThemeWindowForeground}"/>
-                      <TextBlock Text="{Binding RelativeOrFullPath}" FontSize="11" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.75" TextTrimming="CharacterEllipsis"/>
-                    </StackPanel>
-                    <TextBlock Grid.Column="1"
-                               Text="{Binding TabBadge}"
-                               FontSize="10"
-                               VerticalAlignment="Center"
-                               Foreground="{DynamicResource ThemeAccentBrush}"
-                               Opacity="0.85"
-                               Margin="8,0,0,0"/>
-                  </Grid>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-          </Grid>
-        </Border>
-
-        <!-- Go to Line Palette (Ctrl+G) -->
-        <Border IsVisible="{Binding IsGoToLineOpen}"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Top"
-                Margin="0,20,0,0"
-                Width="320"
-                Background="{DynamicResource ThemeMenuBackground}"
-                BorderBrush="{DynamicResource ThemeBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="8"
-                BoxShadow="0 8 24 #66000000"
-                Padding="8"
-                ZIndex="100">
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBox x:Name="GoToLineTextBox"
-                     Grid.Column="0"
-                     Text="{Binding GoToLineInput, Mode=TwoWay}"
-                     Watermark="{Binding GoToLineWatermark}"
-                     CornerRadius="4"
-                     KeyDown="OnGoToLineTextBoxKeyDown"/>
-            <Button Grid.Column="1"
-                    Command="{Binding ExecuteGoToLineCommand}"
-                    Content="Go"
-                    Margin="6,0,0,0"
-                    Padding="12,4"
-                    CornerRadius="4"/>
-          </Grid>
-        </Border>
-
-        <!-- Search & Replace Overlay (Floating on top right) with Modern Rounded Corners -->
-        <views:SearchOverlayView DataContext="{Binding SearchViewModel}"
-                                HorizontalAlignment="Right"
-                                VerticalAlignment="Top"
-                                Margin="0,12,24,0"/>
+                       BorderThickness="0"
+                       AcceptsReturn="True"
+                       TextWrapping="Wrap"/>
+            </Grid>
+          </Border>
+        </Grid>
       </Grid>
 
       <!-- Modern Status Bar -->

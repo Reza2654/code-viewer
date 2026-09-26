@@ -14,8 +14,14 @@
 
 ## Key Features
 
+- 📁 **Folder Sidebar & Workspace Explorer (Ctrl+B)**: Sleek, collapsible project tree with lazy-loaded folder hierarchy (`📁 MyProject` -> `src` -> `main.dart`) and language badges for AgentLang (`🤖`), PS2 (`📜`), Dart (`🎯`), C# (`🔷`), Python (`🐍`), Markdown (`📝`), and more.
+- ⚡ **Command Palette (Ctrl+Shift+P / F1)**: Instant fuzzy launcher for every editor feature, plugin, theme, and setting.
+- 🔀 **Split View (Ctrl+\)**: Side-by-side simultaneous document comparison and editing with zero lag.
+- 🔍 **Diff Viewer (Ctrl+Shift+D)**: Built-in pure C# Myers diff comparison highlighting added, removed, and modified lines with summary statistics.
+- ▶ **Integrated Script Runner (F5)**: Embedded bottom console to run scripts for **AgentLang** (`.agent`), **PS2** (`.ps2`), **Dart** (`.dart`), **Python** (`.py`), and **PowerShell** (`.ps1`) with real-time stdout/stderr streaming, execution timers, and clean termination.
+- 📝 **Markdown Live Preview (Ctrl+Shift+M)**: Ultra-fast native Avalonia Markdown renderer without heavy webviews or external runtime overhead.
 - ⚡ **Instant Startup**: Sub-25ms startup time; opens directly to your code without loading screens or bloated background tasks.
-- 🪟 **Native Windows 11 Context Menu**: Directly integrates into the modern Windows 11 right-click context menu (no "Show more options" extra click required) powered by a native `IExplorerCommand` Sparse Package shell extension.
+- 🪟 **Native Windows 11 Context Menu**: Directly integrates into the modern Windows 11 right-click context menu powered by a native `IExplorerCommand` Sparse Package shell extension.
 - 🚀 **CLI Line & Column Navigation**: Jump straight to any line from terminal or scripts (e.g. `codeviewer file.cs:42` or `codeviewer C:\repo\file.cs:105:14`), correctly parsing Windows drive letters without splitting drive colons.
 - 🔍 **Quick Open (Ctrl+P)**: Instant fuzzy palette searching across currently open tabs, recent files history, and folder sibling files.
 - 🔎 **Floating Search & Replace (Ctrl+F / Ctrl+H)**: Minimal, non-intrusive in-editor find and replace with real-time match highlighting, match count badges, and atomic batch replacement.
@@ -41,7 +47,7 @@
   - **Text Statistics**: Comprehensive character, word, line, non-empty line, and byte counts.
   - **Dynamic DLL Plugin Importer**: Drop third-party `.dll` assemblies implementing `IPlugin` into the plugins directory or load them via **Tools -> Import Plugin (.dll)...** without locking the file on disk.
 - 💾 **Safe Local Single-Instance IPC**: Opening files via CLI or File Explorer opens them as tabs inside the existing window using a high-performance local Named Pipe, passing file:line coordinates directly.
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.0-Setup.exe`) and portable standalone `.zip` archive.
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.1-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---
@@ -50,6 +56,12 @@
 
 | Shortcut | Action |
 | :--- | :--- |
+| `Ctrl + B` | Toggle Folder Workspace Sidebar |
+| `Ctrl + Shift + P` / `F1` | Command Palette |
+| `Ctrl + \` | Toggle Split View |
+| `F5` | Run Active Script (AgentLang, PS2, Dart, Python, PowerShell) |
+| `Ctrl + Shift + M` | Toggle Markdown Live Preview |
+| `Ctrl + Shift + D` | Compare / Diff Files |
 | `Ctrl + P` | Quick Open (Search tabs & recent files) |
 | `Ctrl + G` | Go to Line (e.g. `42` or `42:10`) |
 | `Ctrl + F` | Find in Document |
@@ -79,13 +91,13 @@
 ## Installation & Packaging
 
 ### Option 1: Installer (Recommended)
-Download and run `CodeViewer-v1.0.1-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
+Download and run `CodeViewer-v1.2.0-beta.1-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
 - Installs Code Viewer to your system.
 - Creates Start Menu and Desktop shortcuts.
 - Automatically registers the modern Windows 11 right-click context menu.
 
 ### Option 2: Portable ZIP
-Download `CodeViewer-v1.0.1-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
+Download `CodeViewer-v1.2.0-beta.1-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
 To enable the modern Windows 11 context menu for portable use, right-click `scripts\register-windows11-context-menu.ps1` and select **Run with PowerShell**.
 
 ### Option 3: Windows Package Manager (WinGet)
@@ -119,7 +131,7 @@ dotnet restore CodeViewer.slnx
 # Build all projects
 dotnet build CodeViewer.slnx
 
-# Run all 90 unit tests
+# Run all 102 unit tests
 dotnet test tests/CodeViewer.Tests/CodeViewer.Tests.csproj
 
 # Run the app locally
@@ -132,8 +144,8 @@ To generate both the portable ZIP and the Inno Setup executable installer:
 powershell -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
 ```
 Output artifacts are saved in `dist/`:
-- `CodeViewer-v1.0.1-rc.3-Setup.exe`
-- `CodeViewer-v1.0.1-rc.3-win-x64-portable.zip`
+- `CodeViewer-v1.2.0-beta.1-Setup.exe`
+- `CodeViewer-v1.2.0-beta.1-win-x64-portable.zip`
 - `checksums.sha256`
 
 ---

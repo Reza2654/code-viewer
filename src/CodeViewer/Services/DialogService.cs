@@ -53,6 +53,21 @@ public class DialogService : IDialogService
         return file?.TryGetLocalPath() ?? (file?.Path.IsFile == true ? file.Path.LocalPath : null);
     }
 
+    public async Task<string?> ShowOpenFolderDialogAsync()
+    {
+        if (_ownerWindow?.StorageProvider == null) return null;
+
+        var options = new FolderPickerOpenOptions
+        {
+            Title = "Open Folder",
+            AllowMultiple = false
+        };
+
+        var results = await _ownerWindow.StorageProvider.OpenFolderPickerAsync(options);
+        var folder = results.FirstOrDefault();
+        return folder?.TryGetLocalPath() ?? (folder?.Path.IsFile == false ? folder.Path.LocalPath : null);
+    }
+
     public async Task<string?> ShowOpenSpecificFileDialogAsync(string title, string filterName, string[] extensions)
     {
         if (_ownerWindow?.StorageProvider == null) return null;

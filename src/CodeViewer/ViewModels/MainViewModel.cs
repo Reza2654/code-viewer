@@ -77,6 +77,49 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private string _goToLineWatermark = "Go to line (e.g. 42 or 42:10)...";
 
+    // 📁 Folder Workspace & Tree Sidebar
+    [ObservableProperty]
+    private bool _isSidebarOpen = true;
+
+    [ObservableProperty]
+    private FolderItem? _rootFolder;
+
+    [ObservableProperty]
+    private FolderItem? _selectedFolderItem;
+
+    // ⚡ Command Palette
+    [ObservableProperty]
+    private bool _isCommandPaletteOpen;
+
+    [ObservableProperty]
+    private string _commandPaletteQuery = string.Empty;
+
+    [ObservableProperty]
+    private ObservableCollection<CommandPaletteItem> _filteredCommands = [];
+
+    [ObservableProperty]
+    private CommandPaletteItem? _selectedCommandPaletteItem;
+
+    private readonly List<CommandPaletteItem> _allCommands = [];
+
+    // 🔀 Split View
+    [ObservableProperty]
+    private bool _isSplitViewActive;
+
+    [ObservableProperty]
+    private DocumentViewModel? _secondaryDocument;
+
+    // 📝 Markdown Live Preview
+    [ObservableProperty]
+    private bool _isMarkdownPreviewActive;
+
+    // ▶ Runner & 🔍 Diff ViewModels
+    [ObservableProperty]
+    private RunnerViewModel _runnerViewModel = new();
+
+    [ObservableProperty]
+    private DiffViewModel _diffViewModel = new();
+
     public IReadOnlyList<ColorTheme> AvailableThemes => _themeService.AvailableThemes;
     public ColorTheme CurrentTheme => _themeService.CurrentTheme;
     public IThemeService ThemeService => _themeService;
@@ -185,6 +228,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(Plugins));
             OnPropertyChanged(nameof(PluginCategories));
         };
+
+        InitializeCommands();
     }
 
     private void OnSettingsChanged(AppSettings settings)
@@ -228,14 +273,19 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         // 2. Load Recent Files
         await LoadRecentFilesAsync();
 
-        // 3. Handle command-line file arguments if provided (e.g. CodeViewer.exe myfile.cs or myfile.cs:42)
+        // 3. Handle command-line file or folder arguments if provided
         var openedAny = false;
         if (commandLineArgs != null && commandLineArgs.Length > 0)
         {
             var parsedArgs = CommandLineParser.ParseArguments(commandLineArgs);
             foreach (var arg in parsedArgs)
             {
-                if (File.Exists(arg.FilePath))
+                if (Directory.Exists(arg.FilePath))
+                {
+                    OpenFolder(arg.FilePath);
+                    openedAny = true;
+                }
+                else if (File.Exists(arg.FilePath))
                 {
                     await OpenFileInternalAsync(arg.FilePath, arg.Line, arg.Column);
                     openedAny = true;
@@ -1296,6 +1346,277 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(FilteredLanguageOptions));
         _ = SaveCurrentSessionAsync();
     }
+
+    #region Folder Workspace & Tree Sidebar Operations
+
+    [RelayCommand]
+    public async Task OpenFolderAsync()
+    {
+        var folderPath = await _dialogService.ShowOpenFolderDialogAsync();
+        if (!string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath))
+        {
+            OpenFolder(folderPath);
+        }
+    }
+
+    public void OpenFolder(string folderPath)
+    {
+        if (string.IsNullOrEmpty(folderPath) || !Directory.Exists(folderPath)) return;
+        var fullPath = Path.GetFullPath(folderPath);
+        var root = new FolderItem(fullPath, true);
+        root.IsExpanded = true;
+        RootFolder = root;
+        IsSidebarOpen = true;
+        _ = ShowTemporaryStatusAsync($"Opened workspace: {root.Name}");
+    }
+
+    [RelayCommand]
+    public void CloseFolder()
+    {
+        RootFolder = null;
+    }
+
+    [RelayCommand]
+    public void ToggleSidebar()
+    {
+        IsSidebarOpen = !IsSidebarOpen;
+    }
+
+    [RelayCommand]
+    public async Task SelectFolderItemAsync(FolderItem? item)
+    {
+        if (item == null) return;
+        SelectedFolderItem = item;
+        if (!item.IsDirectory && !string.IsNullOrEmpty(item.FullPath) && File.Exists(item.FullPath))
+        {
+            await OpenFileInternalAsync(item.FullPath);
+        }
+        else if (item.IsDirectory)
+        {
+            item.IsExpanded = !item.IsExpanded;
+        }
+    }
+
+    #endregion
+
+    #region Split View Operations
+
+    [RelayCommand]
+    public void ToggleSplitView()
+    {
+        IsSplitViewActive = !IsSplitViewActive;
+        if (IsSplitViewActive)
+        {
+            if (Documents.Count > 1)
+            {
+                SecondaryDocument = Documents.FirstOrDefault(d => d != ActiveDocument) ?? ActiveDocument;
+            }
+            else
+            {
+                SecondaryDocument = ActiveDocument;
+            }
+        }
+        else
+        {
+            SecondaryDocument = null;
+        }
+    }
+
+    [RelayCommand]
+    public void CloseSplitView()
+    {
+        IsSplitViewActive = false;
+        SecondaryDocument = null;
+    }
+
+    #endregion
+
+    #region Markdown Live Preview Operations
+
+    [RelayCommand]
+    public void ToggleMarkdownPreview()
+    {
+        IsMarkdownPreviewActive = !IsMarkdownPreviewActive;
+    }
+
+    #endregion
+
+    #region Diff Operations
+
+    [RelayCommand]
+    public async Task ShowDiffAsync()
+    {
+        var targetFile = await _dialogService.ShowOpenFileDialogAsync();
+        if (!string.IsNullOrEmpty(targetFile) && File.Exists(targetFile))
+        {
+            await CompareWithActiveAsync(targetFile);
+        }
+    }
+
+    public async Task CompareWithActiveAsync(string compareFilePath)
+    {
+        if (ActiveDocument == null || !File.Exists(compareFilePath)) return;
+
+        var activeText = ActiveDocument.TextDocument.Text;
+        var compareText = await File.ReadAllTextAsync(compareFilePath);
+
+        DiffViewModel.LoadDiff(compareText, activeText, Path.GetFileName(compareFilePath), ActiveDocument.DisplayName);
+    }
+
+    #endregion
+
+    #region Script Runner Operations
+
+    [RelayCommand]
+    public async Task RunActiveScriptAsync()
+    {
+        if (ActiveDocument == null) return;
+
+        if (ActiveDocument.IsModified || ActiveDocument.Model.IsNewFile)
+        {
+            await SaveAsync();
+        }
+
+        if (!string.IsNullOrEmpty(ActiveDocument.FilePath) && File.Exists(ActiveDocument.FilePath))
+        {
+            await RunnerViewModel.RunScriptAsync(ActiveDocument.FilePath);
+        }
+        else
+        {
+            _ = ShowTemporaryStatusAsync("Please save the file before running.");
+        }
+    }
+
+    #endregion
+
+    #region Command Palette Operations
+
+    [RelayCommand]
+    public void ShowCommandPalette()
+    {
+        CommandPaletteQuery = string.Empty;
+        FilterCommands(string.Empty);
+        IsCommandPaletteOpen = true;
+    }
+
+    [RelayCommand]
+    public void CloseCommandPalette()
+    {
+        IsCommandPaletteOpen = false;
+    }
+
+    partial void OnCommandPaletteQueryChanged(string value)
+    {
+        FilterCommands(value);
+    }
+
+    public void FilterCommands(string query)
+    {
+        FilteredCommands.Clear();
+        var q = query.Trim();
+        var matches = string.IsNullOrEmpty(q)
+            ? _allCommands
+            : _allCommands.Where(c =>
+                c.Title.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                c.Category.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                c.ShortcutText.Contains(q, StringComparison.OrdinalIgnoreCase));
+
+        foreach (var cmd in matches)
+        {
+            FilteredCommands.Add(cmd);
+        }
+
+        SelectedCommandPaletteItem = FilteredCommands.FirstOrDefault();
+    }
+
+    [RelayCommand]
+    public void ExecuteSelectedCommandPaletteItem()
+    {
+        var selected = SelectedCommandPaletteItem;
+        IsCommandPaletteOpen = false;
+        selected?.Action?.Invoke();
+    }
+
+    public void ExecutePluginById(string pluginId)
+    {
+        var plugin = Plugins.FirstOrDefault(p => p.Id == pluginId);
+        if (plugin != null)
+        {
+            _ = ExecutePluginAsync(plugin);
+        }
+    }
+
+    public void InitializeCommands()
+    {
+        _allCommands.Clear();
+
+        // File operations
+        _allCommands.Add(new CommandPaletteItem("file.new", "New File", "File", "Ctrl+N", "📄", () => CreateNewDocument()));
+        _allCommands.Add(new CommandPaletteItem("file.open", "Open File...", "File", "Ctrl+O", "📂", () => _ = OpenFileAsync()));
+        _allCommands.Add(new CommandPaletteItem("file.openFolder", "Open Folder / Workspace...", "File", "Ctrl+K Ctrl+O", "📁", () => _ = OpenFolderAsync()));
+        _allCommands.Add(new CommandPaletteItem("file.quickOpen", "Quick Open...", "File", "Ctrl+P", "🔍", () => _ = ShowQuickOpenAsync()));
+        _allCommands.Add(new CommandPaletteItem("file.save", "Save", "File", "Ctrl+S", "💾", () => _ = SaveAsync()));
+        _allCommands.Add(new CommandPaletteItem("file.saveAs", "Save As...", "File", "Ctrl+Shift+S", "💾", () => _ = SaveAsAsync()));
+        _allCommands.Add(new CommandPaletteItem("file.closeTab", "Close Tab", "File", "Ctrl+W", "✕", () => _ = CloseTabAsync(ActiveDocument)));
+        _allCommands.Add(new CommandPaletteItem("file.closeOtherTabs", "Close Other Tabs", "File", "", "✕", () => _ = CloseOtherTabsAsync(ActiveDocument)));
+        _allCommands.Add(new CommandPaletteItem("file.closeSavedTabs", "Close Saved Tabs", "File", "", "✕", () => _ = CloseSavedTabsAsync()));
+        _allCommands.Add(new CommandPaletteItem("file.copyPath", "Copy Document Path", "File", "", "📋", () => _ = CopyDocumentPathAsync(ActiveDocument)));
+        _allCommands.Add(new CommandPaletteItem("file.revealInExplorer", "Reveal in Explorer", "File", "", "📁", () => RevealInExplorer(ActiveDocument)));
+
+        // Edit operations
+        _allCommands.Add(new CommandPaletteItem("edit.find", "Find...", "Edit", "Ctrl+F", "🔎", () => ShowSearch()));
+        _allCommands.Add(new CommandPaletteItem("edit.replace", "Replace...", "Edit", "Ctrl+H", "🔄", () => ShowReplace()));
+        _allCommands.Add(new CommandPaletteItem("edit.goToLine", "Go to Line...", "Edit", "Ctrl+G", "🎯", () => ShowGoToLine()));
+        _allCommands.Add(new CommandPaletteItem("edit.toggleComment", "Toggle Line Comment", "Edit", "Ctrl+/", "💬", () => ToggleComment()));
+        _allCommands.Add(new CommandPaletteItem("edit.copyAll", "Copy All Content", "Edit", "Ctrl+Shift+C", "📋", () => _ = CopyAllAsync()));
+
+        // View operations
+        _allCommands.Add(new CommandPaletteItem("view.toggleSidebar", "Toggle Folder Sidebar", "View", "Ctrl+B", "📁", () => ToggleSidebar()));
+        _allCommands.Add(new CommandPaletteItem("view.toggleSplit", "Toggle Split View", "View", "Ctrl+\\", "🔀", () => ToggleSplitView()));
+        _allCommands.Add(new CommandPaletteItem("view.toggleMarkdown", "Toggle Markdown Live Preview", "View", "Ctrl+Shift+M", "📝", () => ToggleMarkdownPreview()));
+        _allCommands.Add(new CommandPaletteItem("view.zoomIn", "Zoom In", "View", "Ctrl++", "🔍", () => ZoomIn()));
+        _allCommands.Add(new CommandPaletteItem("view.zoomOut", "Zoom Out", "View", "Ctrl+-", "🔍", () => ZoomOut()));
+        _allCommands.Add(new CommandPaletteItem("view.resetZoom", "Reset Zoom", "View", "Ctrl+0", "🔍", () => ResetZoom()));
+        _allCommands.Add(new CommandPaletteItem("view.toggleWordWrap", "Toggle Word Wrap", "View", "Alt+Z", "↩️", () => ToggleWordWrap()));
+        _allCommands.Add(new CommandPaletteItem("view.toggleLineNumbers", "Toggle Line Numbers", "View", "", "#️⃣", () => ToggleLineNumbers()));
+
+        // Run & Developer Tools
+        _allCommands.Add(new CommandPaletteItem("run.activeScript", "Run Active Script (AgentLang, PS2, Python, PowerShell, Dart)", "Run", "F5", "▶", () => _ = RunActiveScriptAsync()));
+        _allCommands.Add(new CommandPaletteItem("run.stopScript", "Stop Running Script", "Run", "", "⏹", () => RunnerViewModel.Cancel()));
+        _allCommands.Add(new CommandPaletteItem("run.clearOutput", "Clear Runner Console Output", "Run", "", "🧹", () => RunnerViewModel.ClearOutput()));
+        _allCommands.Add(new CommandPaletteItem("diff.compare", "Compare / Diff Active Document with File...", "Diff", "Ctrl+Shift+D", "🔍", () => _ = ShowDiffAsync()));
+        _allCommands.Add(new CommandPaletteItem("diff.close", "Close Diff Viewer", "Diff", "", "✕", () => DiffViewModel.CloseDiff()));
+
+        // Utilities & Plugins
+        _allCommands.Add(new CommandPaletteItem("tools.jsonFormat", "Format JSON (2 spaces)", "Tools", "", "⚙️", () => ExecutePluginById("builtin-json-format")));
+        _allCommands.Add(new CommandPaletteItem("tools.jsonMinify", "Minify JSON", "Tools", "", "⚙️", () => ExecutePluginById("builtin-json-minify")));
+        _allCommands.Add(new CommandPaletteItem("tools.sortAsc", "Sort Lines (A to Z)", "Tools", "", "🔤", () => ExecutePluginById("builtin-sort-lines-asc")));
+        _allCommands.Add(new CommandPaletteItem("tools.sortDesc", "Sort Lines (Z to A)", "Tools", "", "🔤", () => ExecutePluginById("builtin-sort-lines-desc")));
+        _allCommands.Add(new CommandPaletteItem("tools.removeDuplicates", "Remove Duplicate Lines", "Tools", "", "✂️", () => ExecutePluginById("builtin-remove-duplicate-lines")));
+        _allCommands.Add(new CommandPaletteItem("tools.reverseLines", "Reverse Lines", "Tools", "", "🔄", () => ExecutePluginById("builtin-reverse-lines")));
+        _allCommands.Add(new CommandPaletteItem("tools.base64Encode", "Base64 Encode", "Tools", "", "🔐", () => ExecutePluginById("builtin-base64-encode")));
+        _allCommands.Add(new CommandPaletteItem("tools.base64Decode", "Base64 Decode", "Tools", "", "🔓", () => ExecutePluginById("builtin-base64-decode")));
+        _allCommands.Add(new CommandPaletteItem("tools.urlEncode", "URL Encode", "Tools", "", "🌐", () => ExecutePluginById("builtin-url-encode")));
+        _allCommands.Add(new CommandPaletteItem("tools.urlDecode", "URL Decode", "Tools", "", "🌐", () => ExecutePluginById("builtin-url-decode")));
+        _allCommands.Add(new CommandPaletteItem("tools.caseUpper", "Convert to UPPERCASE", "Tools", "", "🔠", () => ExecutePluginById("builtin-case-upper")));
+        _allCommands.Add(new CommandPaletteItem("tools.caseLower", "Convert to lowercase", "Tools", "", "🔡", () => ExecutePluginById("builtin-case-lower")));
+        _allCommands.Add(new CommandPaletteItem("tools.caseTitle", "Convert to Title Case", "Tools", "", "🔤", () => ExecutePluginById("builtin-case-title")));
+        _allCommands.Add(new CommandPaletteItem("tools.statistics", "Text Statistics...", "Tools", "", "📊", () => ExecutePluginById("builtin-text-statistics")));
+
+        // Preferences & Themes
+        _allCommands.Add(new CommandPaletteItem("theme.darkPlus", "Theme: Dark+ (VS Code)", "Preferences", "", "🎨", () => SelectThemeById("dark-plus")));
+        _allCommands.Add(new CommandPaletteItem("theme.oneDark", "Theme: One Dark Pro", "Preferences", "", "🎨", () => SelectThemeById("one-dark")));
+        _allCommands.Add(new CommandPaletteItem("theme.monokai", "Theme: Monokai", "Preferences", "", "🎨", () => SelectThemeById("monokai")));
+        _allCommands.Add(new CommandPaletteItem("theme.dracula", "Theme: Dracula", "Preferences", "", "🎨", () => SelectThemeById("dracula")));
+        _allCommands.Add(new CommandPaletteItem("theme.solarizedDark", "Theme: Solarized Dark", "Preferences", "", "🎨", () => SelectThemeById("solarized-dark")));
+        _allCommands.Add(new CommandPaletteItem("theme.gitHubLight", "Theme: GitHub Light", "Preferences", "", "🎨", () => SelectThemeById("github-light")));
+        _allCommands.Add(new CommandPaletteItem("theme.import", "Import Color Theme (.json)...", "Preferences", "", "🎨", () => _ = ImportThemeAsync()));
+        _allCommands.Add(new CommandPaletteItem("syntax.import", "Import Syntax Definition (.xshd)...", "Preferences", "", "📜", () => _ = ImportSyntaxAsync()));
+        _allCommands.Add(new CommandPaletteItem("settings.open", "Open Settings...", "Preferences", "Ctrl+,", "⚙️", () => ShowSettings()));
+        _allCommands.Add(new CommandPaletteItem("help.updates", "Check Language & Integration Updates...", "Help", "", "🔄", () => _ = CheckIntegrationsUpdateAsync()));
+    }
+
+    #endregion
 
     public void Dispose()
     {

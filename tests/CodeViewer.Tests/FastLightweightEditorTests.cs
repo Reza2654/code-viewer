@@ -341,6 +341,7 @@ public class FastLightweightEditorTests
     {
         public void Initialize(Avalonia.Controls.Window window) { }
         public Task<string?> ShowOpenFileDialogAsync() => Task.FromResult<string?>(null);
+        public Task<string?> ShowOpenFolderDialogAsync() => Task.FromResult<string?>(null);
         public Task<string?> ShowOpenSpecificFileDialogAsync(string title, string filterName, string[] extensions) => Task.FromResult<string?>(null);
         public Task<string?> ShowSaveFileDialogAsync(string defaultFileName) => Task.FromResult<string?>(null);
         public Task<ConfirmResult> ShowSaveConfirmationAsync(string fileName) => Task.FromResult(ConfirmResult.Cancel);

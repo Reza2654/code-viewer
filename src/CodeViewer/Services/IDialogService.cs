@@ -23,6 +23,11 @@ public interface IDialogService
     Task<string?> ShowOpenFileDialogAsync();
 
     /// <summary>
+    /// Prompts user to select a folder / workspace directory.
+    /// </summary>
+    Task<string?> ShowOpenFolderDialogAsync();
+
+    /// <summary>
     /// Prompts user to select a specific type of file (e.g. JSON themes, XSHD syntax, DLL plugins).
     /// </summary>
     Task<string?> ShowOpenSpecificFileDialogAsync(string title, string filterName, string[] extensions);

@@ -187,6 +187,29 @@ public partial class MainWindow : Window
                         });
                     }
                 }
+                else if (args.PropertyName == nameof(MainViewModel.IsCommandPaletteOpen))
+                {
+                    if (vm.IsCommandPaletteOpen)
+                    {
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                        {
+                            CommandPaletteTextBox?.Focus();
+                            CommandPaletteTextBox?.SelectAll();
+                        });
+                    }
+                }
+                else if (args.PropertyName is nameof(MainViewModel.IsMarkdownPreviewActive))
+                {
+                    UpdateMarkdownPreview();
+                }
+            };
+
+            vm.RunnerViewModel.RequestScrollToEnd = () =>
+            {
+                if (RunnerOutputTextBox != null)
+                {
+                    RunnerOutputTextBox.CaretIndex = RunnerOutputTextBox.Text?.Length ?? 0;
+                }
             };
 
             vm.SettingsService.SettingsChanged += OnSettingsChanged;
@@ -1120,6 +1143,103 @@ public partial class MainWindow : Window
     private void OnDuplicateLineClick(object? sender, RoutedEventArgs e) => DuplicateLineOrSelection();
     private void OnDeleteLineClick(object? sender, RoutedEventArgs e) => DeleteCurrentLine();
 
+    private void OnFolderItemDoubleTapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm && sender is Control ctrl && ctrl.DataContext is FolderItem item)
+        {
+            _ = vm.SelectFolderItemCommand.ExecuteAsync(item);
+        }
+    }
+
+    private void OnCommandPaletteTextBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        if (e.Key == Key.Escape)
+        {
+            vm.CloseCommandPalette();
+            Editor.Focus();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Enter)
+        {
+            vm.ExecuteSelectedCommandPaletteItem();
+            Editor.Focus();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Down && CommandPaletteListBox != null)
+        {
+            if (vm.FilteredCommands.Count > 0)
+            {
+                var next = Math.Min(CommandPaletteListBox.SelectedIndex + 1, vm.FilteredCommands.Count - 1);
+                CommandPaletteListBox.SelectedIndex = next;
+                vm.SelectedCommandPaletteItem = vm.FilteredCommands[next];
+                CommandPaletteListBox.ScrollIntoView(vm.SelectedCommandPaletteItem);
+                e.Handled = true;
+            }
+        }
+        else if (e.Key == Key.Up && CommandPaletteListBox != null)
+        {
+            if (vm.FilteredCommands.Count > 0)
+            {
+                var prev = Math.Max(CommandPaletteListBox.SelectedIndex - 1, 0);
+                CommandPaletteListBox.SelectedIndex = prev;
+                vm.SelectedCommandPaletteItem = vm.FilteredCommands[prev];
+                CommandPaletteListBox.ScrollIntoView(vm.SelectedCommandPaletteItem);
+                e.Handled = true;
+            }
+        }
+    }
+
+    private void OnCommandPaletteListBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        if (e.Key == Key.Enter)
+        {
+            vm.ExecuteSelectedCommandPaletteItem();
+            Editor.Focus();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            vm.CloseCommandPalette();
+            Editor.Focus();
+            e.Handled = true;
+        }
+    }
+
+    private void OnCommandPaletteItemDoubleTapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            vm.ExecuteSelectedCommandPaletteItem();
+            Editor.Focus();
+        }
+    }
+
+    private void UpdateMarkdownPreview()
+    {
+        if (DataContext is not MainViewModel vm || !vm.IsMarkdownPreviewActive || MarkdownScrollViewer == null) return;
+        var text = vm.ActiveDocument?.TextDocument.Text ?? string.Empty;
+        IBrush? fg = null;
+        IBrush? border = null;
+        IBrush? codeBg = null;
+        try
+        {
+            if (Resources.TryGetResource("ThemeEditorForeground", null, out var fgRes) && fgRes is IBrush fgBrush) fg = fgBrush;
+            if (Resources.TryGetResource("ThemeBorderBrush", null, out var bRes) && bRes is IBrush bBrush) border = bBrush;
+            if (Resources.TryGetResource("ThemeTabBarBackground", null, out var cRes) && cRes is IBrush cBrush) codeBg = cBrush;
+        }
+        catch { }
+
+        MarkdownScrollViewer.Content = MarkdownRenderer.Render(text, fg, border, codeBg);
+    }
+
     #endregion
 
     #region Window Closing Verification
@@ -1241,7 +1361,7 @@ public partial class MainWindow : Window
         }
 
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.0.1 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Version 1.2.0-beta.1 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 8, 0, 10) });
 
         var okBtn = new Button { Content = "OK", Width = 80, CornerRadius = new Avalonia.CornerRadius(4), Background = new SolidColorBrush(Color.Parse("#007ACC")), Foreground = Avalonia.Media.Brushes.White, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
