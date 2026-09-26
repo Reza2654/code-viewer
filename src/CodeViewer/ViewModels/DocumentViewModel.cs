@@ -133,6 +133,11 @@ public partial class DocumentViewModel : ViewModelBase
         OnPropertyChanged(nameof(DisplayName));
     }
 
+    partial void OnLanguageChanged(string value)
+    {
+        _model.Language = value;
+    }
+
     public void UpdateCaretPosition(int line, int col, int selectionLength = 0, int selectedLineCount = 0)
     {
         CaretLine = line;

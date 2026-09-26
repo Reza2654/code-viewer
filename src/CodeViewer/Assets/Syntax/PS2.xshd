@@ -13,12 +13,15 @@
   <RuleSet>
     <!-- Shebang -->
     <Span color="Comment">
-      <Begin>#!</Begin>
+      <Begin>\#!</Begin>
     </Span>
 
-    <!-- Single line comments -->
+    <!-- Single line comments (// and #) -->
     <Span color="Comment">
       <Begin>//</Begin>
+    </Span>
+    <Span color="Comment">
+      <Begin>\#</Begin>
     </Span>
 
     <!-- Block comments -->
@@ -29,19 +32,26 @@
 
     <!-- Manifest Directives -->
     <Span color="Preprocessor">
-      <Begin>#manifest\b</Begin>
+      <Begin>\#manifest\b</Begin>
     </Span>
     <Span color="Preprocessor">
-      <Begin>#endmanifest\b</Begin>
+      <Begin>\#endmanifest\b</Begin>
     </Span>
     <Span color="Preprocessor">
-      <Begin>#signature:</Begin>
+      <Begin>\#signature:</Begin>
     </Span>
 
     <!-- Strings -->
     <Span color="String">
       <Begin>"</Begin>
       <End>"</End>
+      <RuleSet>
+        <Span begin="\\" end="." />
+      </RuleSet>
+    </Span>
+    <Span color="String">
+      <Begin>'</Begin>
+      <End>'</End>
       <RuleSet>
         <Span begin="\\" end="." />
       </RuleSet>

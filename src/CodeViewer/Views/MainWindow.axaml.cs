@@ -221,6 +221,12 @@ public partial class MainWindow : Window
 
     private void OnLanguageItemClick(object? sender, RoutedEventArgs e)
     {
+        if (sender is Button btn && btn.DataContext is LanguageOption option && DataContext is MainViewModel vm)
+        {
+            vm.SetLanguage(option.Name);
+            Editor.SyntaxHighlighting = vm.ActiveDocument?.HighlightingDefinition;
+            Editor.TextArea.TextView.Redraw();
+        }
         LanguageButton?.Flyout?.Hide();
     }
 
@@ -231,6 +237,8 @@ public partial class MainWindow : Window
             if (DataContext is MainViewModel vm)
             {
                 vm.ApplyFirstFilteredLanguage();
+                Editor.SyntaxHighlighting = vm.ActiveDocument?.HighlightingDefinition;
+                Editor.TextArea.TextView.Redraw();
             }
             LanguageButton?.Flyout?.Hide();
             e.Handled = true;
@@ -1203,18 +1211,38 @@ public partial class MainWindow : Window
         var aboutDialog = new Window
         {
             Title = "About Code Viewer",
-            Width = 400,
-            Height = 250,
+            Width = 420,
+            Height = 310,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,
             Background = new SolidColorBrush(Color.Parse("#1E1E1E")),
             ShowInTaskbar = false
         };
 
-        var panel = new StackPanel { Margin = new Avalonia.Thickness(24), Spacing = 10, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
+        var panel = new StackPanel { Margin = new Avalonia.Thickness(24), Spacing = 8, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
+
+        try
+        {
+            var logoUri = new Uri("avares://CodeViewer/Assets/icon.png");
+            using var logoStream = Avalonia.Platform.AssetLoader.Open(logoUri);
+            var logoBitmap = new Avalonia.Media.Imaging.Bitmap(logoStream);
+            panel.Children.Add(new Avalonia.Controls.Image
+            {
+                Source = logoBitmap,
+                Width = 56,
+                Height = 56,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                Margin = new Avalonia.Thickness(0, 0, 0, 6)
+            });
+        }
+        catch
+        {
+            // Fallback if asset stream not present
+        }
+
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.0.1-rc.3 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 10, 0, 10) });
+        panel.Children.Add(new TextBlock { Text = "Version 1.0.1-rc.4 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 8, 0, 10) });
 
         var okBtn = new Button { Content = "OK", Width = 80, CornerRadius = new Avalonia.CornerRadius(4), Background = new SolidColorBrush(Color.Parse("#007ACC")), Foreground = Avalonia.Media.Brushes.White, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
         okBtn.Click += (_, _) => aboutDialog.Close();

@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Highlighting;
 using CodeViewer.Configuration;
 using CodeViewer.Models;
 using CodeViewer.Services;
@@ -135,5 +137,127 @@ public class LanguageIntegrationTests
         Assert.IsNotNull(ps2Status);
         Assert.AreEqual("v0.4.0", ps2Status.InstalledVersion);
         Assert.IsTrue(ps2Status.RepositoryUrl.Contains("Reza2654/ps2"));
+    }
+
+    [TestMethod]
+    public void HighlightingEngine_AgentLang_HighlightsLinesWithoutCrashing()
+    {
+        var def = _languageService.GetHighlightingDefinition("AgentLang");
+        Assert.IsNotNull(def);
+
+        var sampleCode = string.Join("\n", new[]
+        {
+            "# This is a single line hash comment",
+            "// This is a double slash comment",
+            "/* block comment */",
+            "agent Researcher {",
+            "    model: \"gemini-2.0-flash\",",
+            "    tools: [web_search, read_url],",
+            "    system_prompt: \"\"\"You are a research agent.\"\"\",",
+            "    goal: 'Conduct deep literature search',",
+            "    max_steps: 10",
+            "}",
+            "#",
+            "",
+            "func main() {",
+            "    think(\"Analyzing prompt\");",
+            "    let result = research(\"AI agents\");",
+            "    return result;",
+            "}"
+        });
+
+        var document = new TextDocument(sampleCode);
+        var highlighter = new DocumentHighlighter(document, def);
+
+        for (int i = 1; i <= document.LineCount; i++)
+        {
+            var highlightedLine = highlighter.HighlightLine(i);
+            Assert.IsNotNull(highlightedLine);
+        }
+    }
+
+    [TestMethod]
+    public void HighlightingEngine_PS2_HighlightsLinesWithoutCrashing()
+    {
+        var def = _languageService.GetHighlightingDefinition("PS2");
+        Assert.IsNotNull(def);
+
+        var sampleCode = string.Join("\n", new[]
+        {
+            "#!/usr/bin/env ps2",
+            "#manifest",
+            "version: \"1.0\"",
+            "requires: [fs.read, net.http]",
+            "#endmanifest",
+            "#",
+            "#!",
+            "// Single line comment",
+            "/* Block comment */",
+            "let mut items = [1, 2, 3];",
+            "let res = Some(42);",
+            "pipeline process_data {",
+            "    items |> filter(x => x > 1) |> println();",
+            "}",
+            "#signature: abcdef123456"
+        });
+
+        var document = new TextDocument(sampleCode);
+        var highlighter = new DocumentHighlighter(document, def);
+
+        for (int i = 1; i <= document.LineCount; i++)
+        {
+            var highlightedLine = highlighter.HighlightLine(i);
+            Assert.IsNotNull(highlightedLine);
+        }
+    }
+
+    [TestMethod]
+    public void MainViewModel_SetLanguage_SynchronizesModelAndOptions()
+    {
+        var vm = new MainViewModel(
+            new FileService(),
+            _languageService,
+            new RecentFilesService(),
+            new DialogService(),
+            new AppConfig());
+
+        vm.CreateNewDocument();
+        Assert.AreEqual("Plain Text", vm.ActiveDocument!.Language);
+
+        vm.SetLanguage("AgentLang");
+        Assert.AreEqual("AgentLang", vm.ActiveDocument.Language);
+        Assert.AreEqual("AgentLang", vm.ActiveDocument.Model.Language);
+        Assert.IsNotNull(vm.ActiveDocument.HighlightingDefinition);
+        Assert.AreEqual("AgentLang", vm.ActiveDocument.HighlightingDefinition.Name);
+
+        var agentOpt = vm.FilteredLanguageOptions.First(o => o.Name == "AgentLang");
+        Assert.IsTrue(agentOpt.IsSelected);
+
+        vm.SetLanguage("PS2");
+        Assert.AreEqual("PS2", vm.ActiveDocument.Language);
+        Assert.AreEqual("PS2", vm.ActiveDocument.Model.Language);
+        Assert.IsNotNull(vm.ActiveDocument.HighlightingDefinition);
+        Assert.AreEqual("PS2", vm.ActiveDocument.HighlightingDefinition.Name);
+
+        var ps2Opt = vm.FilteredLanguageOptions.First(o => o.Name == "PS2");
+        Assert.IsTrue(ps2Opt.IsSelected);
+    }
+
+    [TestMethod]
+    public void MainViewModel_ApplyFirstFilteredLanguage_AppliesFilteredLanguage()
+    {
+        var vm = new MainViewModel(
+            new FileService(),
+            _languageService,
+            new RecentFilesService(),
+            new DialogService(),
+            new AppConfig());
+
+        vm.CreateNewDocument();
+        vm.LanguageFilter = "ps2";
+        vm.ApplyFirstFilteredLanguage();
+
+        Assert.AreEqual("PS2", vm.ActiveDocument!.Language);
+        Assert.AreEqual("PS2", vm.ActiveDocument.Model.Language);
     }
 }

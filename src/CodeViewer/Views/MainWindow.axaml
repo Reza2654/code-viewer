@@ -430,8 +430,6 @@
                         <ItemsControl.ItemTemplate>
                           <DataTemplate x:DataType="models:LanguageOption">
                             <Button Click="OnLanguageItemClick"
-                                    Command="{Binding ((vm:MainViewModel)DataContext).SetLanguageCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CommandParameter="{Binding Name}"
                                     HorizontalAlignment="Stretch"
                                     HorizontalContentAlignment="Left"
                                     Background="Transparent"

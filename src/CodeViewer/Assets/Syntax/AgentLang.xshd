@@ -15,13 +15,25 @@
       <Begin>//</Begin>
     </Span>
     <Span color="Comment">
-      <Begin>#</Begin>
+      <Begin>\#</Begin>
     </Span>
 
     <!-- Block comments -->
     <Span color="Comment" multiline="true">
       <Begin>/\*</Begin>
       <End>\*/</End>
+    </Span>
+
+    <!-- Triple single-quoted strings -->
+    <Span color="String" multiline="true">
+      <Begin>'''</Begin>
+      <End>'''</End>
+    </Span>
+
+    <!-- Triple double-quoted strings -->
+    <Span color="String" multiline="true">
+      <Begin>"""</Begin>
+      <End>"""</End>
     </Span>
 
     <!-- Double-quoted strings -->
