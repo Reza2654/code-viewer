@@ -59,6 +59,20 @@ public partial class DocumentViewModel : ViewModelBase
     private bool _showLineNumbers = true;
 
     [ObservableProperty]
+    private bool _isRtl;
+
+    [ObservableProperty]
+    private Avalonia.Media.FlowDirection _flowDirection = Avalonia.Media.FlowDirection.LeftToRight;
+
+    partial void OnIsRtlChanged(bool value)
+    {
+        FlowDirection = value ? Avalonia.Media.FlowDirection.RightToLeft : Avalonia.Media.FlowDirection.LeftToRight;
+        OnPropertyChanged(nameof(TextDirectionDisplay));
+    }
+
+    public string TextDirectionDisplay => IsRtl ? "RTL" : "LTR";
+
+    [ObservableProperty]
     private IHighlightingDefinition? _highlightingDefinition;
 
     public TextDocument TextDocument { get; }
@@ -101,6 +115,35 @@ public partial class DocumentViewModel : ViewModelBase
 
         // Update language and highlighting
         UpdateLanguage();
+
+        // Auto-detect Persian/Arabic RTL text
+        DetectRtl(model.Text);
+    }
+
+    public void DetectRtl(string? text)
+    {
+        if (!string.IsNullOrEmpty(text) && IsRtlContent(text))
+        {
+            IsRtl = true;
+        }
+    }
+
+    public static bool IsRtlContent(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        foreach (char c in text)
+        {
+            if ((c >= 0x0600 && c <= 0x06FF) || // Arabic/Persian
+                (c >= 0x0750 && c <= 0x077F) || // Arabic Supplement
+                (c >= 0x08A0 && c <= 0x08FF) || // Arabic Extended-A
+                (c >= 0xFB50 && c <= 0xFDFF) || // Arabic Presentation Forms-A
+                (c >= 0xFE70 && c <= 0xFEFF) || // Arabic Presentation Forms-B
+                (c >= 0x0590 && c <= 0x05FF))   // Hebrew
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void UpdateLanguage()
@@ -109,6 +152,10 @@ public partial class DocumentViewModel : ViewModelBase
         Language = lang;
         HighlightingDefinition = _languageService.GetHighlightingDefinition(lang);
         _model.Language = lang;
+        if (string.Equals(lang, "Persian", StringComparison.OrdinalIgnoreCase))
+        {
+            IsRtl = true;
+        }
     }
 
     public void SyncToModel()
@@ -136,6 +183,10 @@ public partial class DocumentViewModel : ViewModelBase
     partial void OnLanguageChanged(string value)
     {
         _model.Language = value;
+        if (string.Equals(value, "Persian", StringComparison.OrdinalIgnoreCase))
+        {
+            IsRtl = true;
+        }
     }
 
     public void UpdateCaretPosition(int line, int col, int selectionLength = 0, int selectedLineCount = 0)

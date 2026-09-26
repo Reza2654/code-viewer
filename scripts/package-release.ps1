@@ -11,7 +11,7 @@ $csprojContent = Get-Content "$rootDir\src\CodeViewer\CodeViewer.csproj" -Raw
 if ($csprojContent -match '<Version>(.*?)</Version>') {
     $version = $matches[1]
 } else {
-    $version = "1.2.1"
+    $version = "1.2.2-beta.3"
 }
 
 Write-Host "=================================================" -ForegroundColor Cyan

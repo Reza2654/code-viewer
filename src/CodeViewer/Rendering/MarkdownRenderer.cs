@@ -144,14 +144,35 @@ public static class MarkdownRenderer
         return panel;
     }
 
+    public static bool IsRtlText(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        foreach (char c in text)
+        {
+            if ((c >= 0x0600 && c <= 0x06FF) ||
+                (c >= 0x0750 && c <= 0x077F) ||
+                (c >= 0x08A0 && c <= 0x08FF) ||
+                (c >= 0xFB50 && c <= 0xFDFF) ||
+                (c >= 0xFE70 && c <= 0xFEFF) ||
+                (c >= 0x0590 && c <= 0x05FF))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static TextBlock CreateHeading(string text, double fontSize, FontWeight weight, IBrush? fg, Thickness margin)
     {
+        bool isRtl = IsRtlText(text);
         var tb = new TextBlock
         {
             FontSize = fontSize,
             FontWeight = weight,
             Margin = margin,
-            TextWrapping = TextWrapping.Wrap
+            TextWrapping = TextWrapping.Wrap,
+            FlowDirection = isRtl ? FlowDirection.RightToLeft : FlowDirection.LeftToRight,
+            TextAlignment = isRtl ? TextAlignment.Right : TextAlignment.Left
         };
         if (fg != null) tb.Foreground = fg;
         AddFormattedInlines(tb, text);
@@ -160,20 +181,23 @@ public static class MarkdownRenderer
 
     private static Border CreateBlockquote(string text, IBrush? fg, IBrush? borderBrush)
     {
+        bool isRtl = IsRtlText(text);
         var tb = new TextBlock
         {
             FontStyle = FontStyle.Italic,
             TextWrapping = TextWrapping.Wrap,
-            Opacity = 0.9
+            Opacity = 0.9,
+            FlowDirection = isRtl ? FlowDirection.RightToLeft : FlowDirection.LeftToRight,
+            TextAlignment = isRtl ? TextAlignment.Right : TextAlignment.Left
         };
         if (fg != null) tb.Foreground = fg;
         AddFormattedInlines(tb, text);
 
         return new Border
         {
-            BorderThickness = new Thickness(3, 0, 0, 0),
+            BorderThickness = isRtl ? new Thickness(0, 0, 3, 0) : new Thickness(3, 0, 0, 0),
             BorderBrush = borderBrush ?? Brushes.CornflowerBlue,
-            Padding = new Thickness(10, 4, 4, 4),
+            Padding = isRtl ? new Thickness(4, 4, 10, 4) : new Thickness(10, 4, 4, 4),
             Margin = new Thickness(0, 2, 0, 4),
             Child = tb
         };
@@ -181,9 +205,10 @@ public static class MarkdownRenderer
 
     private static Grid CreateListItem(string bullet, string text, IBrush? fg)
     {
+        bool isRtl = IsRtlText(text);
         var grid = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("20,*"),
+            ColumnDefinitions = isRtl ? new ColumnDefinitions("*,20") : new ColumnDefinitions("20,*"),
             Margin = new Thickness(4, 1, 0, 1)
         };
 
@@ -192,18 +217,21 @@ public static class MarkdownRenderer
             Text = bullet,
             FontWeight = FontWeight.Bold,
             Foreground = fg ?? Brushes.CornflowerBlue,
-            VerticalAlignment = VerticalAlignment.Top
+            VerticalAlignment = VerticalAlignment.Top,
+            TextAlignment = isRtl ? TextAlignment.Right : TextAlignment.Left
         };
-        Grid.SetColumn(bulletBlock, 0);
+        Grid.SetColumn(bulletBlock, isRtl ? 1 : 0);
 
         var contentBlock = new TextBlock
         {
             TextWrapping = TextWrapping.Wrap,
-            VerticalAlignment = VerticalAlignment.Center
+            VerticalAlignment = VerticalAlignment.Center,
+            FlowDirection = isRtl ? FlowDirection.RightToLeft : FlowDirection.LeftToRight,
+            TextAlignment = isRtl ? TextAlignment.Right : TextAlignment.Left
         };
         if (fg != null) contentBlock.Foreground = fg;
         AddFormattedInlines(contentBlock, text);
-        Grid.SetColumn(contentBlock, 1);
+        Grid.SetColumn(contentBlock, isRtl ? 0 : 1);
 
         grid.Children.Add(bulletBlock);
         grid.Children.Add(contentBlock);
@@ -241,10 +269,13 @@ public static class MarkdownRenderer
 
     private static TextBlock CreateParagraph(string line, IBrush? fg)
     {
+        bool isRtl = IsRtlText(line);
         var tb = new TextBlock
         {
             TextWrapping = TextWrapping.Wrap,
-            LineHeight = 20
+            LineHeight = 20,
+            FlowDirection = isRtl ? FlowDirection.RightToLeft : FlowDirection.LeftToRight,
+            TextAlignment = isRtl ? TextAlignment.Right : TextAlignment.Left
         };
         if (fg != null) tb.Foreground = fg;
         AddFormattedInlines(tb, line);

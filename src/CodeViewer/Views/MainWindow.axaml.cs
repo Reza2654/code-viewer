@@ -152,17 +152,33 @@ public partial class MainWindow : Window
                 await dialog.ShowDialog(this);
             };
 
+            // Initial responsive layout update
+            UpdateEditorLayoutColumns(vm);
+
+            Editor.TextChanged += (s, e) =>
+            {
+                if (DataContext is MainViewModel { IsMarkdownPreviewActive: true })
+                {
+                    UpdateMarkdownPreview();
+                }
+            };
+
             // Keep word wrap, bracket matching, search, and palettes updated on property changes
             vm.PropertyChanged += (s, args) =>
             {
                 if (args.PropertyName == nameof(MainViewModel.ActiveDocument))
                 {
+                    UpdateEditorLayoutColumns(vm);
                     if (vm.ActiveDocument != null)
                     {
                         Editor.WordWrap = vm.ActiveDocument.WordWrap;
                         _bracketMatchingRenderer.UpdateMatchingBrackets();
                         UpdateSearchMatches();
                         Editor.TextArea.TextView.InvalidateVisual();
+                    }
+                    if (vm.IsMarkdownPreviewActive)
+                    {
+                        UpdateMarkdownPreview();
                     }
                 }
                 else if (args.PropertyName == nameof(MainViewModel.IsQuickOpenOpen))
@@ -198,9 +214,13 @@ public partial class MainWindow : Window
                         });
                     }
                 }
-                else if (args.PropertyName is nameof(MainViewModel.IsMarkdownPreviewActive))
+                else if (args.PropertyName is nameof(MainViewModel.IsMarkdownPreviewActive) or nameof(MainViewModel.IsSplitViewActive))
                 {
-                    UpdateMarkdownPreview();
+                    UpdateEditorLayoutColumns(vm);
+                    if (vm.IsMarkdownPreviewActive)
+                    {
+                        UpdateMarkdownPreview();
+                    }
                 }
             };
 
@@ -217,6 +237,35 @@ public partial class MainWindow : Window
         }
     }
 
+    private void UpdateEditorLayoutColumns(MainViewModel? vm)
+    {
+        if (vm == null || EditorGrid == null || EditorGrid.ColumnDefinitions.Count < 5) return;
+
+        if (vm.IsSplitViewActive)
+        {
+            if (EditorGrid.ColumnDefinitions[2].Width.Value <= 0)
+            {
+                EditorGrid.ColumnDefinitions[2].Width = new GridLength(1, GridUnitType.Star);
+            }
+        }
+        else
+        {
+            EditorGrid.ColumnDefinitions[2].Width = new GridLength(0);
+        }
+
+        if (vm.IsMarkdownPreviewActive)
+        {
+            if (EditorGrid.ColumnDefinitions[4].Width.Value <= 0)
+            {
+                EditorGrid.ColumnDefinitions[4].Width = new GridLength(1, GridUnitType.Star);
+            }
+        }
+        else
+        {
+            EditorGrid.ColumnDefinitions[4].Width = new GridLength(0);
+        }
+    }
+
     private void OnSettingsChanged(AppSettings settings)
     {
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -224,7 +273,8 @@ public partial class MainWindow : Window
             try
             {
                 var fontName = AppSettings.SanitizeFontFamily(settings.FontFamily);
-                var ff = new Avalonia.Media.FontFamily(fontName);
+                var fullFontFamily = $"{fontName}, Segoe UI, Tahoma, Vazirmatn, Arial, sans-serif";
+                var ff = new Avalonia.Media.FontFamily(fullFontFamily);
 
                 Editor.FontFamily = ff;
                 Editor.TextArea.FontFamily = ff;
@@ -1361,7 +1411,7 @@ public partial class MainWindow : Window
         }
 
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.2.1 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Version 1.2.2-beta.3 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 8, 0, 10) });
 
         var okBtn = new Button { Content = "OK", Width = 80, CornerRadius = new Avalonia.CornerRadius(4), Background = new SolidColorBrush(Color.Parse("#007ACC")), Foreground = Avalonia.Media.Brushes.White, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };

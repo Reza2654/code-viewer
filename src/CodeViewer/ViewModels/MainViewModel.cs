@@ -1339,11 +1339,22 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
     }
 
+    public bool IsActiveDocumentMarkdown =>
+        ActiveDocument != null &&
+        (string.Equals(ActiveDocument.Language, "Markdown", StringComparison.OrdinalIgnoreCase) ||
+         (ActiveDocument.FilePath?.EndsWith(".md", StringComparison.OrdinalIgnoreCase) ?? false) ||
+         (ActiveDocument.FilePath?.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase) ?? false));
+
     partial void OnActiveDocumentChanged(DocumentViewModel? value)
     {
         UpdateActiveDocumentSelection();
         OnPropertyChanged(nameof(WindowTitle));
         OnPropertyChanged(nameof(FilteredLanguageOptions));
+        OnPropertyChanged(nameof(IsActiveDocumentMarkdown));
+        if (!IsActiveDocumentMarkdown && IsMarkdownPreviewActive)
+        {
+            IsMarkdownPreviewActive = false;
+        }
         _ = SaveCurrentSessionAsync();
     }
 
@@ -1436,7 +1447,24 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     public void ToggleMarkdownPreview()
     {
+        if (!IsActiveDocumentMarkdown && !IsMarkdownPreviewActive)
+        {
+            return;
+        }
         IsMarkdownPreviewActive = !IsMarkdownPreviewActive;
+    }
+
+    #endregion
+
+    #region RTL (Right-to-Left) Operations
+
+    [RelayCommand]
+    public void ToggleRtl()
+    {
+        if (ActiveDocument != null)
+        {
+            ActiveDocument.IsRtl = !ActiveDocument.IsRtl;
+        }
     }
 
     #endregion
@@ -1553,7 +1581,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         // File operations
         _allCommands.Add(new CommandPaletteItem("file.new", "New File", "File", "Ctrl+N", "📄", () => CreateNewDocument()));
         _allCommands.Add(new CommandPaletteItem("file.open", "Open File...", "File", "Ctrl+O", "📂", () => _ = OpenFileAsync()));
-        _allCommands.Add(new CommandPaletteItem("file.openFolder", "Open Folder / Workspace...", "File", "Ctrl+K Ctrl+O", "📁", () => _ = OpenFolderAsync()));
+        _allCommands.Add(new CommandPaletteItem("file.openFolder", "Open Folder / Workspace...", "File", "Ctrl+Shift+O", "📁", () => _ = OpenFolderAsync()));
         _allCommands.Add(new CommandPaletteItem("file.quickOpen", "Quick Open...", "File", "Ctrl+P", "🔍", () => _ = ShowQuickOpenAsync()));
         _allCommands.Add(new CommandPaletteItem("file.save", "Save", "File", "Ctrl+S", "💾", () => _ = SaveAsync()));
         _allCommands.Add(new CommandPaletteItem("file.saveAs", "Save As...", "File", "Ctrl+Shift+S", "💾", () => _ = SaveAsAsync()));
@@ -1574,6 +1602,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _allCommands.Add(new CommandPaletteItem("view.toggleSidebar", "Toggle Folder Sidebar", "View", "Ctrl+B", "📁", () => ToggleSidebar()));
         _allCommands.Add(new CommandPaletteItem("view.toggleSplit", "Toggle Split View", "View", "Ctrl+\\", "🔀", () => ToggleSplitView()));
         _allCommands.Add(new CommandPaletteItem("view.toggleMarkdown", "Toggle Markdown Live Preview", "View", "Ctrl+Shift+M", "📝", () => ToggleMarkdownPreview()));
+        _allCommands.Add(new CommandPaletteItem("view.toggleRtl", "Toggle RTL / LTR Direction (Persian/Arabic)", "View", "Ctrl+Alt+R", "⇄", () => ToggleRtl()));
         _allCommands.Add(new CommandPaletteItem("view.zoomIn", "Zoom In", "View", "Ctrl++", "🔍", () => ZoomIn()));
         _allCommands.Add(new CommandPaletteItem("view.zoomOut", "Zoom Out", "View", "Ctrl+-", "🔍", () => ZoomOut()));
         _allCommands.Add(new CommandPaletteItem("view.resetZoom", "Reset Zoom", "View", "Ctrl+0", "🔍", () => ResetZoom()));

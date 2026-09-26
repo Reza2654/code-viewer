@@ -20,6 +20,7 @@
 - 🔍 **Diff Viewer (Ctrl+Shift+D)**: Built-in pure C# Myers diff comparison highlighting added, removed, and modified lines with summary statistics.
 - ▶ **Integrated Script Runner (F5)**: Embedded bottom console to run scripts for **AgentLang** (`.agent`), **PS2** (`.ps2`), **Dart** (`.dart`), **Python** (`.py`), and **PowerShell** (`.ps1`) with real-time stdout/stderr streaming, execution timers, and clean termination.
 - 📝 **Markdown Live Preview (Ctrl+Shift+M)**: Ultra-fast native Avalonia Markdown renderer without heavy webviews or external runtime overhead.
+- ⇄ **Full RTL & Persian (Farsi) Language Support (Ctrl+Alt+R)**: Native Right-to-Left text direction flow for Persian, Arabic, and Hebrew with automatic script detection, status bar LTR/RTL toggle, Persian language mode (`.fa`, `.farsi`, `.persian`), cursive font fallbacks, and RTL Markdown Live Preview.
 - ⚡ **Instant Startup**: Sub-25ms startup time; opens directly to your code without loading screens or bloated background tasks.
 - 🪟 **Native Windows 11 Context Menu**: Directly integrates into the modern Windows 11 right-click context menu powered by a native `IExplorerCommand` Sparse Package shell extension.
 - 🚀 **CLI Line & Column Navigation**: Jump straight to any line from terminal or scripts (e.g. `codeviewer file.cs:42` or `codeviewer C:\repo\file.cs:105:14`), correctly parsing Windows drive letters without splitting drive colons.
@@ -62,6 +63,7 @@
 | `Ctrl + \` | Toggle Split View |
 | `F5` | Run Active Script (AgentLang, PS2, Dart, Python, PowerShell) |
 | `Ctrl + Shift + M` | Toggle Markdown Live Preview |
+| `Ctrl + Alt + R` | Toggle RTL / LTR Text Direction (Persian/Arabic) |
 | `Ctrl + Shift + D` | Compare / Diff Files |
 | `Ctrl + P` | Quick Open (Search tabs & recent files) |
 | `Ctrl + G` | Go to Line (e.g. `42` or `42:10`) |
@@ -92,13 +94,13 @@
 ## Installation & Packaging
 
 ### Option 1: Installer (Recommended)
-Download and run `CodeViewer-v1.2.1-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
+Download and run `CodeViewer-v1.2.2-beta.3-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
 - Installs Code Viewer to your system.
 - Creates Start Menu and Desktop shortcuts.
 - Automatically registers the modern Windows 11 right-click context menu.
 
 ### Option 2: Portable ZIP
-Download `CodeViewer-v1.2.1-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
+Download `CodeViewer-v1.2.2-beta.3-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
 To enable the modern Windows 11 context menu for portable use, right-click `scripts\register-windows11-context-menu.ps1` and select **Run with PowerShell**.
 
 ### Option 3: Windows Package Manager (WinGet)

@@ -63,6 +63,7 @@
     <KeyBinding Gesture="F5" Command="{Binding RunActiveScriptCommand}"/>
     <KeyBinding Gesture="Ctrl+Shift+M" Command="{Binding ToggleMarkdownPreviewCommand}"/>
     <KeyBinding Gesture="Ctrl+Shift+D" Command="{Binding ShowDiffCommand}"/>
+    <KeyBinding Gesture="Ctrl+Alt+R" Command="{Binding ToggleRtlCommand}"/>
 
     <!-- View & Zoom Shortcuts -->
     <KeyBinding Gesture="Ctrl+OemPlus" Command="{Binding ZoomInCommand}"/>
@@ -144,6 +145,11 @@
         <MenuItem Header="Toggle _Markdown Live Preview" Command="{Binding ToggleMarkdownPreviewCommand}" HotKey="Ctrl+Shift+M" InputGesture="Ctrl+Shift+M">
           <MenuItem.Icon>
             <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding IsMarkdownPreviewActive}"/>
+          </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="Toggle _RTL / LTR Direction" Command="{Binding ToggleRtlCommand}" HotKey="Ctrl+Alt+R" InputGesture="Ctrl+Alt+R">
+          <MenuItem.Icon>
+            <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding ActiveDocument.IsRtl, FallbackValue=False}"/>
           </MenuItem.Icon>
         </MenuItem>
         <Separator/>
@@ -300,6 +306,7 @@
             </Button>
             <Button Command="{Binding ToggleMarkdownPreviewCommand}"
                     ToolTip.Tip="Toggle Markdown Live Preview (Ctrl+Shift+M)"
+                    IsVisible="{Binding IsActiveDocumentMarkdown}"
                     Padding="5,3" CornerRadius="4" Background="Transparent" BorderThickness="0">
               <TextBlock Text="📝" FontSize="12" VerticalAlignment="Center"/>
             </Button>
@@ -410,7 +417,15 @@
           <!-- Main Work Viewports -->
           <Grid Grid.Row="0">
             <!-- Normal Editor & Split View & Markdown Layout (Visible when not in Diff mode) -->
-            <Grid IsVisible="{Binding !DiffViewModel.IsActive}" ColumnDefinitions="*,Auto,*,Auto">
+            <Grid x:Name="EditorGrid" IsVisible="{Binding !DiffViewModel.IsActive}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="0"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="0"/>
+              </Grid.ColumnDefinitions>
+
               <!-- Primary Editor Viewport -->
               <Grid Grid.Column="0">
                 <ae:TextEditor x:Name="Editor"
@@ -419,6 +434,7 @@
                                FontSize="{Binding ActiveDocument.FontSize, FallbackValue=14.0}"
                                WordWrap="{Binding ActiveDocument.WordWrap, FallbackValue=False}"
                                ShowLineNumbers="{Binding ActiveDocument.ShowLineNumbers, FallbackValue=True}"
+                               FlowDirection="{Binding ActiveDocument.FlowDirection, FallbackValue=LeftToRight}"
                                FontFamily="{Binding CurrentFontFamily}"
                                Background="{DynamicResource ThemeEditorBackground}"
                                Foreground="{DynamicResource ThemeEditorForeground}"
@@ -445,6 +461,7 @@
                                      FontSize="{Binding FontSize, FallbackValue=14.0}"
                                      WordWrap="{Binding WordWrap, FallbackValue=False}"
                                      ShowLineNumbers="{Binding ShowLineNumbers, FallbackValue=True}"
+                                     FlowDirection="{Binding FlowDirection, FallbackValue=LeftToRight}"
                                      FontFamily="{Binding $parent[Window].((vm:MainViewModel)DataContext).CurrentFontFamily}"
                                      Background="{DynamicResource ThemeEditorBackground}"
                                      Foreground="{DynamicResource ThemeEditorForeground}"
@@ -462,32 +479,30 @@
                             Background="{DynamicResource ThemeBorderBrush}"
                             ResizeDirection="Columns"
                             IsVisible="{Binding IsMarkdownPreviewActive}"/>
-            </Grid>
 
-            <!-- Markdown Live Preview Panel -->
-            <Border IsVisible="{Binding IsMarkdownPreviewActive}"
-                    Background="{DynamicResource ThemeEditorBackground}"
-                    BorderBrush="{DynamicResource ThemeBorderBrush}"
-                    BorderThickness="1,0,0,0"
-                    HorizontalAlignment="Right"
-                    Width="460"
-                    ZIndex="5">
-              <Grid RowDefinitions="Auto,*">
-                <Border Grid.Row="0"
-                        Background="{DynamicResource ThemeTabBarBackground}"
-                        BorderBrush="{DynamicResource ThemeBorderBrush}"
-                        BorderThickness="0,0,0,1"
-                        Padding="10,6">
-                  <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Grid.Column="0" Text="📝 Markdown Live Preview" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource ThemeWindowForeground}" VerticalAlignment="Center"/>
-                    <Button Grid.Column="1" Command="{Binding ToggleMarkdownPreviewCommand}" ToolTip.Tip="Close Preview (Ctrl+Shift+M)" Padding="4,1" Background="Transparent" BorderThickness="0">
-                      <TextBlock Text="✕" FontSize="10" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
-                    </Button>
-                  </Grid>
-                </Border>
-                <ScrollViewer Grid.Row="1" x:Name="MarkdownScrollViewer" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"/>
-              </Grid>
-            </Border>
+              <!-- Markdown Live Preview Panel -->
+              <Border Grid.Column="4"
+                      IsVisible="{Binding IsMarkdownPreviewActive}"
+                      Background="{DynamicResource ThemeEditorBackground}"
+                      BorderBrush="{DynamicResource ThemeBorderBrush}"
+                      BorderThickness="1,0,0,0">
+                <Grid RowDefinitions="Auto,*">
+                  <Border Grid.Row="0"
+                          Background="{DynamicResource ThemeTabBarBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="0,0,0,1"
+                          Padding="10,6">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBlock Grid.Column="0" Text="📝 Markdown Live Preview" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource ThemeWindowForeground}" VerticalAlignment="Center"/>
+                      <Button Grid.Column="1" Command="{Binding ToggleMarkdownPreviewCommand}" ToolTip.Tip="Close Preview (Ctrl+Shift+M)" Padding="4,1" Background="Transparent" BorderThickness="0">
+                        <TextBlock Text="✕" FontSize="10" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                      </Button>
+                    </Grid>
+                  </Border>
+                  <ScrollViewer Grid.Row="1" x:Name="MarkdownScrollViewer" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"/>
+                </Grid>
+              </Border>
+            </Grid>
 
             <!-- 🔍 Diff View (when DiffViewModel.IsActive) -->
             <Border IsVisible="{Binding DiffViewModel.IsActive}" ZIndex="10">
@@ -796,8 +811,22 @@
                      VerticalAlignment="Center"
                      Opacity="0.95"/>
 
-          <!-- Right Info: Caret Position, Font Size, and Settings Button -->
+          <!-- Right Info: RTL Toggle, Caret Position, Font Size, and Settings Button -->
           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">
+            <!-- RTL / LTR Direction Toggle Button -->
+            <Button Command="{Binding ToggleRtlCommand}"
+                    ToolTip.Tip="Toggle Text Direction (LTR / RTL for Persian/Arabic) (Ctrl+Alt+R)"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="4,1"
+                    CornerRadius="3"
+                    Cursor="Hand">
+              <StackPanel Orientation="Horizontal" Spacing="3">
+                <TextBlock Text="⇄" FontSize="11" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.TextDirectionDisplay, FallbackValue='LTR'}"/>
+              </StackPanel>
+            </Button>
+            <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
             <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.CaretDisplay, FallbackValue='Ln 1, Col 1'}"/>
             <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
             <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.FontSize, StringFormat='{}{0:0} pt', FallbackValue='14 pt'}"/>

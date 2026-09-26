@@ -94,6 +94,9 @@ public class LanguageService : ILanguageService
         { ".txt", "Plain Text" },
         { ".log", "Plain Text" },
         { ".env", "Plain Text" },
+        { ".fa", "Persian" },
+        { ".farsi", "Persian" },
+        { ".persian", "Persian" },
         { ".agent", "AgentLang" },
         { ".ps2", "PS2" },
         { ".ps2bundle", "PS2" }
@@ -231,6 +234,7 @@ public class LanguageService : ILanguageService
         "Kotlin",
         "Lua",
         "Markdown",
+        "Persian",
         "PHP",
         "PowerShell",
         "PS2",

@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using CodeViewer.Models;
+using CodeViewer.Rendering;
 using CodeViewer.Services;
 using CodeViewer.ViewModels;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -186,7 +187,7 @@ public class Beta1FeatureTests
             "Ctrl+Shift+C", "Ctrl+W", "Ctrl+F", "Ctrl+H", "Ctrl+G",
             "F3", "Shift+F3", "Ctrl+OemQuestion", "Ctrl+Divide",
             "Ctrl+B", "Ctrl+OemBackslash", "Ctrl+Shift+P", "F1", "F5",
-            "Ctrl+Shift+M", "Ctrl+Shift+D", "Ctrl+OemPlus", "Ctrl+Add",
+            "Ctrl+Shift+M", "Ctrl+Shift+D", "Ctrl+Alt+R", "Ctrl+OemPlus", "Ctrl+Add",
             "Ctrl+OemMinus", "Ctrl+Subtract", "Ctrl+D0", "Ctrl+NumPad0",
             "Alt+Z", "Ctrl+OemComma", "Ctrl+Z", "Ctrl+Y", "Ctrl+X",
             "Ctrl+C", "Ctrl+V", "Ctrl+A", "Ctrl+D", "Ctrl+Shift+K",
@@ -216,6 +217,161 @@ public class Beta1FeatureTests
         Assert.IsFalse(unchanged.IsAdded);
         Assert.IsFalse(unchanged.IsRemoved);
         Assert.IsTrue(unchanged.IsUnchanged);
+    }
+
+    [TestMethod]
+    public void Avalonia_Grid_ColumnDefinitions_Test()
+    {
+        var grid = new Avalonia.Controls.Grid();
+        var col1 = new Avalonia.Controls.ColumnDefinition(1, Avalonia.Controls.GridUnitType.Star);
+        var col2 = new Avalonia.Controls.ColumnDefinition(0, Avalonia.Controls.GridUnitType.Pixel);
+        var col3 = new Avalonia.Controls.ColumnDefinition(0, Avalonia.Controls.GridUnitType.Pixel);
+        grid.ColumnDefinitions.Add(col1);
+        grid.ColumnDefinitions.Add(col2);
+        grid.ColumnDefinitions.Add(col3);
+
+        // Initial: only primary visible
+        grid.Measure(new Avalonia.Size(1000, 500));
+        grid.Arrange(new Avalonia.Rect(0, 0, 1000, 500));
+        Assert.AreEqual(1000, col1.ActualWidth);
+        Assert.AreEqual(0, col2.ActualWidth);
+        Assert.AreEqual(0, col3.ActualWidth);
+
+        // Toggle Split View ON
+        col2.Width = new Avalonia.Controls.GridLength(1, Avalonia.Controls.GridUnitType.Star);
+        grid.Measure(new Avalonia.Size(1000, 500));
+        grid.Arrange(new Avalonia.Rect(0, 0, 1000, 500));
+        Assert.AreEqual(500, col1.ActualWidth);
+        Assert.AreEqual(500, col2.ActualWidth);
+        Assert.AreEqual(0, col3.ActualWidth);
+
+        // Toggle Split View OFF
+        col2.Width = new Avalonia.Controls.GridLength(0, Avalonia.Controls.GridUnitType.Pixel);
+        grid.Measure(new Avalonia.Size(1000, 500));
+        grid.Arrange(new Avalonia.Rect(0, 0, 1000, 500));
+        Assert.AreEqual(1000, col1.ActualWidth);
+        Assert.AreEqual(0, col2.ActualWidth);
+
+        // Toggle Markdown Preview ON
+        col3.Width = new Avalonia.Controls.GridLength(1, Avalonia.Controls.GridUnitType.Star);
+        grid.Measure(new Avalonia.Size(1000, 500));
+        grid.Arrange(new Avalonia.Rect(0, 0, 1000, 500));
+        Assert.AreEqual(500, col1.ActualWidth);
+        Assert.AreEqual(500, col3.ActualWidth);
+
+        // Toggle Markdown Preview OFF (close panel)
+        col3.Width = new Avalonia.Controls.GridLength(0, Avalonia.Controls.GridUnitType.Pixel);
+        grid.Measure(new Avalonia.Size(1000, 500));
+        grid.Arrange(new Avalonia.Rect(0, 0, 1000, 500));
+        Assert.AreEqual(1000, col1.ActualWidth);
+        Assert.AreEqual(0, col3.ActualWidth);
+    }
+
+    [TestMethod]
+    public void FlowDirection_Control_Supported()
+    {
+        var control = new Avalonia.Controls.Border();
+        control.FlowDirection = Avalonia.Media.FlowDirection.RightToLeft;
+        Assert.AreEqual(Avalonia.Media.FlowDirection.RightToLeft, control.FlowDirection);
+        control.FlowDirection = Avalonia.Media.FlowDirection.LeftToRight;
+        Assert.AreEqual(Avalonia.Media.FlowDirection.LeftToRight, control.FlowDirection);
+    }
+
+    [TestMethod]
+    public void Persian_Language_Detection_And_List()
+    {
+        var langService = new LanguageService();
+        Assert.AreEqual("Persian", langService.DetectLanguage("test.fa"));
+        Assert.AreEqual("Persian", langService.DetectLanguage("script.farsi"));
+        Assert.AreEqual("Persian", langService.DetectLanguage("doc.persian"));
+        CollectionAssert.Contains(langService.GetSupportedLanguages().ToList(), "Persian");
+    }
+
+    [TestMethod]
+    public void DocumentViewModel_Rtl_Persian_AutoDetection_And_Toggle()
+    {
+        var langService = new LanguageService();
+        var model = new DocumentModel
+        {
+            FilePath = "note.fa",
+            Title = "note.fa",
+            Text = "سلام دنیا! این یک متن فارسی است."
+        };
+        var docVm = new DocumentViewModel(model, langService);
+
+        Assert.IsTrue(docVm.IsRtl);
+        Assert.AreEqual(Avalonia.Media.FlowDirection.RightToLeft, docVm.FlowDirection);
+        Assert.AreEqual("RTL", docVm.TextDirectionDisplay);
+
+        docVm.IsRtl = false;
+        Assert.IsFalse(docVm.IsRtl);
+        Assert.AreEqual(Avalonia.Media.FlowDirection.LeftToRight, docVm.FlowDirection);
+        Assert.AreEqual("LTR", docVm.TextDirectionDisplay);
+
+        docVm.IsRtl = true;
+        Assert.IsTrue(docVm.IsRtl);
+        Assert.AreEqual("RTL", docVm.TextDirectionDisplay);
+    }
+
+    [TestMethod]
+    public void MarkdownRenderer_Rtl_Detection_And_Rendering()
+    {
+        Assert.IsTrue(MarkdownRenderer.IsRtlText("سلام دنیا"));
+        Assert.IsFalse(MarkdownRenderer.IsRtlText("Hello world"));
+
+        var panel = MarkdownRenderer.Render("# تیتر فارسی\n\nاین یک پاراگراف فارسی است.") as Avalonia.Controls.StackPanel;
+        Assert.IsNotNull(panel);
+
+        var textBlocks = panel.Children.OfType<Avalonia.Controls.TextBlock>().ToList();
+        Assert.IsTrue(textBlocks.Count >= 2);
+
+        var heading = textBlocks[0];
+        Assert.AreEqual(Avalonia.Media.FlowDirection.RightToLeft, heading.FlowDirection);
+        Assert.AreEqual(Avalonia.Media.TextAlignment.Right, heading.TextAlignment);
+
+        var paragraph = textBlocks[1];
+        Assert.AreEqual(Avalonia.Media.FlowDirection.RightToLeft, paragraph.FlowDirection);
+        Assert.AreEqual(Avalonia.Media.TextAlignment.Right, paragraph.TextAlignment);
+    }
+
+    [TestMethod]
+    public void MainViewModel_MarkdownPreview_And_RtlOperations()
+    {
+        var vm = new MainViewModel(
+            new FileService(),
+            new LanguageService(),
+            new RecentFilesService(),
+            new MockDialogService(),
+            new CodeViewer.Configuration.AppConfig());
+
+        vm.CreateNewDocument();
+        Assert.IsNotNull(vm.ActiveDocument);
+        Assert.IsFalse(vm.IsActiveDocumentMarkdown);
+
+        // Open a markdown file
+        var mdDoc = new DocumentViewModel(new DocumentModel { FilePath = "README.md", Title = "README.md", Text = "# Hello" }, new LanguageService());
+        vm.Documents.Add(mdDoc);
+        vm.ActiveDocument = mdDoc;
+
+        Assert.IsTrue(vm.IsActiveDocumentMarkdown);
+
+        // Toggle Markdown Preview ON
+        vm.ToggleMarkdownPreview();
+        Assert.IsTrue(vm.IsMarkdownPreviewActive);
+
+        // Switch to non-markdown document -> preview should automatically close!
+        vm.ActiveDocument = vm.Documents[0];
+        Assert.IsFalse(vm.IsActiveDocumentMarkdown);
+        Assert.IsFalse(vm.IsMarkdownPreviewActive);
+
+        // Toggle RTL Command
+        Assert.IsFalse(vm.ActiveDocument.IsRtl);
+        vm.ToggleRtl();
+        Assert.IsTrue(vm.ActiveDocument.IsRtl);
+        Assert.AreEqual(Avalonia.Media.FlowDirection.RightToLeft, vm.ActiveDocument.FlowDirection);
+        vm.ToggleRtl();
+        Assert.IsFalse(vm.ActiveDocument.IsRtl);
+        Assert.AreEqual(Avalonia.Media.FlowDirection.LeftToRight, vm.ActiveDocument.FlowDirection);
     }
 
     private class MockDialogService : IDialogService
