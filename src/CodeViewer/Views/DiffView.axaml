@@ -64,9 +64,9 @@
         <ItemsControl.ItemTemplate>
           <DataTemplate DataType="models:DiffLine">
             <Border Padding="4,1"
-                    Classes.diff-added="{Binding Type, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static models:DiffLineType.Added}}"
-                    Classes.diff-removed="{Binding Type, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static models:DiffLineType.Removed}}"
-                    Classes.diff-unchanged="{Binding Type, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static models:DiffLineType.Unchanged}}">
+                    Classes.diff-added="{Binding IsAdded}"
+                    Classes.diff-removed="{Binding IsRemoved}"
+                    Classes.diff-unchanged="{Binding IsUnchanged}">
               <Grid ColumnDefinitions="45,45,20,*">
                 <!-- Old Line Number -->
                 <TextBlock Grid.Column="0"

@@ -20,6 +20,10 @@ public class DiffLine
         _ => " "
     };
 
+    public bool IsAdded => Type == DiffLineType.Added;
+    public bool IsRemoved => Type == DiffLineType.Removed;
+    public bool IsUnchanged => Type == DiffLineType.Unchanged;
+
     public DiffLine(DiffLineType type, int? oldLine, int? newLine, string text)
     {
         Type = type;

@@ -37,6 +37,7 @@
     <!-- File Operation Shortcuts -->
     <KeyBinding Gesture="Ctrl+N" Command="{Binding CreateNewDocumentCommand}"/>
     <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}"/>
+    <KeyBinding Gesture="Ctrl+Shift+O" Command="{Binding OpenFolderCommand}"/>
     <KeyBinding Gesture="Ctrl+P" Command="{Binding ShowQuickOpenCommand}"/>
     <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}"/>
     <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}"/>
@@ -82,7 +83,7 @@
       <MenuItem Header="_File">
         <MenuItem Header="_New File" Command="{Binding CreateNewDocumentCommand}" HotKey="Ctrl+N" InputGesture="Ctrl+N"/>
         <MenuItem Header="_Open File..." Command="{Binding OpenFileCommand}" HotKey="Ctrl+O" InputGesture="Ctrl+O"/>
-        <MenuItem Header="Open _Folder..." Command="{Binding OpenFolderCommand}" InputGesture="Ctrl+K Ctrl+O"/>
+        <MenuItem Header="Open _Folder..." Command="{Binding OpenFolderCommand}" HotKey="Ctrl+Shift+O" InputGesture="Ctrl+Shift+O"/>
         <MenuItem Header="Close Folder" Command="{Binding CloseFolderCommand}" IsEnabled="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNotNull}}"/>
         <MenuItem Header="Quick _Open..." Command="{Binding ShowQuickOpenCommand}" HotKey="Ctrl+P" InputGesture="Ctrl+P"/>
         <MenuItem Header="_Command Palette..." Command="{Binding ShowCommandPaletteCommand}" HotKey="Ctrl+Shift+P" InputGesture="Ctrl+Shift+P"/>
@@ -135,7 +136,7 @@
             <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding IsSidebarOpen}"/>
           </MenuItem.Icon>
         </MenuItem>
-        <MenuItem Header="Toggle _Split View" Command="{Binding ToggleSplitViewCommand}" HotKey="Ctrl+OemBackslash" InputGesture="Ctrl+\">
+        <MenuItem Header="Toggle _Split View" Command="{Binding ToggleSplitViewCommand}" HotKey="Ctrl+OemBackslash" InputGesture="Ctrl+OemBackslash">
           <MenuItem.Icon>
             <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding IsSplitViewActive}"/>
           </MenuItem.Icon>
@@ -436,18 +437,23 @@
 
               <!-- Secondary Split Editor -->
               <Grid Grid.Column="2" IsVisible="{Binding IsSplitViewActive}">
-                <ae:TextEditor x:Name="SecondaryEditor"
-                               Document="{Binding SecondaryDocument.TextDocument}"
-                               SyntaxHighlighting="{Binding SecondaryDocument.HighlightingDefinition}"
-                               FontSize="{Binding SecondaryDocument.FontSize, FallbackValue=14.0}"
-                               WordWrap="{Binding SecondaryDocument.WordWrap, FallbackValue=False}"
-                               ShowLineNumbers="{Binding SecondaryDocument.ShowLineNumbers, FallbackValue=True}"
-                               FontFamily="{Binding CurrentFontFamily}"
-                               Background="{DynamicResource ThemeEditorBackground}"
-                               Foreground="{DynamicResource ThemeEditorForeground}"
-                               HorizontalScrollBarVisibility="Auto"
-                               VerticalScrollBarVisibility="Visible"
-                               LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"/>
+                <ContentControl Content="{Binding SecondaryDocument}">
+                  <ContentControl.ContentTemplate>
+                    <DataTemplate DataType="vm:DocumentViewModel">
+                      <ae:TextEditor Document="{Binding TextDocument}"
+                                     SyntaxHighlighting="{Binding HighlightingDefinition}"
+                                     FontSize="{Binding FontSize, FallbackValue=14.0}"
+                                     WordWrap="{Binding WordWrap, FallbackValue=False}"
+                                     ShowLineNumbers="{Binding ShowLineNumbers, FallbackValue=True}"
+                                     FontFamily="{Binding $parent[Window].((vm:MainViewModel)DataContext).CurrentFontFamily}"
+                                     Background="{DynamicResource ThemeEditorBackground}"
+                                     Foreground="{DynamicResource ThemeEditorForeground}"
+                                     HorizontalScrollBarVisibility="Auto"
+                                     VerticalScrollBarVisibility="Visible"
+                                     LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"/>
+                    </DataTemplate>
+                  </ContentControl.ContentTemplate>
+                </ContentControl>
               </Grid>
 
               <!-- Markdown Preview Splitter -->
@@ -484,9 +490,9 @@
             </Border>
 
             <!-- 🔍 Diff View (when DiffViewModel.IsActive) -->
-            <views:DiffView DataContext="{Binding DiffViewModel}"
-                            IsVisible="{Binding IsActive}"
-                            ZIndex="10"/>
+            <Border IsVisible="{Binding DiffViewModel.IsActive}" ZIndex="10">
+              <views:DiffView DataContext="{Binding DiffViewModel}"/>
+            </Border>
 
             <!-- Quick Open Palette (Ctrl+P) -->
             <Border IsVisible="{Binding IsQuickOpenOpen}"
@@ -630,9 +636,8 @@
                   Background="{DynamicResource ThemeWindowBackground}"
                   BorderBrush="{DynamicResource ThemeBorderBrush}"
                   BorderThickness="0,1,0,0"
-                  DataContext="{Binding RunnerViewModel}"
-                  IsVisible="{Binding IsVisible}">
-            <Grid RowDefinitions="Auto,*">
+                  IsVisible="{Binding RunnerViewModel.IsVisible}">
+            <Grid RowDefinitions="Auto,*" DataContext="{Binding RunnerViewModel}">
               <!-- Runner Toolbar -->
               <Border Grid.Row="0"
                       Background="{DynamicResource ThemeTabBarBackground}"

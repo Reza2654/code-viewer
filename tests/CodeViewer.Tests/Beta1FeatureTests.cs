@@ -178,6 +178,46 @@ public class Beta1FeatureTests
         Assert.IsNull(vm.SecondaryDocument);
     }
 
+    [TestMethod]
+    public void KeyGestures_MainWindowGestures_CanBeParsed()
+    {
+        string[] gestures = {
+            "Ctrl+N", "Ctrl+O", "Ctrl+Shift+O", "Ctrl+P", "Ctrl+S", "Ctrl+Shift+S",
+            "Ctrl+Shift+C", "Ctrl+W", "Ctrl+F", "Ctrl+H", "Ctrl+G",
+            "F3", "Shift+F3", "Ctrl+OemQuestion", "Ctrl+Divide",
+            "Ctrl+B", "Ctrl+OemBackslash", "Ctrl+Shift+P", "F1", "F5",
+            "Ctrl+Shift+M", "Ctrl+Shift+D", "Ctrl+OemPlus", "Ctrl+Add",
+            "Ctrl+OemMinus", "Ctrl+Subtract", "Ctrl+D0", "Ctrl+NumPad0",
+            "Alt+Z", "Ctrl+OemComma", "Ctrl+Z", "Ctrl+Y", "Ctrl+X",
+            "Ctrl+C", "Ctrl+V", "Ctrl+A", "Ctrl+D", "Ctrl+Shift+K",
+            "Alt+F4"
+        };
+        foreach (var g in gestures)
+        {
+            var parsed = Avalonia.Input.KeyGesture.Parse(g);
+            Assert.IsNotNull(parsed, $"Failed on {g}");
+        }
+    }
+
+    [TestMethod]
+    public void DiffLine_BooleanProperties_ReflectTypeCorrectly()
+    {
+        var added = new DiffLine(DiffLineType.Added, null, 1, "test");
+        Assert.IsTrue(added.IsAdded);
+        Assert.IsFalse(added.IsRemoved);
+        Assert.IsFalse(added.IsUnchanged);
+
+        var removed = new DiffLine(DiffLineType.Removed, 1, null, "test");
+        Assert.IsFalse(removed.IsAdded);
+        Assert.IsTrue(removed.IsRemoved);
+        Assert.IsFalse(removed.IsUnchanged);
+
+        var unchanged = new DiffLine(DiffLineType.Unchanged, 1, 1, "test");
+        Assert.IsFalse(unchanged.IsAdded);
+        Assert.IsFalse(unchanged.IsRemoved);
+        Assert.IsTrue(unchanged.IsUnchanged);
+    }
+
     private class MockDialogService : IDialogService
     {
         public void Initialize(Avalonia.Controls.Window window) { }
