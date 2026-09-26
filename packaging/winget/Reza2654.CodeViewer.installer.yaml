@@ -12,7 +12,7 @@ InstallModes:
 Installers:
 - Architecture: x64
   InstallerUrl: https://github.com/Reza2654/code-viewer/releases/download/v1.2.0-beta.1/CodeViewer-v1.2.0-beta.1-Setup.exe
-  InstallerSha256: F73F5307FFCA916E7F876D92ED814B314CEF55DF55FF5C2540D36B5FCD87D784
+  InstallerSha256: 8415ACE481C6B569F5CB844604E5A9C9BC70404C5021476BD56319BB58A9F8B2
   ProductCode: '{D37F2C0B-9799-4A9B-B1D2-8A73DC88235A}'
   UpgradeBehavior: install
 ManifestType: installer
