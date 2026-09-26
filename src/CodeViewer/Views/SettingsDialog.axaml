@@ -5,7 +5,7 @@
         x:Class="CodeViewer.Views.SettingsDialog"
         x:DataType="vm:SettingsViewModel"
         Title="Settings - Code Viewer"
-        Icon="/Assets/icon.ico"
+        Icon="/Assets/icon.png"
         Width="680" Height="580"
         MinWidth="540" MinHeight="460"
         WindowStartupLocation="CenterOwner"

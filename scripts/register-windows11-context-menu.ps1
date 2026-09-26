@@ -50,11 +50,13 @@ if (-not (Test-Path $comHostPath)) {
 Write-Host "[2/5] Preparing packaging manifest and assets..." -ForegroundColor Yellow
 $manifestSource = Join-Path $RootDir "packaging\AppxManifest.xml"
 $manifestDest = Join-Path $TargetDir "AppxManifest.xml"
-Copy-Item $manifestSource $manifestDest -Force
+if ((Test-Path $manifestSource) -and ($manifestSource -ne $manifestDest)) {
+    Copy-Item $manifestSource $manifestDest -Force
+}
 
 $assetsSource = Join-Path $RootDir "packaging\Assets"
 $assetsDest = Join-Path $TargetDir "Assets"
-if (Test-Path $assetsSource) {
+if ((Test-Path $assetsSource) -and ($assetsSource -ne $assetsDest)) {
     Copy-Item $assetsSource $assetsDest -Recurse -Force
 }
 

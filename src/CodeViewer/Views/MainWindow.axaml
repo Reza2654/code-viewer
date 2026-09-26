@@ -7,7 +7,7 @@
         x:Class="CodeViewer.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="{Binding WindowTitle}"
-        Icon="/Assets/icon.ico"
+        Icon="/Assets/icon.png"
         Width="1120" Height="740"
         MinWidth="640" MinHeight="420"
         WindowStartupLocation="CenterScreen"

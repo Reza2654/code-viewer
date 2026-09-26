@@ -42,7 +42,8 @@
         Description="Fast, lightweight code viewer and editor"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
-        Square44x44Logo="Assets\Square44x44Logo.png" />
+        Square44x44Logo="Assets\Square44x44Logo.png"
+        AppListEntry="none" />
       <Extensions>
         <!-- COM Server registration for IExplorerCommand -->
         <com:Extension Category="windows.comServer">
