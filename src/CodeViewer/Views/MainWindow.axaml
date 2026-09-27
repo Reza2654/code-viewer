@@ -683,7 +683,7 @@
                        Grid.Row="1"
                        Text="{Binding OutputText}"
                        IsReadOnly="True"
-                       FontFamily="Cascadia Code, Consolas, monospace"
+                       FontFamily="Cascadia Code, Consolas, Segoe UI, Tahoma, Vazirmatn, Arial, monospace"
                        FontSize="12"
                        Background="{DynamicResource ThemeEditorBackground}"
                        Foreground="{DynamicResource ThemeEditorForeground}"

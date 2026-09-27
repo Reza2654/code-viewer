@@ -374,6 +374,32 @@ public class Beta1FeatureTests
         Assert.AreEqual(Avalonia.Media.FlowDirection.LeftToRight, vm.ActiveDocument.FlowDirection);
     }
 
+    [TestMethod]
+    public void ScriptRunnerService_CreatesStartInfo_WithUtf8Encoding()
+    {
+        var runner = new ScriptRunnerService();
+        Assert.IsTrue(runner.IsSupported("test.agent"));
+        Assert.IsTrue(runner.IsSupported("script.ps2"));
+        Assert.IsTrue(runner.IsSupported("app.py"));
+        Assert.IsTrue(runner.IsSupported("deploy.ps1"));
+
+        var agentStartInfo = runner.CreateStartInfo("test.agent");
+        Assert.AreEqual(System.Text.Encoding.UTF8, agentStartInfo.StandardOutputEncoding);
+        Assert.AreEqual(System.Text.Encoding.UTF8, agentStartInfo.StandardErrorEncoding);
+        Assert.AreEqual("utf-8", agentStartInfo.Environment["PYTHONIOENCODING"]);
+        Assert.AreEqual("1", agentStartInfo.Environment["PYTHONUTF8"]);
+        Assert.AreEqual("en_US.UTF-8", agentStartInfo.Environment["LANG"]);
+
+        var pyStartInfo = runner.CreateStartInfo("test.py");
+        Assert.AreEqual(System.Text.Encoding.UTF8, pyStartInfo.StandardOutputEncoding);
+        Assert.AreEqual(System.Text.Encoding.UTF8, pyStartInfo.StandardErrorEncoding);
+
+        var ps1StartInfo = runner.CreateStartInfo("test.ps1");
+        Assert.AreEqual(System.Text.Encoding.UTF8, ps1StartInfo.StandardOutputEncoding);
+        Assert.AreEqual(System.Text.Encoding.UTF8, ps1StartInfo.StandardErrorEncoding);
+        Assert.IsTrue(ps1StartInfo.Arguments.Contains("OutputEncoding"));
+    }
+
     private class MockDialogService : IDialogService
     {
         public void Initialize(Avalonia.Controls.Window window) { }

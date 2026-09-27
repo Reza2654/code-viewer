@@ -21,15 +21,8 @@ public class ScriptRunnerService : IScriptRunnerService
         return ext is ".agent" or ".ps2" or ".py" or ".ps1" or ".dart" or ".js" or ".sh" or ".bat" or ".cmd";
     }
 
-    public async Task RunAsync(string filePath, Action<string> onOutput, Action<int, long> onCompleted, CancellationToken ct)
+    public ProcessStartInfo CreateStartInfo(string filePath)
     {
-        if (!File.Exists(filePath))
-        {
-            onOutput($"[Error: File not found: {filePath}]");
-            onCompleted(-1, 0);
-            return;
-        }
-
         var ext = Path.GetExtension(filePath).ToLowerInvariant();
         string fileName;
         string arguments;
@@ -50,7 +43,7 @@ public class ScriptRunnerService : IScriptRunnerService
                 break;
             case ".ps1":
                 fileName = "powershell";
-                arguments = $"-NoProfile -ExecutionPolicy Bypass -File \"{filePath}\"";
+                arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; & '{filePath}'\"";
                 break;
             case ".dart":
                 fileName = "dart";
@@ -62,34 +55,71 @@ public class ScriptRunnerService : IScriptRunnerService
                 break;
             case ".bat" or ".cmd":
                 fileName = "cmd.exe";
-                arguments = $"/c \"{filePath}\"";
+                arguments = $"/c chcp 65001 >nul && \"{filePath}\"";
+                break;
+            case ".sh":
+                fileName = "bash";
+                arguments = $"\"{filePath}\"";
                 break;
             default:
-                onOutput($"[Unsupported script format: {ext}]");
-                onCompleted(-1, 0);
-                return;
+                throw new NotSupportedException($"Unsupported script format: {ext}");
         }
 
-        var workingDir = Path.GetDirectoryName(filePath) ?? Environment.CurrentDirectory;
+        var workingDir = Path.GetDirectoryName(filePath);
+        if (string.IsNullOrEmpty(workingDir)) workingDir = Environment.CurrentDirectory;
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = fileName,
+            Arguments = arguments,
+            WorkingDirectory = workingDir,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            StandardOutputEncoding = System.Text.Encoding.UTF8,
+            StandardErrorEncoding = System.Text.Encoding.UTF8,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        // Guarantee child runtimes (Python, Node, .NET, AgentLang, etc.) use UTF-8 output streams
+        startInfo.Environment["PYTHONIOENCODING"] = "utf-8";
+        startInfo.Environment["PYTHONUTF8"] = "1";
+        startInfo.Environment["DOTNET_CLI_UI_LANGUAGE"] = "en-US";
+        startInfo.Environment["LANG"] = "en_US.UTF-8";
+        startInfo.Environment["LC_ALL"] = "en_US.UTF-8";
+
+        return startInfo;
+    }
+
+    public async Task RunAsync(string filePath, Action<string> onOutput, Action<int, long> onCompleted, CancellationToken ct)
+    {
+        if (!File.Exists(filePath))
+        {
+            onOutput($"[Error: File not found: {filePath}]");
+            onCompleted(-1, 0);
+            return;
+        }
+
+        ProcessStartInfo startInfo;
+        try
+        {
+            startInfo = CreateStartInfo(filePath);
+        }
+        catch (NotSupportedException ex)
+        {
+            onOutput($"[{ex.Message}]");
+            onCompleted(-1, 0);
+            return;
+        }
+
         var sw = Stopwatch.StartNew();
 
-        onOutput($"▶ Running: {fileName} {arguments}");
-        onOutput($"📁 Working Directory: {workingDir}");
+        onOutput($"▶ Running: {startInfo.FileName} {startInfo.Arguments}");
+        onOutput($"📁 Working Directory: {startInfo.WorkingDirectory}");
         onOutput("──────────────────────────────────────────────────────────");
 
         try
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = fileName,
-                Arguments = arguments,
-                WorkingDirectory = workingDir,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
             using var process = new Process { StartInfo = startInfo };
 
             process.OutputDataReceived += (_, e) =>
@@ -108,7 +138,7 @@ public class ScriptRunnerService : IScriptRunnerService
             }
             catch (Exception ex)
             {
-                onOutput($"[Execution Failed: Could not start '{fileName}'. Ensure it is installed and added to PATH.]");
+                onOutput($"[Execution Failed: Could not start '{startInfo.FileName}'. Ensure it is installed and added to PATH.]");
                 onOutput($"[Details: {ex.Message}]");
                 onCompleted(-1, sw.ElapsedMilliseconds);
                 return;
