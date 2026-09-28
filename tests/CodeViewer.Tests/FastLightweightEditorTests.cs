@@ -282,6 +282,8 @@ public class FastLightweightEditorTests
     [TestMethod]
     public void SingleInstanceService_RegistersPrimaryAndForwardsToSecondary()
     {
+        SingleInstanceService.Stop();
+        SingleInstanceService.CustomSuffix = "Test_Fwd_" + Guid.NewGuid().ToString("N");
         string[]? received = null;
         SingleInstanceService.SetArgsHandler(args => received = args);
 
@@ -306,12 +308,15 @@ public class FastLightweightEditorTests
         Assert.AreEqual("file.cs:10", received[0]);
 
         SingleInstanceService.Stop();
-        System.Threading.Thread.Sleep(100);
+        SingleInstanceService.CustomSuffix = string.Empty;
+        System.Threading.Thread.Sleep(50);
     }
 
     [TestMethod]
     public void SingleInstanceService_EmptyArgsSendsActivateToken()
     {
+        SingleInstanceService.Stop();
+        SingleInstanceService.CustomSuffix = "Test_Act_" + Guid.NewGuid().ToString("N");
         string[]? received = null;
         SingleInstanceService.SetArgsHandler(args => received = args);
 
@@ -335,6 +340,7 @@ public class FastLightweightEditorTests
         Assert.AreEqual(SingleInstanceService.ActivateToken, received[0]);
 
         SingleInstanceService.Stop();
+        SingleInstanceService.CustomSuffix = string.Empty;
     }
 
     private class MockDialogService : IDialogService

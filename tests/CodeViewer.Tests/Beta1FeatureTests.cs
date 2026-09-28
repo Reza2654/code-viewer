@@ -400,6 +400,98 @@ public class Beta1FeatureTests
         Assert.IsTrue(ps1StartInfo.Arguments.Contains("OutputEncoding"));
     }
 
+    [TestMethod]
+    public void ThemeService_ResolvesLightAndDarkThemesWithCustomOverrides()
+    {
+        var themeService = new ThemeService();
+
+        var lightSettings = new AppSettings
+        {
+            ThemeMode = "Light",
+            ContrastMode = "Default",
+            LightPresetId = "default-light",
+            LightBackgroundHex = "#FAFAFA",
+            LightForegroundHex = "#1A1A1A",
+            LightAccentHex = "#0088FF"
+        };
+
+        var resolvedLight = themeService.ResolveEffectiveTheme(lightSettings);
+        Assert.IsFalse(resolvedLight.IsDark);
+        Assert.AreEqual("#FAFAFA", resolvedLight.WindowBackground);
+        Assert.AreEqual("#1A1A1A", resolvedLight.Foreground);
+        Assert.AreEqual("#0088FF", resolvedLight.AccentColor);
+
+        var darkSettings = new AppSettings
+        {
+            ThemeMode = "Dark",
+            ContrastMode = "Default",
+            DarkPresetId = "default-dark",
+            DarkBackgroundHex = "#121212",
+            DarkForegroundHex = "#EEEEEE",
+            DarkAccentHex = "#00AAFF"
+        };
+
+        var resolvedDark = themeService.ResolveEffectiveTheme(darkSettings);
+        Assert.IsTrue(resolvedDark.IsDark);
+        Assert.AreEqual("#121212", resolvedDark.WindowBackground);
+        Assert.AreEqual("#EEEEEE", resolvedDark.Foreground);
+        Assert.AreEqual("#00AAFF", resolvedDark.AccentColor);
+    }
+
+    [TestMethod]
+    public void ThemeService_ResolvesStrongContrastModes()
+    {
+        var themeService = new ThemeService();
+
+        var lightStrong = new AppSettings
+        {
+            ThemeMode = "Light",
+            ContrastMode = "Strong"
+        };
+        var resolvedLight = themeService.ResolveEffectiveTheme(lightStrong);
+        Assert.AreEqual("#FFFFFF", resolvedLight.WindowBackground);
+        Assert.AreEqual("#000000", resolvedLight.Foreground);
+
+        var darkStrong = new AppSettings
+        {
+            ThemeMode = "Dark",
+            ContrastMode = "Strong"
+        };
+        var resolvedDark = themeService.ResolveEffectiveTheme(darkStrong);
+        Assert.AreEqual("#000000", resolvedDark.WindowBackground);
+        Assert.AreEqual("#FFFFFF", resolvedDark.Foreground);
+    }
+
+    [TestMethod]
+    public void SettingsViewModel_ThemeModeAndPresetSelection()
+    {
+        var settingsService = new SettingsService();
+        var themeService = new ThemeService();
+        var vm = new SettingsViewModel(settingsService, themeService);
+
+        vm.SetThemeMode("Light");
+        Assert.AreEqual("Light", vm.ThemeMode);
+        Assert.IsTrue(vm.IsLightTheme);
+        Assert.IsFalse(vm.IsDarkTheme);
+
+        vm.SetThemeMode("Dark");
+        Assert.AreEqual("Dark", vm.ThemeMode);
+        Assert.IsTrue(vm.IsDarkTheme);
+        Assert.IsFalse(vm.IsLightTheme);
+
+        vm.SetContrastMode("Strong");
+        Assert.AreEqual("Strong", vm.ContrastMode);
+        Assert.IsTrue(vm.IsStrongContrast);
+        Assert.IsFalse(vm.IsDefaultContrast);
+
+        // Selecting a preset updates the color hexes
+        var solarized = themeService.AvailableThemes.First(t => t.Id == "solarized-dark");
+        vm.SelectedDarkPreset = solarized;
+        Assert.AreEqual(solarized.WindowBackground, vm.DarkBackgroundHex);
+        Assert.AreEqual(solarized.Foreground, vm.DarkForegroundHex);
+        Assert.AreEqual(solarized.AccentColor, vm.DarkAccentHex);
+    }
+
     private class MockDialogService : IDialogService
     {
         public void Initialize(Avalonia.Controls.Window window) { }

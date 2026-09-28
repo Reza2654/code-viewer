@@ -20,7 +20,7 @@
 - 🔍 **Diff Viewer (Ctrl+Shift+D)**: Built-in pure C# Myers diff comparison highlighting added, removed, and modified lines with summary statistics.
 - ▶ **Integrated Script Runner (F5)**: Embedded bottom console to run scripts for **AgentLang** (`.agent`), **PS2** (`.ps2`), **Dart** (`.dart`), **Python** (`.py`), and **PowerShell** (`.ps1`) with real-time stdout/stderr streaming, execution timers, and clean termination.
 - 📝 **Markdown Live Preview (Ctrl+Shift+M)**: Ultra-fast native Avalonia Markdown renderer without heavy webviews or external runtime overhead.
-- ⇄ **Full RTL & Persian (Farsi) Language Support (Ctrl+Alt+R)**: Native Right-to-Left text direction flow for Persian, Arabic, and Hebrew with automatic script detection, status bar LTR/RTL toggle, Persian language mode (`.fa`, `.farsi`, `.persian`), cursive font fallbacks, and RTL Markdown Live Preview.
+- ⇄ **Full RTL & Persian (Farsi) Language Support (Ctrl+Alt+R)**: Native Right-to-Left text direction flow for Persian, Arabic, and Hebrew with automatic script detection, View menu text direction toggle, Persian language mode (`.fa`, `.farsi`, `.persian`), cursive font fallbacks, and RTL Markdown Live Preview.
 - ⚡ **Instant Startup**: Sub-25ms startup time; opens directly to your code without loading screens or bloated background tasks.
 - 🪟 **Native Windows 11 Context Menu**: Directly integrates into the modern Windows 11 right-click context menu powered by a native `IExplorerCommand` Sparse Package shell extension.
 - 🚀 **CLI Line & Column Navigation**: Jump straight to any line from terminal or scripts (e.g. `codeviewer file.cs:42` or `codeviewer C:\repo\file.cs:105:14`), correctly parsing Windows drive letters without splitting drive colons.
@@ -36,9 +36,12 @@
   - Tab context menu: Close Other Tabs, Close Tabs to the Right, Close Saved Tabs, Copy Full Path, Reveal in Explorer.
   - Middle-click any tab to close instantly.
 - 📊 **Enhanced Status Bar & Redesigned Code Mode**: Real-time line and column tracking with selection length and selected line count, live encoding, line ending indicators, and a redesigned Language Mode flyout with instant search, checkmark indicators, in-app update checking, and syntax highlighting for **AgentLang** (`.agent`), **PS2** (`.ps2`, `.ps2bundle`), and 25+ languages.
-- 🎨 **Rich Theme System**:
-  - **6 Built-in Themes**: Dark+ (VS Code style), One Dark Pro, Monokai, Dracula, Solarized Dark, and GitHub Light.
-  - **Dynamic App & Editor Styling**: Instant live theme switching without restarting.
+- 🎨 **Modern Theme & Appearance System**:
+  - **Appearance Mode**: Seamless switching between **System/OS (💻)**, **Light (☀️)**, and **Dark (🌙)** modes.
+  - **Contrast Controls**: One-click toggling between **Default** and accessible **Strong** contrast.
+  - **Light Theme Presets & Color Customizer**: Default Light, GitHub Light, with customizable Background (`#F9F9F9`), Foreground (`#101010`), and Accent (`#007ACC`) hex codes and live color swatches.
+  - **Dark Theme Presets & Color Customizer**: Default Dark, Dark+ (VS Code), One Dark Pro, Monokai, Dracula, Solarized Dark, with customizable Background (`#101010`), Foreground (`#CCCCCC`), and Accent (`#007ACC`) hex codes and live color swatches.
+  - **Dynamic Real-Time Re-Theming**: Instant live application styling without restarts.
   - **Theme Importer**: Easily import custom UI themes (`.json`) or custom syntax highlighting definitions (`.xshd`).
 - 🧩 **Extensible Plugin & Tool System**:
   - **JSON Tools**: Format with 2 spaces, minify, and validate JSON.
@@ -48,7 +51,7 @@
   - **Text Statistics**: Comprehensive character, word, line, non-empty line, and byte counts.
   - **Dynamic DLL Plugin Importer**: Drop third-party `.dll` assemblies implementing `IPlugin` into the plugins directory or load them via **Tools -> Import Plugin (.dll)...** without locking the file on disk.
 - 💾 **Safe Local Single-Instance IPC**: Opening files via CLI or File Explorer opens them as tabs inside the existing window using a high-performance local Named Pipe, passing file:line coordinates directly.
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.4-Setup.exe`) and portable standalone `.zip` archive.
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.5-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---

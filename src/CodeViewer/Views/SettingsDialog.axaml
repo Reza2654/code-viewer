@@ -11,6 +11,62 @@
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource ThemeWindowBackground}">
 
+  <Window.Styles>
+    <Style Selector="Button.segmented">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="#888888"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Padding" Value="10,5"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.segmented:pointerover">
+      <Setter Property="Background" Value="#2E2E32"/>
+      <Setter Property="Foreground" Value="#CCCCCC"/>
+    </Style>
+    <Style Selector="Button.segmented.active">
+      <Setter Property="Background" Value="#3F3F46"/>
+      <Setter Property="Foreground" Value="#FFFFFF"/>
+    </Style>
+
+    <Style Selector="Button.segmented-text">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="#888888"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Padding" Value="14,5"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.segmented-text:pointerover">
+      <Setter Property="Background" Value="#2E2E32"/>
+      <Setter Property="Foreground" Value="#CCCCCC"/>
+    </Style>
+    <Style Selector="Button.segmented-text.active">
+      <Setter Property="Background" Value="#3F3F46"/>
+      <Setter Property="Foreground" Value="#FFFFFF"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style Selector="Border.theme-card">
+      <Setter Property="Background" Value="{DynamicResource ThemeTabBarBackground}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="16,12"/>
+    </Style>
+
+    <Style Selector="Border.hex-box">
+      <Setter Property="Background" Value="{DynamicResource ThemeWindowBackground}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="5"/>
+      <Setter Property="Padding" Value="6,4"/>
+      <Setter Property="Width" Value="150"/>
+      <Setter Property="HorizontalAlignment" Value="Right"/>
+    </Style>
+  </Window.Styles>
+
   <Grid Margin="22" RowDefinitions="Auto,*,Auto">
     <!-- Header -->
     <StackPanel Grid.Row="0" Margin="0,0,0,16">
@@ -138,83 +194,366 @@
       <TabItem Header="Theme">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
           <StackPanel Spacing="16" Margin="4,12,8,12">
-            <!-- Theme Selection -->
-            <Border Background="{DynamicResource ThemeTabBarBackground}"
-                    BorderBrush="{DynamicResource ThemeBorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="6"
-                    Padding="14">
-              <StackPanel Spacing="10">
-                <TextBlock Text="Color Theme"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource ThemeWindowForeground}"
-                           FontSize="13"/>
-                <TextBlock Text="Choose overall editor and application UI color theme."
-                           FontSize="11"
-                           Foreground="#888888"/>
 
-                <ComboBox ItemsSource="{Binding AvailableThemes}"
-                          SelectedItem="{Binding SelectedTheme}"
-                          HorizontalAlignment="Stretch">
-                  <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="models:ColorTheme">
-                      <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Border Width="16" Height="16" CornerRadius="8"
-                                Background="{Binding EditorBackground}"
-                                BorderBrush="{Binding AccentColor}"
-                                BorderThickness="1.5"/>
-                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+            <!-- 1. Appearance Section -->
+            <StackPanel Spacing="8">
+              <TextBlock Text="Appearance"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource ThemeWindowForeground}"
+                         FontSize="14"/>
+              
+              <Border Classes="theme-card">
+                <StackPanel Spacing="12">
+                  <!-- Row: Theme -->
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="Theme"
+                               FontSize="13"
+                               Foreground="{DynamicResource ThemeWindowForeground}"
+                               VerticalAlignment="Center"/>
+                    <Border Grid.Column="1"
+                            Background="{DynamicResource ThemeWindowBackground}"
+                            BorderBrush="{DynamicResource ThemeBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="2">
+                      <StackPanel Orientation="Horizontal" Spacing="2">
+                        <Button Command="{Binding SetThemeModeCommand}"
+                                CommandParameter="System"
+                                Classes="segmented"
+                                Classes.active="{Binding IsSystemTheme}"
+                                ToolTip.Tip="System / OS Default (💻)">
+                          <TextBlock Text="💻" FontSize="13" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button Command="{Binding SetThemeModeCommand}"
+                                CommandParameter="Light"
+                                Classes="segmented"
+                                Classes.active="{Binding IsLightTheme}"
+                                ToolTip.Tip="Light Theme (☀️)">
+                          <TextBlock Text="☀️" FontSize="13" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button Command="{Binding SetThemeModeCommand}"
+                                CommandParameter="Dark"
+                                Classes="segmented"
+                                Classes.active="{Binding IsDarkTheme}"
+                                ToolTip.Tip="Dark Theme (🌙)">
+                          <TextBlock Text="🌙" FontSize="13" VerticalAlignment="Center"/>
+                        </Button>
                       </StackPanel>
-                    </DataTemplate>
-                  </ComboBox.ItemTemplate>
-                </ComboBox>
-              </StackPanel>
-            </Border>
+                    </Border>
+                  </Grid>
 
-            <!-- Theme Colors Overview -->
-            <Border Background="{DynamicResource ThemeTabBarBackground}"
-                    BorderBrush="{DynamicResource ThemeBorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="6"
-                    Padding="14">
-              <StackPanel Spacing="10">
-                <TextBlock Text="Theme Palette Colors"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource ThemeWindowForeground}"
-                           FontSize="13"/>
-                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,4">
-                  <!-- Row 0 -->
-                  <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="0,4">
-                    <Border Width="18" Height="18" CornerRadius="3" Background="{Binding SelectedTheme.EditorBackground}"/>
-                    <TextBlock Text="Editor Background" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11"/>
-                  </StackPanel>
-                  <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0,4">
-                    <Border Width="18" Height="18" CornerRadius="3" Background="{Binding SelectedTheme.Foreground}"/>
-                    <TextBlock Text="Editor Text" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11"/>
-                  </StackPanel>
+                  <!-- Row: Contrast -->
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="Contrast"
+                               FontSize="13"
+                               Foreground="{DynamicResource ThemeWindowForeground}"
+                               VerticalAlignment="Center"/>
+                    <Border Grid.Column="1"
+                            Background="{DynamicResource ThemeWindowBackground}"
+                            BorderBrush="{DynamicResource ThemeBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="2">
+                      <StackPanel Orientation="Horizontal" Spacing="2">
+                        <Button Command="{Binding SetContrastModeCommand}"
+                                CommandParameter="Default"
+                                Classes="segmented-text"
+                                Classes.active="{Binding IsDefaultContrast}"
+                                Content="Default"/>
+                        <Button Command="{Binding SetContrastModeCommand}"
+                                CommandParameter="Strong"
+                                Classes="segmented-text"
+                                Classes.active="{Binding IsStrongContrast}"
+                                Content="Strong"/>
+                      </StackPanel>
+                    </Border>
+                  </Grid>
+                </StackPanel>
+              </Border>
+            </StackPanel>
 
-                  <!-- Row 1 -->
-                  <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="0,4">
-                    <Border Width="18" Height="18" CornerRadius="3" Background="{Binding SelectedTheme.AccentColor}"/>
-                    <TextBlock Text="Accent Highlight" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11"/>
-                  </StackPanel>
-                  <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0,4">
-                    <Border Width="18" Height="18" CornerRadius="3" Background="{Binding SelectedTheme.StatusBarBackground}"/>
-                    <TextBlock Text="Status Bar" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11"/>
-                  </StackPanel>
+            <!-- 2. Light Theme Section -->
+            <StackPanel Spacing="8">
+              <TextBlock Text="Light Theme"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource ThemeWindowForeground}"
+                         FontSize="14"/>
 
-                  <!-- Row 2 -->
-                  <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="0,4">
-                    <Border Width="18" Height="18" CornerRadius="3" Background="{Binding SelectedTheme.TabBarBackground}"/>
-                    <TextBlock Text="Tab Bar" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11"/>
-                  </StackPanel>
-                  <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="0,4">
-                    <Border Width="18" Height="18" CornerRadius="3" Background="{Binding SelectedTheme.SelectionBackground}"/>
-                    <TextBlock Text="Text Selection" Foreground="#AAAAAA" VerticalAlignment="Center" FontSize="11"/>
-                  </StackPanel>
-                </Grid>
-              </StackPanel>
-            </Border>
+              <Border Classes="theme-card">
+                <StackPanel Spacing="10">
+                  <!-- Row: Preset -->
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="Preset"
+                               FontSize="13"
+                               Foreground="{DynamicResource ThemeWindowForeground}"
+                               VerticalAlignment="Center"/>
+                    <ComboBox Grid.Column="1"
+                              ItemsSource="{Binding AvailableLightThemes}"
+                              SelectedItem="{Binding SelectedLightPreset}"
+                              Width="180"
+                              CornerRadius="5">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:ColorTheme">
+                          <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center"/>
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </Grid>
+
+                  <!-- Row: Background -->
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="Background"
+                               FontSize="13"
+                               Foreground="{DynamicResource ThemeWindowForeground}"
+                               VerticalAlignment="Center"/>
+                    <Border Grid.Column="1" Classes="hex-box">
+                      <Grid ColumnDefinitions="Auto,Auto,*">
+                        <Border Grid.Column="0"
+                                Width="14" Height="14"
+                                CornerRadius="3"
+                                Background="{Binding LightBackgroundBrush}"
+                                BorderBrush="#666666"
+                                BorderThickness="1"
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="#"
+                                   Foreground="#888888"
+                                   FontSize="12"
+                                   FontFamily="Consolas, Cascadia Code, Monospace"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,4,0"/>
+                        <TextBox Grid.Column="2"
+                                 Text="{Binding LightBackgroundHex}"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Padding="0"
+                                 FontSize="12"
+                                 FontFamily="Consolas, Cascadia Code, Monospace"
+                                 VerticalAlignment="Center"/>
+                      </Grid>
+                    </Border>
+                  </Grid>
+
+                  <!-- Row: Foreground -->
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="Foreground"
+                               FontSize="13"
+                               Foreground="{DynamicResource ThemeWindowForeground}"
+                               VerticalAlignment="Center"/>
+                    <Border Grid.Column="1" Classes="hex-box">
+                      <Grid ColumnDefinitions="Auto,Auto,*">
+                        <Border Grid.Column="0"
+                                Width="14" Height="14"
+                                CornerRadius="3"
+                                Background="{Binding LightForegroundBrush}"
+                                BorderBrush="#666666"
+                                BorderThickness="1"
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="#"
+                                   Foreground="#888888"
+                                   FontSize="12"
+                                   FontFamily="Consolas, Cascadia Code, Monospace"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,4,0"/>
+                        <TextBox Grid.Column="2"
+                                 Text="{Binding LightForegroundHex}"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Padding="0"
+                                 FontSize="12"
+                                 FontFamily="Consolas, Cascadia Code, Monospace"
+                                 VerticalAlignment="Center"/>
+                      </Grid>
+                    </Border>
+                  </Grid>
+
+                  <!-- Row: Accent -->
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="Accent"
+                               FontSize="13"
+                               Foreground="{DynamicResource ThemeWindowForeground}"
+                               VerticalAlignment="Center"/>
+                    <Border Grid.Column="1" Classes="hex-box">
+                      <Grid ColumnDefinitions="Auto,Auto,*">
+                        <Border Grid.Column="0"
+                                Width="14" Height="14"
+                                CornerRadius="3"
+                                Background="{Binding LightAccentBrush}"
+                                BorderBrush="#666666"
+                                BorderThickness="1"
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="#"
+                                   Foreground="#888888"
+                                   FontSize="12"
+                                   FontFamily="Consolas, Cascadia Code, Monospace"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,4,0"/>
+                        <TextBox Grid.Column="2"
+                                 Text="{Binding LightAccentHex}"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Padding="0"
+                                 FontSize="12"
+                                 FontFamily="Consolas, Cascadia Code, Monospace"
+                                 VerticalAlignment="Center"/>
+                      </Grid>
+                    </Border>
+                  </Grid>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <!-- 3. Dark Theme Section -->
+            <StackPanel Spacing="8">
+              <TextBlock Text="Dark Theme"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource ThemeWindowForeground}"
+                         FontSize="14"/>
+
+              <Border Classes="theme-card">
+                <StackPanel Spacing="10">
+                  <!-- Row: Preset -->
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="Preset"
+                               FontSize="13"
+                               Foreground="{DynamicResource ThemeWindowForeground}"
+                               VerticalAlignment="Center"/>
+                    <ComboBox Grid.Column="1"
+                              ItemsSource="{Binding AvailableDarkThemes}"
+                              SelectedItem="{Binding SelectedDarkPreset}"
+                              Width="180"
+                              CornerRadius="5">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:ColorTheme">
+                          <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center"/>
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </Grid>
+
+                  <!-- Row: Background -->
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="Background"
+                               FontSize="13"
+                               Foreground="{DynamicResource ThemeWindowForeground}"
+                               VerticalAlignment="Center"/>
+                    <Border Grid.Column="1" Classes="hex-box">
+                      <Grid ColumnDefinitions="Auto,Auto,*">
+                        <Border Grid.Column="0"
+                                Width="14" Height="14"
+                                CornerRadius="3"
+                                Background="{Binding DarkBackgroundBrush}"
+                                BorderBrush="#666666"
+                                BorderThickness="1"
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="#"
+                                   Foreground="#888888"
+                                   FontSize="12"
+                                   FontFamily="Consolas, Cascadia Code, Monospace"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,4,0"/>
+                        <TextBox Grid.Column="2"
+                                 Text="{Binding DarkBackgroundHex}"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Padding="0"
+                                 FontSize="12"
+                                 FontFamily="Consolas, Cascadia Code, Monospace"
+                                 VerticalAlignment="Center"/>
+                      </Grid>
+                    </Border>
+                  </Grid>
+
+                  <!-- Row: Foreground -->
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="Foreground"
+                               FontSize="13"
+                               Foreground="{DynamicResource ThemeWindowForeground}"
+                               VerticalAlignment="Center"/>
+                    <Border Grid.Column="1" Classes="hex-box">
+                      <Grid ColumnDefinitions="Auto,Auto,*">
+                        <Border Grid.Column="0"
+                                Width="14" Height="14"
+                                CornerRadius="3"
+                                Background="{Binding DarkForegroundBrush}"
+                                BorderBrush="#666666"
+                                BorderThickness="1"
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="#"
+                                   Foreground="#888888"
+                                   FontSize="12"
+                                   FontFamily="Consolas, Cascadia Code, Monospace"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,4,0"/>
+                        <TextBox Grid.Column="2"
+                                 Text="{Binding DarkForegroundHex}"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Padding="0"
+                                 FontSize="12"
+                                 FontFamily="Consolas, Cascadia Code, Monospace"
+                                 VerticalAlignment="Center"/>
+                      </Grid>
+                    </Border>
+                  </Grid>
+
+                  <!-- Row: Accent -->
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0"
+                               Text="Accent"
+                               FontSize="13"
+                               Foreground="{DynamicResource ThemeWindowForeground}"
+                               VerticalAlignment="Center"/>
+                    <Border Grid.Column="1" Classes="hex-box">
+                      <Grid ColumnDefinitions="Auto,Auto,*">
+                        <Border Grid.Column="0"
+                                Width="14" Height="14"
+                                CornerRadius="3"
+                                Background="{Binding DarkAccentBrush}"
+                                BorderBrush="#666666"
+                                BorderThickness="1"
+                                Margin="0,0,6,0"
+                                VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="#"
+                                   Foreground="#888888"
+                                   FontSize="12"
+                                   FontFamily="Consolas, Cascadia Code, Monospace"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,4,0"/>
+                        <TextBox Grid.Column="2"
+                                 Text="{Binding DarkAccentHex}"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Padding="0"
+                                 FontSize="12"
+                                 FontFamily="Consolas, Cascadia Code, Monospace"
+                                 VerticalAlignment="Center"/>
+                      </Grid>
+                    </Border>
+                  </Grid>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
           </StackPanel>
         </ScrollViewer>
       </TabItem>

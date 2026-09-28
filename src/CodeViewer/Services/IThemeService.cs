@@ -36,6 +36,21 @@ public interface IThemeService
     void ApplyTheme(ColorTheme theme);
 
     /// <summary>
+    /// Resolves and applies theme from AppSettings, handling System/Light/Dark mode, contrast, and custom colors.
+    /// </summary>
+    void ApplyTheme(AppSettings settings);
+
+    /// <summary>
+    /// Resolves the effective ColorTheme from AppSettings without necessarily applying it.
+    /// </summary>
+    ColorTheme ResolveEffectiveTheme(AppSettings settings);
+
+    /// <summary>
+    /// Returns true if the host operating system is currently in Dark theme.
+    /// </summary>
+    bool IsSystemDarkTheme();
+
+    /// <summary>
     /// Imports a theme from a JSON file, saves it to user themes folder, and applies it.
     /// </summary>
     Task<ColorTheme> ImportThemeFromJsonAsync(string jsonFilePath);

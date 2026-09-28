@@ -811,22 +811,8 @@
                      VerticalAlignment="Center"
                      Opacity="0.95"/>
 
-          <!-- Right Info: RTL Toggle, Caret Position, Font Size, and Settings Button -->
+          <!-- Right Info: Caret Position, Font Size, and Settings Button -->
           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">
-            <!-- RTL / LTR Direction Toggle Button -->
-            <Button Command="{Binding ToggleRtlCommand}"
-                    ToolTip.Tip="Toggle Text Direction (LTR / RTL for Persian/Arabic) (Ctrl+Alt+R)"
-                    Background="Transparent"
-                    BorderThickness="0"
-                    Padding="4,1"
-                    CornerRadius="3"
-                    Cursor="Hand">
-              <StackPanel Orientation="Horizontal" Spacing="3">
-                <TextBlock Text="⇄" FontSize="11" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
-                <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.TextDirectionDisplay, FallbackValue='LTR'}"/>
-              </StackPanel>
-            </Button>
-            <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
             <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.CaretDisplay, FallbackValue='Ln 1, Col 1'}"/>
             <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
             <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.FontSize, StringFormat='{}{0:0} pt', FallbackValue='14 pt'}"/>

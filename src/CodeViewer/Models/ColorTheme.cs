@@ -96,4 +96,39 @@ public class ColorTheme
 
     [JsonPropertyName("codePunctuation")]
     public string CodePunctuation { get; set; } = "#D4D4D4";
+
+    public ColorTheme Clone()
+    {
+        return new ColorTheme
+        {
+            Id = Id,
+            Name = Name,
+            IsDark = IsDark,
+            WindowBackground = WindowBackground,
+            Foreground = Foreground,
+            MenuBackground = MenuBackground,
+            MenuForeground = MenuForeground,
+            TabBarBackground = TabBarBackground,
+            TabItemActiveBackground = TabItemActiveBackground,
+            TabItemInactiveBackground = TabItemInactiveBackground,
+            TabItemActiveForeground = TabItemActiveForeground,
+            TabItemInactiveForeground = TabItemInactiveForeground,
+            EditorBackground = EditorBackground,
+            EditorForeground = EditorForeground,
+            LineNumbersForeground = LineNumbersForeground,
+            SelectionBackground = SelectionBackground,
+            StatusBarBackground = StatusBarBackground,
+            StatusBarForeground = StatusBarForeground,
+            AccentColor = AccentColor,
+            BorderColor = BorderColor,
+            CodeKeyword = CodeKeyword,
+            CodeComment = CodeComment,
+            CodeString = CodeString,
+            CodeNumber = CodeNumber,
+            CodeType = CodeType,
+            CodeMethod = CodeMethod,
+            CodePreprocessor = CodePreprocessor,
+            CodePunctuation = CodePunctuation
+        };
+    }
 }

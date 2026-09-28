@@ -15,8 +15,22 @@ namespace CodeViewer.Services;
 public static class SingleInstanceService
 {
     private static readonly string SafeUserName = (Environment.UserName ?? "Default").Replace('\\', '_').Replace('/', '_').Replace(':', '_');
-    private static readonly string PipeName = $"CodeViewer_InstancePipe_{SafeUserName}";
-    private static readonly string MutexName = $@"Local\CodeViewer_Mutex_{SafeUserName}";
+    private static string _customSuffix = string.Empty;
+
+    public static string CustomSuffix
+    {
+        get => _customSuffix;
+        set => _customSuffix = value;
+    }
+
+    private static string PipeName => string.IsNullOrEmpty(_customSuffix)
+        ? $"CodeViewer_InstancePipe_{SafeUserName}"
+        : $"CodeViewer_InstancePipe_{SafeUserName}_{_customSuffix}";
+
+    private static string MutexName => string.IsNullOrEmpty(_customSuffix)
+        ? $@"Local\CodeViewer_Mutex_{SafeUserName}"
+        : $@"Local\CodeViewer_Mutex_{SafeUserName}_{_customSuffix}";
+
     private static Mutex? _mutex;
     private static Action<string[]>? _argsHandler;
     private static CancellationTokenSource? _serverCts;
@@ -26,23 +40,31 @@ public static class SingleInstanceService
     public static bool TryRegisterSingleInstance(string[] args)
     {
         bool isFirstInstance = false;
-        try
+        if (_mutex == null)
         {
-            _mutex = new Mutex(true, MutexName, out isFirstInstance);
-        }
-        catch (AbandonedMutexException)
-        {
-            isFirstInstance = true;
-        }
-        catch
-        {
-            isFirstInstance = true;
-        }
+            try
+            {
+                _mutex = new Mutex(true, MutexName, out isFirstInstance);
+            }
+            catch (AbandonedMutexException)
+            {
+                isFirstInstance = true;
+            }
+            catch
+            {
+                isFirstInstance = true;
+            }
 
-        if (isFirstInstance)
-        {
-            StartPipeServer();
-            return true;
+            if (isFirstInstance)
+            {
+                StartPipeServer();
+                return true;
+            }
+            else
+            {
+                try { _mutex?.Dispose(); } catch { }
+                _mutex = null;
+            }
         }
 
         // Secondary instance: Forward arguments or activation signal to the primary instance

@@ -47,6 +47,70 @@ public class ThemeService : IThemeService
     {
         _themes.Add(new ColorTheme
         {
+            Id = "default-dark",
+            Name = "Default Dark",
+            IsDark = true,
+            WindowBackground = "#101010",
+            Foreground = "#CCCCCC",
+            MenuBackground = "#161616",
+            MenuForeground = "#CCCCCC",
+            TabBarBackground = "#161616",
+            TabItemActiveBackground = "#101010",
+            TabItemInactiveBackground = "#202020",
+            TabItemActiveForeground = "#FFFFFF",
+            TabItemInactiveForeground = "#888888",
+            EditorBackground = "#101010",
+            EditorForeground = "#CCCCCC",
+            LineNumbersForeground = "#555555",
+            SelectionBackground = "#264F78",
+            StatusBarBackground = "#007ACC",
+            StatusBarForeground = "#FFFFFF",
+            AccentColor = "#007ACC",
+            BorderColor = "#252525",
+            CodeKeyword = "#569CD6",
+            CodeComment = "#6A9955",
+            CodeString = "#CE9178",
+            CodeNumber = "#B5CEA8",
+            CodeType = "#4EC9B0",
+            CodeMethod = "#DCDCAA",
+            CodePreprocessor = "#9B9B9B",
+            CodePunctuation = "#CCCCCC"
+        });
+
+        _themes.Add(new ColorTheme
+        {
+            Id = "default-light",
+            Name = "Default Light",
+            IsDark = false,
+            WindowBackground = "#F9F9F9",
+            Foreground = "#101010",
+            MenuBackground = "#F0F0F0",
+            MenuForeground = "#101010",
+            TabBarBackground = "#EDEDED",
+            TabItemActiveBackground = "#F9F9F9",
+            TabItemInactiveBackground = "#E2E2E2",
+            TabItemActiveForeground = "#101010",
+            TabItemInactiveForeground = "#666666",
+            EditorBackground = "#F9F9F9",
+            EditorForeground = "#101010",
+            LineNumbersForeground = "#888888",
+            SelectionBackground = "#ADD6FF",
+            StatusBarBackground = "#007ACC",
+            StatusBarForeground = "#FFFFFF",
+            AccentColor = "#007ACC",
+            BorderColor = "#DCDCDC",
+            CodeKeyword = "#0000FF",
+            CodeComment = "#008000",
+            CodeString = "#A31515",
+            CodeNumber = "#098658",
+            CodeType = "#267F99",
+            CodeMethod = "#795E26",
+            CodePreprocessor = "#AF00DB",
+            CodePunctuation = "#101010"
+        });
+
+        _themes.Add(new ColorTheme
+        {
             Id = "dark-plus",
             Name = "Dark+ (VS Code)",
             IsDark = true,
@@ -389,6 +453,169 @@ public class ThemeService : IThemeService
 
         SaveThemeName(theme.Id);
         ThemeChanged?.Invoke(theme);
+    }
+
+    public bool IsSystemDarkTheme()
+    {
+        try
+        {
+            if (Application.Current?.PlatformSettings != null)
+            {
+                var variant = Application.Current.PlatformSettings.GetColorValues().ThemeVariant;
+                return variant == Avalonia.Platform.PlatformThemeVariant.Dark;
+            }
+        }
+        catch { }
+
+        if (OperatingSystem.IsWindows())
+        {
+            try
+            {
+                using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+                if (key != null)
+                {
+                    var val = key.GetValue("AppsUseLightTheme");
+                    if (val is int intVal)
+                    {
+                        return intVal == 0;
+                    }
+                }
+            }
+            catch { }
+        }
+
+        return true;
+    }
+
+    public ColorTheme ResolveEffectiveTheme(AppSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        bool isDark;
+        if (string.Equals(settings.ThemeMode, "Light", StringComparison.OrdinalIgnoreCase))
+        {
+            isDark = false;
+        }
+        else if (string.Equals(settings.ThemeMode, "Dark", StringComparison.OrdinalIgnoreCase))
+        {
+            isDark = true;
+        }
+        else
+        {
+            isDark = IsSystemDarkTheme();
+        }
+
+        ColorTheme? baseTheme = null;
+        if (!isDark)
+        {
+            var targetId = !string.IsNullOrWhiteSpace(settings.LightPresetId) ? settings.LightPresetId : "default-light";
+            baseTheme = _themes.FirstOrDefault(t => !t.IsDark && (string.Equals(t.Id, targetId, StringComparison.OrdinalIgnoreCase) || string.Equals(t.Name, targetId, StringComparison.OrdinalIgnoreCase)))
+                        ?? _themes.FirstOrDefault(t => !t.IsDark)
+                        ?? _themes[0];
+        }
+        else
+        {
+            var targetId = !string.IsNullOrWhiteSpace(settings.DarkPresetId) ? settings.DarkPresetId : "default-dark";
+            baseTheme = _themes.FirstOrDefault(t => t.IsDark && (string.Equals(t.Id, targetId, StringComparison.OrdinalIgnoreCase) || string.Equals(t.Name, targetId, StringComparison.OrdinalIgnoreCase)))
+                        ?? _themes.FirstOrDefault(t => t.IsDark)
+                        ?? _themes[0];
+        }
+
+        var effective = baseTheme.Clone();
+
+        if (!isDark)
+        {
+            if (IsValidHexColor(settings.LightBackgroundHex))
+            {
+                var bg = NormalizeHex(settings.LightBackgroundHex);
+                effective.WindowBackground = bg;
+                effective.EditorBackground = bg;
+                effective.TabItemActiveBackground = bg;
+            }
+            if (IsValidHexColor(settings.LightForegroundHex))
+            {
+                var fg = NormalizeHex(settings.LightForegroundHex);
+                effective.Foreground = fg;
+                effective.EditorForeground = fg;
+                effective.TabItemActiveForeground = fg;
+            }
+            if (IsValidHexColor(settings.LightAccentHex))
+            {
+                var acc = NormalizeHex(settings.LightAccentHex);
+                effective.AccentColor = acc;
+                effective.StatusBarBackground = acc;
+            }
+
+            if (string.Equals(settings.ContrastMode, "Strong", StringComparison.OrdinalIgnoreCase))
+            {
+                effective.WindowBackground = "#FFFFFF";
+                effective.EditorBackground = "#FFFFFF";
+                effective.Foreground = "#000000";
+                effective.EditorForeground = "#000000";
+                effective.BorderColor = "#000000";
+                effective.LineNumbersForeground = "#000000";
+                effective.TabItemActiveForeground = "#000000";
+                effective.SelectionBackground = "#99CCFF";
+            }
+        }
+        else
+        {
+            if (IsValidHexColor(settings.DarkBackgroundHex))
+            {
+                var bg = NormalizeHex(settings.DarkBackgroundHex);
+                effective.WindowBackground = bg;
+                effective.EditorBackground = bg;
+                effective.TabItemActiveBackground = bg;
+            }
+            if (IsValidHexColor(settings.DarkForegroundHex))
+            {
+                var fg = NormalizeHex(settings.DarkForegroundHex);
+                effective.Foreground = fg;
+                effective.EditorForeground = fg;
+                effective.TabItemActiveForeground = fg;
+            }
+            if (IsValidHexColor(settings.DarkAccentHex))
+            {
+                var acc = NormalizeHex(settings.DarkAccentHex);
+                effective.AccentColor = acc;
+                effective.StatusBarBackground = acc;
+            }
+
+            if (string.Equals(settings.ContrastMode, "Strong", StringComparison.OrdinalIgnoreCase))
+            {
+                effective.WindowBackground = "#000000";
+                effective.EditorBackground = "#000000";
+                effective.Foreground = "#FFFFFF";
+                effective.EditorForeground = "#FFFFFF";
+                effective.BorderColor = "#555555";
+                effective.LineNumbersForeground = "#FFFFFF";
+                effective.TabItemActiveForeground = "#FFFFFF";
+                effective.SelectionBackground = "#1B4F8B";
+            }
+        }
+
+        return effective;
+    }
+
+    public void ApplyTheme(AppSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        var effective = ResolveEffectiveTheme(settings);
+        ApplyTheme(effective);
+    }
+
+    private static bool IsValidHexColor(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return false;
+        var clean = hex.Trim();
+        if (!clean.StartsWith('#')) clean = "#" + clean;
+        return Color.TryParse(clean, out _);
+    }
+
+    private static string NormalizeHex(string hex)
+    {
+        var clean = hex.Trim();
+        return clean.StartsWith('#') ? clean : "#" + clean;
     }
 
     public void ApplyCodeColorsToHighlighting(IHighlightingDefinition? definition, ColorTheme? theme = null)

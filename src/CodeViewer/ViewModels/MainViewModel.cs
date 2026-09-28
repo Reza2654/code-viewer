@@ -241,6 +241,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             doc.WordWrap = settings.WordWrap;
             doc.ShowLineNumbers = settings.ShowLineNumbers;
         }
+        _themeService.ApplyTheme(settings);
         ApplyCodeColorsToAllDocuments(CurrentTheme);
     }
 
@@ -268,7 +269,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _config.DefaultFontSize = settings.FontSize;
         _config.WordWrap = settings.WordWrap;
         _config.ShowLineNumbers = settings.ShowLineNumbers;
-        _themeService.ApplyTheme(settings.ThemeId);
+        _themeService.ApplyTheme(settings);
 
         // 2. Load Recent Files
         await LoadRecentFilesAsync();
