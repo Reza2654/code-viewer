@@ -30,6 +30,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private readonly ISessionService _sessionService;
     private readonly IFileWatcherService _fileWatcherService;
     private readonly IIntegrationsUpdateService _integrationsUpdateService;
+    private readonly IWorkspaceSearchService _workspaceSearchService;
     private readonly AppConfig _config;
 
     private readonly HashSet<string> _activeReloadPrompts = new(StringComparer.OrdinalIgnoreCase);
@@ -86,6 +87,32 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty]
     private FolderItem? _selectedFolderItem;
+
+    // 🔍 Global Workspace Search (Ctrl+Shift+F)
+    [ObservableProperty]
+    private bool _isGlobalSearchOpen;
+
+    [ObservableProperty]
+    private string _globalSearchQuery = string.Empty;
+
+    [ObservableProperty]
+    private bool _globalSearchMatchCase;
+
+    [ObservableProperty]
+    private bool _globalSearchWholeWord;
+
+    [ObservableProperty]
+    private string _globalSearchStatus = string.Empty;
+
+    [ObservableProperty]
+    private bool _isGlobalSearching;
+
+    [ObservableProperty]
+    private WorkspaceSearchMatch? _selectedGlobalSearchResult;
+
+    public ObservableCollection<WorkspaceSearchMatch> GlobalSearchResults { get; } = new();
+
+    private CancellationTokenSource? _globalSearchCts;
 
     // ⚡ Command Palette
     [ObservableProperty]
@@ -195,7 +222,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ISettingsService? settingsService = null,
         ISessionService? sessionService = null,
         IFileWatcherService? fileWatcherService = null,
-        IIntegrationsUpdateService? integrationsUpdateService = null)
+        IIntegrationsUpdateService? integrationsUpdateService = null,
+        IWorkspaceSearchService? workspaceSearchService = null)
     {
         _fileService = fileService;
         _languageService = languageService;
@@ -208,6 +236,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _sessionService = sessionService ?? new SessionService();
         _fileWatcherService = fileWatcherService ?? new FileWatcherService();
         _integrationsUpdateService = integrationsUpdateService ?? new IntegrationsUpdateService();
+        _workspaceSearchService = workspaceSearchService ?? new WorkspaceSearchService();
+
 
         _fileWatcherService.FileChangedOnDisk += OnFileChangedOnDisk;
 
@@ -906,6 +936,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             var settings = _settingsService.CurrentSettings;
             settings.FontSize = ActiveDocument.FontSize;
             _ = _settingsService.SaveAsync(settings);
+            var pct = (int)Math.Round((ActiveDocument.FontSize / _config.DefaultFontSize) * 100);
+            _ = ShowTemporaryStatusAsync($"Zoom: {pct}% ({ActiveDocument.FontSize:0.#} pt)");
         }
     }
 
@@ -918,6 +950,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             var settings = _settingsService.CurrentSettings;
             settings.FontSize = ActiveDocument.FontSize;
             _ = _settingsService.SaveAsync(settings);
+            var pct = (int)Math.Round((ActiveDocument.FontSize / _config.DefaultFontSize) * 100);
+            _ = ShowTemporaryStatusAsync($"Zoom: {pct}% ({ActiveDocument.FontSize:0.#} pt)");
         }
     }
 
@@ -930,8 +964,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             var settings = _settingsService.CurrentSettings;
             settings.FontSize = ActiveDocument.FontSize;
             _ = _settingsService.SaveAsync(settings);
+            _ = ShowTemporaryStatusAsync($"Zoom: 100% ({_config.DefaultFontSize:0.#} pt)");
         }
     }
+
 
     [RelayCommand]
     public void ToggleWordWrap()
@@ -1409,7 +1445,429 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
     }
 
+    [RelayCommand]
+    public async Task CreateFileInFolderAsync(FolderItem? item)
+    {
+        var targetFolder = item?.IsDirectory == true ? item : (item?.Parent ?? RootFolder);
+        if (targetFolder == null || string.IsNullOrEmpty(targetFolder.FullPath) || !Directory.Exists(targetFolder.FullPath))
+        {
+            await _dialogService.ShowMessageAsync("New File", "Please open a workspace folder first.");
+            return;
+        }
+
+        var fileName = await _dialogService.ShowPromptAsync("New File", $"Create new file in '{targetFolder.Name}':", "untitled.txt", "e.g. main.dart");
+        if (string.IsNullOrWhiteSpace(fileName)) return;
+
+        var fullPath = Path.Combine(targetFolder.FullPath, fileName.Trim());
+        try
+        {
+            if (File.Exists(fullPath))
+            {
+                await _dialogService.ShowMessageAsync("File Exists", $"A file named '{fileName}' already exists in this folder.");
+                return;
+            }
+
+            File.WriteAllText(fullPath, string.Empty);
+            await targetFolder.RefreshAsync();
+            await OpenFileInternalAsync(fullPath);
+            _ = ShowTemporaryStatusAsync($"Created {fileName}");
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowMessageAsync("Error", $"Could not create file: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task CreateFolderInFolderAsync(FolderItem? item)
+    {
+        var targetFolder = item?.IsDirectory == true ? item : (item?.Parent ?? RootFolder);
+        if (targetFolder == null || string.IsNullOrEmpty(targetFolder.FullPath) || !Directory.Exists(targetFolder.FullPath))
+        {
+            await _dialogService.ShowMessageAsync("New Folder", "Please open a workspace folder first.");
+            return;
+        }
+
+        var folderName = await _dialogService.ShowPromptAsync("New Folder", $"Create new folder in '{targetFolder.Name}':", "NewFolder", "e.g. src");
+        if (string.IsNullOrWhiteSpace(folderName)) return;
+
+        var fullPath = Path.Combine(targetFolder.FullPath, folderName.Trim());
+        try
+        {
+            if (Directory.Exists(fullPath))
+            {
+                await _dialogService.ShowMessageAsync("Folder Exists", $"A folder named '{folderName}' already exists.");
+                return;
+            }
+
+            Directory.CreateDirectory(fullPath);
+            await targetFolder.RefreshAsync();
+            _ = ShowTemporaryStatusAsync($"Created folder {folderName}");
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowMessageAsync("Error", $"Could not create folder: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task RenameFolderItemAsync(FolderItem? item)
+    {
+        var target = item ?? SelectedFolderItem;
+        if (target == null || string.IsNullOrEmpty(target.FullPath)) return;
+
+        var oldName = target.Name;
+        var newName = await _dialogService.ShowPromptAsync("Rename", $"Enter new name for '{oldName}':", oldName);
+        if (string.IsNullOrWhiteSpace(newName) || string.Equals(newName.Trim(), oldName, StringComparison.Ordinal)) return;
+
+        newName = newName.Trim();
+        var parentDir = Path.GetDirectoryName(target.FullPath);
+        if (string.IsNullOrEmpty(parentDir)) return;
+
+        var newFullPath = Path.Combine(parentDir, newName);
+        try
+        {
+            if (target.IsDirectory)
+            {
+                if (Directory.Exists(newFullPath))
+                {
+                    await _dialogService.ShowMessageAsync("Rename Error", $"A folder named '{newName}' already exists.");
+                    return;
+                }
+                Directory.Move(target.FullPath, newFullPath);
+            }
+            else
+            {
+                if (File.Exists(newFullPath))
+                {
+                    await _dialogService.ShowMessageAsync("Rename Error", $"A file named '{newName}' already exists.");
+                    return;
+                }
+                File.Move(target.FullPath, newFullPath);
+
+                var openDoc = Documents.FirstOrDefault(d => string.Equals(d.FilePath, target.FullPath, StringComparison.OrdinalIgnoreCase));
+                if (openDoc != null)
+                {
+                    openDoc.FilePath = newFullPath;
+                    openDoc.Title = newName;
+                }
+            }
+
+            if (target.Parent != null)
+            {
+                await target.Parent.RefreshAsync();
+            }
+            else if (RootFolder != null)
+            {
+                await RootFolder.RefreshAsync();
+            }
+
+            _ = ShowTemporaryStatusAsync($"Renamed to {newName}");
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowMessageAsync("Rename Failed", ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    public async Task DeleteFolderItemAsync(FolderItem? item)
+    {
+        var target = item ?? SelectedFolderItem;
+        if (target == null || string.IsNullOrEmpty(target.FullPath)) return;
+
+        var itemType = target.IsDirectory ? "folder" : "file";
+        var confirmed = await _dialogService.ShowConfirmationAsync(
+            "Confirm Delete",
+            $"Are you sure you want to delete the {itemType} '{target.Name}'?\nThis action cannot be undone.",
+            "Delete",
+            "Cancel");
+
+        if (!confirmed) return;
+
+        try
+        {
+            if (target.IsDirectory)
+            {
+                if (Directory.Exists(target.FullPath))
+                {
+                    Directory.Delete(target.FullPath, recursive: true);
+                }
+            }
+            else
+            {
+                if (File.Exists(target.FullPath))
+                {
+                    File.Delete(target.FullPath);
+                }
+
+                var openDoc = Documents.FirstOrDefault(d => string.Equals(d.FilePath, target.FullPath, StringComparison.OrdinalIgnoreCase));
+                if (openDoc != null)
+                {
+                    await CloseTabAsync(openDoc);
+                }
+
+            }
+
+            if (target.Parent != null)
+            {
+                await target.Parent.RefreshAsync();
+            }
+            else if (RootFolder != null)
+            {
+                await RootFolder.RefreshAsync();
+            }
+
+            _ = ShowTemporaryStatusAsync($"Deleted {target.Name}");
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowMessageAsync("Delete Failed", ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    public void RevealFolderItemInExplorer(FolderItem? item)
+    {
+        var target = item ?? SelectedFolderItem;
+        var fullPath = target?.FullPath ?? RootFolder?.FullPath;
+        if (string.IsNullOrEmpty(fullPath)) return;
+
+        try
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                if (File.Exists(fullPath))
+                {
+                    Process.Start("explorer.exe", $"/select,\"{fullPath}\"");
+                }
+                else if (Directory.Exists(fullPath))
+                {
+                    Process.Start("explorer.exe", $"\"{fullPath}\"");
+                }
+            }
+            else
+            {
+                var dir = File.Exists(fullPath) ? Path.GetDirectoryName(fullPath) : fullPath;
+                if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+                {
+                    Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true });
+                }
+            }
+        }
+        catch
+        {
+            // Ignore
+        }
+    }
+
+    [RelayCommand]
+    public async Task CopyItemPathAsync(FolderItem? item)
+    {
+        var target = item ?? SelectedFolderItem;
+        var path = target?.FullPath ?? RootFolder?.FullPath;
+        if (string.IsNullOrEmpty(path)) return;
+
+        if (RequestSetClipboardText != null)
+        {
+            await RequestSetClipboardText(path);
+            _ = ShowTemporaryStatusAsync($"✓ Copied path: {path}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task CopyItemRelativePathAsync(FolderItem? item)
+    {
+        var target = item ?? SelectedFolderItem;
+        if (target == null || string.IsNullOrEmpty(target.FullPath)) return;
+
+        var root = RootFolder?.FullPath ?? Environment.CurrentDirectory;
+        var rel = Path.GetRelativePath(root, target.FullPath);
+
+        if (RequestSetClipboardText != null)
+        {
+            await RequestSetClipboardText(rel);
+            _ = ShowTemporaryStatusAsync($"✓ Copied relative path: {rel}");
+        }
+    }
+
+    [RelayCommand]
+    public async Task RefreshFolderItemAsync(FolderItem? item)
+    {
+        var target = item ?? RootFolder;
+        if (target != null)
+        {
+            await target.RefreshAsync();
+            _ = ShowTemporaryStatusAsync("✓ Refreshed workspace");
+        }
+    }
+
     #endregion
+
+    #region Global Workspace Search (Ctrl+Shift+F)
+
+    partial void OnGlobalSearchQueryChanged(string value)
+    {
+        _ = TriggerGlobalSearchDebouncedAsync();
+    }
+
+    partial void OnGlobalSearchMatchCaseChanged(bool value)
+    {
+        _ = TriggerGlobalSearchDebouncedAsync();
+    }
+
+    partial void OnGlobalSearchWholeWordChanged(bool value)
+    {
+        _ = TriggerGlobalSearchDebouncedAsync();
+    }
+
+    private async Task TriggerGlobalSearchDebouncedAsync()
+    {
+        _globalSearchCts?.Cancel();
+        _globalSearchCts?.Dispose();
+        _globalSearchCts = new CancellationTokenSource();
+        var ct = _globalSearchCts.Token;
+
+        var q = GlobalSearchQuery?.Trim();
+        if (string.IsNullOrEmpty(q))
+        {
+            GlobalSearchResults.Clear();
+            GlobalSearchStatus = string.Empty;
+            IsGlobalSearching = false;
+            return;
+        }
+
+        try
+        {
+            await Task.Delay(120, ct);
+            await ExecuteGlobalSearchAsync(ct);
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    public async Task ExecuteGlobalSearchAsync(CancellationToken ct = default)
+    {
+        var q = GlobalSearchQuery?.Trim();
+        if (string.IsNullOrEmpty(q)) return;
+
+        var rootPath = RootFolder?.FullPath;
+        if (string.IsNullOrEmpty(rootPath) || !Directory.Exists(rootPath))
+        {
+            if (ActiveDocument != null && !string.IsNullOrEmpty(ActiveDocument.FilePath) && File.Exists(ActiveDocument.FilePath))
+            {
+                rootPath = Path.GetDirectoryName(ActiveDocument.FilePath);
+            }
+            else
+            {
+                rootPath = Environment.CurrentDirectory;
+            }
+        }
+
+        if (string.IsNullOrEmpty(rootPath) || !Directory.Exists(rootPath))
+        {
+            GlobalSearchStatus = "Open a workspace folder to search across files.";
+            return;
+        }
+
+        IsGlobalSearching = true;
+        GlobalSearchStatus = "Searching files...";
+
+        try
+        {
+            var result = await _workspaceSearchService.SearchAsync(
+                rootPath,
+                q,
+                GlobalSearchMatchCase,
+                GlobalSearchWholeWord,
+                ct: ct);
+
+            if (ct.IsCancellationRequested) return;
+
+            GlobalSearchResults.Clear();
+            foreach (var match in result.Matches)
+            {
+                GlobalSearchResults.Add(match);
+            }
+
+            if (result.Matches.Count > 0)
+            {
+                SelectedGlobalSearchResult = result.Matches[0];
+                GlobalSearchStatus = $"Found {result.Matches.Count} matches in {result.TotalFilesSearched} files ({result.ElapsedMilliseconds} ms)";
+            }
+            else
+            {
+                GlobalSearchStatus = $"No matches found in {result.TotalFilesSearched} files ({result.ElapsedMilliseconds} ms)";
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancelled
+        }
+        catch (Exception ex)
+        {
+            GlobalSearchStatus = $"Search failed: {ex.Message}";
+        }
+        finally
+        {
+            IsGlobalSearching = false;
+        }
+    }
+
+    [RelayCommand]
+    public void OpenGlobalSearch()
+    {
+        if (RequestSelectedText != null)
+        {
+            var sel = RequestSelectedText.Invoke();
+            if (!string.IsNullOrWhiteSpace(sel) && !sel.Contains('\n'))
+            {
+                GlobalSearchQuery = sel.Trim();
+            }
+        }
+
+        IsGlobalSearchOpen = true;
+        _ = TriggerGlobalSearchDebouncedAsync();
+    }
+
+    [RelayCommand]
+    public void CloseGlobalSearch()
+    {
+        _globalSearchCts?.Cancel();
+        IsGlobalSearchOpen = false;
+        GlobalSearchQuery = string.Empty;
+        GlobalSearchResults.Clear();
+        GlobalSearchStatus = string.Empty;
+    }
+
+    [RelayCommand]
+    public void ToggleGlobalSearchMatchCase()
+    {
+        GlobalSearchMatchCase = !GlobalSearchMatchCase;
+    }
+
+    [RelayCommand]
+    public void ToggleGlobalSearchWholeWord()
+    {
+        GlobalSearchWholeWord = !GlobalSearchWholeWord;
+    }
+
+    [RelayCommand]
+    public async Task SelectGlobalSearchResultAsync(WorkspaceSearchMatch? match)
+    {
+        var target = match ?? SelectedGlobalSearchResult;
+        if (target == null) return;
+
+        CloseGlobalSearch();
+
+        if (File.Exists(target.FilePath))
+        {
+            await OpenFileInternalAsync(target.FilePath);
+            RequestGoToLine?.Invoke(target.LineNumber, target.ColumnNumber);
+        }
+    }
+
+    #endregion
+
 
     #region Split View Operations
 
@@ -1594,10 +2052,17 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
         // Edit operations
         _allCommands.Add(new CommandPaletteItem("edit.find", "Find...", "Edit", "Ctrl+F", "🔎", () => ShowSearch()));
+        _allCommands.Add(new CommandPaletteItem("edit.findInFiles", "Find in Files (Workspace Search)...", "Edit", "Ctrl+Shift+F", "🔍", () => OpenGlobalSearch()));
         _allCommands.Add(new CommandPaletteItem("edit.replace", "Replace...", "Edit", "Ctrl+H", "🔄", () => ShowReplace()));
         _allCommands.Add(new CommandPaletteItem("edit.goToLine", "Go to Line...", "Edit", "Ctrl+G", "🎯", () => ShowGoToLine()));
         _allCommands.Add(new CommandPaletteItem("edit.toggleComment", "Toggle Line Comment", "Edit", "Ctrl+/", "💬", () => ToggleComment()));
         _allCommands.Add(new CommandPaletteItem("edit.copyAll", "Copy All Content", "Edit", "Ctrl+Shift+C", "📋", () => _ = CopyAllAsync()));
+
+        // Workspace operations
+        _allCommands.Add(new CommandPaletteItem("workspace.newFile", "Workspace: New File...", "Workspace", "", "📄", () => _ = CreateFileInFolderAsync(null)));
+        _allCommands.Add(new CommandPaletteItem("workspace.newFolder", "Workspace: New Folder...", "Workspace", "", "📁", () => _ = CreateFolderInFolderAsync(null)));
+        _allCommands.Add(new CommandPaletteItem("workspace.refresh", "Workspace: Refresh Folder Tree", "Workspace", "", "🔄", () => _ = RefreshFolderItemAsync(null)));
+
 
         // View operations
         _allCommands.Add(new CommandPaletteItem("view.toggleSidebar", "Toggle Folder Sidebar", "View", "Ctrl+B", "📁", () => ToggleSidebar()));

@@ -16,9 +16,10 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
     if ($csprojContent -match '<Version>(.*?)</Version>') {
         $Version = $matches[1]
     } else {
-        $Version = "1.2.0-beta.5"
+        $Version = "1.2.0-beta.6"
     }
 }
+
 
 Write-Host "=================================================" -ForegroundColor Cyan
 Write-Host "   Code Viewer - WinGet Manifest Exporter v$Version" -ForegroundColor Cyan

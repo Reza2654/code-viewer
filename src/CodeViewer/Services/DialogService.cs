@@ -303,4 +303,122 @@ public class DialogService : IDialogService
         await dialog.ShowDialog(_ownerWindow);
         return await tcs.Task;
     }
+
+    public async Task<string?> ShowPromptAsync(string title, string message, string defaultValue = "", string watermark = "")
+    {
+        if (_ownerWindow == null) return null;
+
+        var tcs = new TaskCompletionSource<string?>();
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 440,
+            Height = 200,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            Background = new SolidColorBrush(Color.Parse("#1E1E1E")),
+            ShowInTaskbar = false
+        };
+
+        var panel = new StackPanel
+        {
+            Margin = new Thickness(20),
+            Spacing = 12
+        };
+
+        var textBlock = new TextBlock
+        {
+            Text = message,
+            Foreground = Brushes.White,
+            FontSize = 13,
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        var textBox = new TextBox
+        {
+            Text = defaultValue,
+            Watermark = watermark,
+            FontSize = 13,
+            CornerRadius = new CornerRadius(4),
+            Margin = new Thickness(0, 4, 0, 4)
+        };
+
+        var buttonsPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Spacing = 10
+        };
+
+        var btnOk = new Button
+        {
+            Content = "OK",
+            Width = 80,
+            Background = new SolidColorBrush(Color.Parse("#007ACC")),
+            Foreground = Brushes.White,
+            HorizontalContentAlignment = HorizontalAlignment.Center
+        };
+
+        void Confirm()
+        {
+            tcs.TrySetResult(textBox.Text);
+            dialog.Close();
+        }
+
+        void Cancel()
+        {
+            tcs.TrySetResult(null);
+            dialog.Close();
+        }
+
+        btnOk.Click += (_, _) => Confirm();
+
+        var btnCancel = new Button
+        {
+            Content = "Cancel",
+            Width = 80,
+            Background = new SolidColorBrush(Color.Parse("#2D2D2D")),
+            Foreground = Brushes.White,
+            HorizontalContentAlignment = HorizontalAlignment.Center
+        };
+        btnCancel.Click += (_, _) => Cancel();
+
+        textBox.KeyDown += (_, e) =>
+        {
+            if (e.Key == Avalonia.Input.Key.Enter)
+            {
+                Confirm();
+                e.Handled = true;
+            }
+            else if (e.Key == Avalonia.Input.Key.Escape)
+            {
+                Cancel();
+                e.Handled = true;
+            }
+        };
+
+        buttonsPanel.Children.Add(btnOk);
+        buttonsPanel.Children.Add(btnCancel);
+
+        panel.Children.Add(textBlock);
+        panel.Children.Add(textBox);
+        panel.Children.Add(buttonsPanel);
+
+        dialog.Content = panel;
+        dialog.Closed += (_, _) => tcs.TrySetResult(null);
+
+        dialog.Opened += (_, _) =>
+        {
+            textBox.Focus();
+            if (!string.IsNullOrEmpty(defaultValue))
+            {
+                textBox.SelectionStart = 0;
+                textBox.SelectionEnd = defaultValue.Length;
+            }
+        };
+
+        await dialog.ShowDialog(_ownerWindow);
+        return await tcs.Task;
+    }
 }
+

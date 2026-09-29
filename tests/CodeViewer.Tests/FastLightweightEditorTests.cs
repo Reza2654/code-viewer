@@ -353,5 +353,7 @@ public class FastLightweightEditorTests
         public Task<ConfirmResult> ShowSaveConfirmationAsync(string fileName) => Task.FromResult(ConfirmResult.Cancel);
         public Task<bool> ShowConfirmationAsync(string title, string message, string confirmText = "Yes", string cancelText = "No") => Task.FromResult(false);
         public Task ShowMessageAsync(string title, string message) => Task.CompletedTask;
+        public Task<string?> ShowPromptAsync(string title, string message, string defaultValue = "", string watermark = "") => Task.FromResult<string?>(null);
     }
 }
+

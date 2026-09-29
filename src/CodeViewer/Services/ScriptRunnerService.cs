@@ -10,10 +10,34 @@ public interface IScriptRunnerService
 {
     bool IsSupported(string filePath);
     Task RunAsync(string filePath, Action<string> onOutput, Action<int, long> onCompleted, CancellationToken ct);
+    void SendInput(string text);
 }
+
 
 public class ScriptRunnerService : IScriptRunnerService
 {
+    private StreamWriter? _currentInput;
+    private readonly object _inputLock = new();
+
+    public void SendInput(string text)
+    {
+        lock (_inputLock)
+        {
+            if (_currentInput != null)
+            {
+                try
+                {
+                    _currentInput.WriteLine(text);
+                    _currentInput.Flush();
+                }
+                catch
+                {
+                    // Ignore if process has exited or closed stdin
+                }
+            }
+        }
+    }
+
     public bool IsSupported(string filePath)
     {
         if (string.IsNullOrEmpty(filePath)) return false;
@@ -73,13 +97,16 @@ public class ScriptRunnerService : IScriptRunnerService
             FileName = fileName,
             Arguments = arguments,
             WorkingDirectory = workingDir,
+            RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            StandardInputEncoding = System.Text.Encoding.UTF8,
             StandardOutputEncoding = System.Text.Encoding.UTF8,
             StandardErrorEncoding = System.Text.Encoding.UTF8,
             UseShellExecute = false,
             CreateNoWindow = true
         };
+
 
         // Guarantee child runtimes (Python, Node, .NET, AgentLang, etc.) use UTF-8 output streams
         startInfo.Environment["PYTHONIOENCODING"] = "utf-8";
@@ -135,6 +162,10 @@ public class ScriptRunnerService : IScriptRunnerService
             try
             {
                 process.Start();
+                lock (_inputLock)
+                {
+                    _currentInput = process.StandardInput;
+                }
             }
             catch (Exception ex)
             {
@@ -146,6 +177,7 @@ public class ScriptRunnerService : IScriptRunnerService
 
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
+
 
             using (ct.Register(() =>
             {
@@ -184,5 +216,13 @@ public class ScriptRunnerService : IScriptRunnerService
             onOutput($"[Execution Error: {ex.Message}]");
             onCompleted(-1, sw.ElapsedMilliseconds);
         }
+        finally
+        {
+            lock (_inputLock)
+            {
+                _currentInput = null;
+            }
+        }
     }
 }
+

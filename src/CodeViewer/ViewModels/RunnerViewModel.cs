@@ -31,11 +31,24 @@ public partial class RunnerViewModel : ViewModelBase
     [ObservableProperty]
     private string _outputText = string.Empty;
 
+    [ObservableProperty]
+    private string _currentInput = string.Empty;
+
     public Action? RequestScrollToEnd { get; set; }
 
     public RunnerViewModel(IScriptRunnerService? runnerService = null)
     {
         _runnerService = runnerService ?? new ScriptRunnerService();
+    }
+
+    [RelayCommand]
+    public void SendInput()
+    {
+        if (!IsRunning) return;
+        var input = CurrentInput ?? string.Empty;
+        CurrentInput = string.Empty;
+        AppendOutput($"> {input}");
+        _runnerService.SendInput(input);
     }
 
     [RelayCommand]
@@ -61,6 +74,7 @@ public partial class RunnerViewModel : ViewModelBase
             _runCts.Cancel();
         }
     }
+
 
     public async Task RunScriptAsync(string filePath)
     {

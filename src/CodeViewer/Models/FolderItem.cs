@@ -27,6 +27,8 @@ public partial class FolderItem : ObservableObject
 
     public ObservableCollection<FolderItem> Children { get; } = new();
 
+    public FolderItem? Parent { get; set; }
+
     private bool _isExpanded;
     public bool IsExpanded
     {
@@ -153,6 +155,7 @@ public partial class FolderItem : ObservableObject
             Children.Clear();
             foreach (var item in items)
             {
+                item.Parent = this;
                 Children.Add(item);
             }
 
@@ -167,4 +170,20 @@ public partial class FolderItem : ObservableObject
             IsLoading = false;
         }
     }
+
+    public async Task RefreshAsync()
+    {
+        if (!IsDirectory)
+        {
+            if (Parent != null)
+            {
+                await Parent.RefreshAsync();
+            }
+            return;
+        }
+
+        _hasLoadedChildren = false;
+        await LoadChildrenAsync();
+    }
 }
+

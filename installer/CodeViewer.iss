@@ -2,8 +2,9 @@
 ; Builds a professional Windows 64-bit installer with Windows 11 Context Menu integration.
 
 #define MyAppName "Code Viewer"
-#define MyAppVersion "1.2.0-beta.5"
+#define MyAppVersion "1.2.0-beta.6"
 #define MyAppPublisher "Code Viewer Open Source Community"
+
 #define MyAppURL "https://github.com/Reza2654/code-viewer"
 #define MyAppExeName "CodeViewer.exe"
 

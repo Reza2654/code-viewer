@@ -51,5 +51,12 @@ public interface IDialogService
     /// Displays a confirmation dialog returning true if confirmed.
     /// </summary>
     Task<bool> ShowConfirmationAsync(string title, string message, string confirmText = "Yes", string cancelText = "No");
+
+    /// <summary>
+    /// Displays an input prompt dialog allowing the user to enter text (e.g. file name, folder name, rename).
+    /// Returns null if cancelled, or the string entered if confirmed.
+    /// </summary>
+    Task<string?> ShowPromptAsync(string title, string message, string defaultValue = "", string watermark = "");
 }
+
 

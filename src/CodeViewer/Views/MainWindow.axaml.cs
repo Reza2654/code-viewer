@@ -214,7 +214,19 @@ public partial class MainWindow : Window
                         });
                     }
                 }
+                else if (args.PropertyName == nameof(MainViewModel.IsGlobalSearchOpen))
+                {
+                    if (vm.IsGlobalSearchOpen)
+                    {
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                        {
+                            GlobalSearchTextBox?.Focus();
+                            GlobalSearchTextBox?.SelectAll();
+                        });
+                    }
+                }
                 else if (args.PropertyName is nameof(MainViewModel.IsMarkdownPreviewActive) or nameof(MainViewModel.IsSplitViewActive))
+
                 {
                     UpdateEditorLayoutColumns(vm);
                     if (vm.IsMarkdownPreviewActive)
@@ -389,6 +401,13 @@ public partial class MainWindow : Window
                     e.Handled = true;
                     return;
                 }
+                if (vm.IsGlobalSearchOpen)
+                {
+                    vm.CloseGlobalSearch();
+                    Editor.Focus();
+                    e.Handled = true;
+                    return;
+                }
                 if (vm.IsGoToLineOpen)
                 {
                     vm.CloseGoToLine();
@@ -405,7 +424,27 @@ public partial class MainWindow : Window
                 }
             }
 
+            // Ctrl + Shift + F: Find in Files (Workspace Search)
+            if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.F)
+            {
+                vm.OpenGlobalSearch();
+                e.Handled = true;
+                return;
+            }
+
+            // Shift + F5: Stop Script Runner
+            if (e.KeyModifiers == KeyModifiers.Shift && e.Key == Key.F5)
+            {
+                if (vm.RunnerViewModel.IsRunning)
+                {
+                    vm.RunnerViewModel.Cancel();
+                    e.Handled = true;
+                    return;
+                }
+            }
+
             // Ctrl + P: Quick Open
+
             if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.P)
             {
                 _ = vm.ShowQuickOpenCommand.ExecuteAsync(null);
@@ -1277,7 +1316,90 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnGlobalSearchTextBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        if (e.Key == Key.Escape)
+        {
+            vm.CloseGlobalSearch();
+            Editor.Focus();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Enter)
+        {
+            _ = vm.SelectGlobalSearchResultCommand.ExecuteAsync(null);
+            Editor.Focus();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Down && GlobalSearchListBox != null)
+        {
+            if (vm.GlobalSearchResults.Count > 0)
+            {
+                var next = Math.Min(GlobalSearchListBox.SelectedIndex + 1, vm.GlobalSearchResults.Count - 1);
+                GlobalSearchListBox.SelectedIndex = next;
+                vm.SelectedGlobalSearchResult = vm.GlobalSearchResults[next];
+                GlobalSearchListBox.ScrollIntoView(vm.SelectedGlobalSearchResult);
+                e.Handled = true;
+            }
+        }
+        else if (e.Key == Key.Up && GlobalSearchListBox != null)
+        {
+            if (vm.GlobalSearchResults.Count > 0)
+            {
+                var prev = Math.Max(GlobalSearchListBox.SelectedIndex - 1, 0);
+                GlobalSearchListBox.SelectedIndex = prev;
+                vm.SelectedGlobalSearchResult = vm.GlobalSearchResults[prev];
+                GlobalSearchListBox.ScrollIntoView(vm.SelectedGlobalSearchResult);
+                e.Handled = true;
+            }
+        }
+    }
+
+    private void OnGlobalSearchListBoxKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        if (e.Key == Key.Enter)
+        {
+            _ = vm.SelectGlobalSearchResultCommand.ExecuteAsync(null);
+            Editor.Focus();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            vm.CloseGlobalSearch();
+            Editor.Focus();
+            e.Handled = true;
+        }
+    }
+
+    private void OnGlobalSearchResultDoubleTapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm && sender is Control ctrl && ctrl.DataContext is WorkspaceSearchMatch match)
+        {
+            _ = vm.SelectGlobalSearchResultCommand.ExecuteAsync(match);
+            Editor.Focus();
+        }
+    }
+
+    private void OnRunnerInputKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+
+        if (e.Key == Key.Enter)
+        {
+            vm.RunnerViewModel.SendInput();
+            e.Handled = true;
+        }
+    }
+
     private void UpdateMarkdownPreview()
+
     {
         if (DataContext is not MainViewModel vm || !vm.IsMarkdownPreviewActive || MarkdownScrollViewer == null) return;
         var text = vm.ActiveDocument?.TextDocument.Text ?? string.Empty;
@@ -1416,8 +1538,9 @@ public partial class MainWindow : Window
         }
 
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.2.0 Beta 5 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Version 1.2.0 Beta 6 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 8, 0, 10) });
+
 
         var okBtn = new Button { Content = "OK", Width = 80, CornerRadius = new Avalonia.CornerRadius(4), Background = new SolidColorBrush(Color.Parse("#007ACC")), Foreground = Avalonia.Media.Brushes.White, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
         okBtn.Click += (_, _) => aboutDialog.Close();
