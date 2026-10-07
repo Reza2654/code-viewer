@@ -43,7 +43,7 @@ public class SettingsServiceTests
         Assert.AreEqual(14.0, settings.FontSize);
         Assert.IsTrue(settings.ShowLineNumbers);
         Assert.IsFalse(settings.WordWrap);
-        Assert.IsTrue(settings.FontFamily.Contains("Cascadia Code") || settings.FontFamily.Contains("Consolas"));
+        Assert.IsTrue(settings.FontFamily.Contains("Google Sans Code") || settings.FontFamily.Contains("Cascadia Code"));
     }
 
     [TestMethod]
@@ -140,7 +140,10 @@ public class SettingsServiceTests
         Assert.AreEqual("Cascadia Code", AppSettings.SanitizeFontFamily("Cascadia Code, Consolas, Courier New, monospace"));
         Assert.AreEqual("Consolas", AppSettings.SanitizeFontFamily("Consolas, Courier New"));
         Assert.AreEqual("Fira Code", AppSettings.SanitizeFontFamily("  'Fira Code'  "));
-        Assert.AreEqual("Cascadia Code", AppSettings.SanitizeFontFamily(null));
-        Assert.AreEqual("Cascadia Code", AppSettings.SanitizeFontFamily("   "));
+        Assert.AreEqual("Google Sans Code", AppSettings.SanitizeFontFamily(null));
+        Assert.AreEqual("Google Sans Code", AppSettings.SanitizeFontFamily("   "));
     }
+
 }
+
+

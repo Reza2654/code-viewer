@@ -14,6 +14,8 @@
 
 ## Key Features
 
+- 🔤 **Google Sans Code Default Font**: Bundled with Google's modern, highly legible developer font Google Sans Code out-of-the-box, with embedded asset fallbacks, automatic system font discovery, and optional installer task to register the font system-wide in Windows.
+- ✨ **Silky-Smooth Cursor Blinking & Smooth Inertial Scroll**: Modern smooth cosine opacity cursor breathing (~60fps) with instant snap-to-solid on typing/navigation, paired with 60/120fps exponential decay inertial mouse-wheel scrolling for buttery smooth gliding.
 - 📁 **Folder Sidebar & Workspace Explorer (Ctrl+B)**: Sleek, collapsible project tree with lazy-loaded folder hierarchy (`📁 MyProject` -> `src` -> `main.dart`) and language badges. Includes header quick actions (`📄+` New File, `📁+` New Folder, `🔄` Refresh) and full right-click context menu (New File, New Folder, Rename, Delete, Reveal in File Explorer, Copy Path, Copy Relative Path, Refresh).
 - 🔍 **Global Workspace Search (Ctrl+Shift+F)**: Multi-threaded blazing-fast search across all files in your workspace with match preview, case sensitivity (`Aa`), whole-word matching (`\b`), debounced instant typing, and jump-to-line navigation.
 - ⚡ **Command Palette (Ctrl+Shift+P / F1)**: Instant fuzzy launcher for every editor feature, plugin, theme, and setting.
@@ -101,13 +103,14 @@
 ## Installation & Packaging
 
 ### Option 1: Installer (Recommended)
-Download and run `CodeViewer-v1.2.0-beta.6-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
+Download and run `CodeViewer-v1.2.0-beta.7-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
 - Installs Code Viewer to your system.
 - Creates Start Menu and Desktop shortcuts.
+- Optionally installs and registers Google Sans Code font system-wide.
 - Automatically registers the modern Windows 11 right-click context menu.
 
 ### Option 2: Portable ZIP
-Download `CodeViewer-v1.2.0-beta.6-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
+Download `CodeViewer-v1.2.0-beta.7-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
 
 To enable the modern Windows 11 context menu for portable use, right-click `scripts\register-windows11-context-menu.ps1` and select **Run with PowerShell**.
 

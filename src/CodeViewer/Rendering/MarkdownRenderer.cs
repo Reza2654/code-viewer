@@ -10,7 +10,7 @@ namespace CodeViewer.Rendering;
 
 public static class MarkdownRenderer
 {
-    private static readonly FontFamily MonospaceFamily = new("Cascadia Code, Consolas, Courier New, monospace");
+    private static readonly FontFamily MonospaceFamily = new("Google Sans Code, Cascadia Code, Consolas, Courier New, monospace");
 
     public static Control Render(string markdown, IBrush? foreground = null, IBrush? borderBrush = null, IBrush? codeBackground = null)
     {

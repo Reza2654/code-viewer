@@ -50,7 +50,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private ObservableCollection<RecentFileItem> _recentFiles = [];
 
     [ObservableProperty]
-    private string _currentFontFamily = "Cascadia Code";
+    private string _currentFontFamily = "Google Sans Code";
 
     [ObservableProperty]
     private string? _statusMessage;

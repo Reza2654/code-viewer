@@ -11,7 +11,7 @@ public class AppSettings
     [JsonPropertyName("themeId")]
     public string ThemeId { get; set; } = "dark-plus";
 
-    private string _fontFamily = "Cascadia Code";
+    private string _fontFamily = "Google Sans Code";
 
     [JsonPropertyName("fontFamily")]
     public string FontFamily
@@ -24,12 +24,12 @@ public class AppSettings
     {
         if (string.IsNullOrWhiteSpace(font))
         {
-            return "Cascadia Code";
+            return "Google Sans Code";
         }
 
         var primary = font.Contains(',') ? font.Split(',')[0] : font;
         primary = primary.Trim().Trim('"', '\'');
-        return string.IsNullOrWhiteSpace(primary) ? "Cascadia Code" : primary;
+        return string.IsNullOrWhiteSpace(primary) ? "Google Sans Code" : primary;
     }
 
     [JsonPropertyName("fontSize")]

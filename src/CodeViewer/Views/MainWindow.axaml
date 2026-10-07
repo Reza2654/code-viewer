@@ -480,7 +480,7 @@
                                WordWrap="{Binding ActiveDocument.WordWrap, FallbackValue=False}"
                                ShowLineNumbers="{Binding ActiveDocument.ShowLineNumbers, FallbackValue=True}"
                                FlowDirection="LeftToRight"
-                               FontFamily="{Binding CurrentFontFamily}"
+                               FontFamily="{DynamicResource CodeFontFamily}"
                                Background="{DynamicResource ThemeEditorBackground}"
                                Foreground="{DynamicResource ThemeEditorForeground}"
                                HorizontalScrollBarVisibility="Auto"
@@ -501,13 +501,14 @@
                 <ContentControl Content="{Binding SecondaryDocument}">
                   <ContentControl.ContentTemplate>
                     <DataTemplate DataType="vm:DocumentViewModel">
-                      <ae:TextEditor Document="{Binding TextDocument}"
+                      <ae:TextEditor Loaded="OnSplitEditorLoaded"
+                                     Document="{Binding TextDocument}"
                                      SyntaxHighlighting="{Binding HighlightingDefinition}"
                                      FontSize="{Binding FontSize, FallbackValue=14.0}"
                                      WordWrap="{Binding WordWrap, FallbackValue=False}"
                                      ShowLineNumbers="{Binding ShowLineNumbers, FallbackValue=True}"
                                      FlowDirection="LeftToRight"
-                                     FontFamily="{Binding $parent[Window].((vm:MainViewModel)DataContext).CurrentFontFamily}"
+                                     FontFamily="{DynamicResource CodeFontFamily}"
                                      Background="{DynamicResource ThemeEditorBackground}"
                                      Foreground="{DynamicResource ThemeEditorForeground}"
                                      HorizontalScrollBarVisibility="Auto"

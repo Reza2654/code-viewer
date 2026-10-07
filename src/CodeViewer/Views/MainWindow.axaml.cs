@@ -20,6 +20,8 @@ public partial class MainWindow : Window
     private readonly CurrentLineHighlighter _currentLineHighlighter;
     private readonly BracketMatchingRenderer _bracketMatchingRenderer;
     private readonly SearchHighlightRenderer _searchHighlightRenderer;
+    private readonly SmoothCaretBlinkController _caretBlinkController;
+    private readonly SmoothScrollController _smoothScrollController;
     private readonly List<int> _searchMatchOffsets = new();
     private int _currentSearchMatchIndex = -1;
 
@@ -30,6 +32,8 @@ public partial class MainWindow : Window
         _currentLineHighlighter = new CurrentLineHighlighter(Editor);
         _bracketMatchingRenderer = new BracketMatchingRenderer(Editor);
         _searchHighlightRenderer = new SearchHighlightRenderer(Editor);
+        _caretBlinkController = new SmoothCaretBlinkController(Editor);
+        _smoothScrollController = new SmoothScrollController(Editor);
 
         Editor.TextArea.TextView.BackgroundRenderers.Add(_currentLineHighlighter);
         Editor.TextArea.TextView.BackgroundRenderers.Add(_bracketMatchingRenderer);
@@ -65,7 +69,12 @@ public partial class MainWindow : Window
 
         // Window closing prompt for unsaved changes
         Closing += OnWindowClosing;
-        Closed += (s, e) => (DataContext as IDisposable)?.Dispose();
+        Closed += (s, e) =>
+        {
+            _caretBlinkController?.Dispose();
+            _smoothScrollController?.Dispose();
+            (DataContext as IDisposable)?.Dispose();
+        };
 
         // Code Mode Language Flyout autofocus and scroll reset
         if (LanguageButton?.Flyout is Flyout langFlyout)
@@ -172,6 +181,9 @@ public partial class MainWindow : Window
                     if (vm.ActiveDocument != null)
                     {
                         Editor.WordWrap = vm.ActiveDocument.WordWrap;
+                        FontHelper.ApplyToEditor(Editor, vm.CurrentFontFamily, vm.ActiveDocument.FontSize);
+                        _caretBlinkController?.ResetSolid();
+                        _smoothScrollController?.SyncCurrentOffset();
                         _bracketMatchingRenderer.UpdateMatchingBrackets();
                         UpdateSearchMatches();
                         Editor.TextArea.TextView.InvalidateVisual();
@@ -180,6 +192,12 @@ public partial class MainWindow : Window
                     {
                         UpdateMarkdownPreview();
                     }
+                }
+                else if (args.PropertyName == nameof(MainViewModel.CurrentFontFamily))
+                {
+                    var settings = vm.SettingsService.CurrentSettings;
+                    var fontSize = vm.ActiveDocument?.FontSize ?? settings.FontSize;
+                    FontHelper.ApplyToEditor(Editor, vm.CurrentFontFamily, fontSize);
                 }
                 else if (args.PropertyName == nameof(MainViewModel.IsQuickOpenOpen))
                 {
@@ -284,22 +302,14 @@ public partial class MainWindow : Window
         {
             try
             {
-                var fontName = AppSettings.SanitizeFontFamily(settings.FontFamily);
-                var fullFontFamily = $"{fontName}, Segoe UI, Tahoma, Vazirmatn, Arial, sans-serif";
-                var ff = new Avalonia.Media.FontFamily(fullFontFamily);
-
-                Editor.FontFamily = ff;
-                Editor.TextArea.FontFamily = ff;
-                Editor.FontSize = settings.FontSize;
+                FontHelper.ApplyToEditor(Editor, settings.FontFamily, settings.FontSize);
                 Editor.WordWrap = settings.WordWrap;
                 Editor.ShowLineNumbers = settings.ShowLineNumbers;
                 Editor.Options.IndentationSize = settings.TabSize;
 
-                Editor.TextArea.TextView.Redraw();
-
                 if (RunnerOutputTextBox != null)
                 {
-                    RunnerOutputTextBox.FontFamily = new Avalonia.Media.FontFamily($"Cascadia Code, Consolas, {fullFontFamily}, monospace");
+                    RunnerOutputTextBox.FontFamily = FontHelper.GetFontFamily(settings.FontFamily);
                 }
             }
             catch
@@ -308,6 +318,16 @@ public partial class MainWindow : Window
             }
         });
     }
+
+    private void OnSplitEditorLoaded(object? sender, RoutedEventArgs e)
+    {
+        if (sender is AvaloniaEdit.TextEditor splitEditor && DataContext is MainViewModel vm)
+        {
+            var settings = vm.SettingsService.CurrentSettings;
+            FontHelper.ApplyToEditor(splitEditor, settings.FontFamily, settings.FontSize);
+        }
+    }
+
 
     private void OnLanguageItemClick(object? sender, RoutedEventArgs e)
     {
@@ -1538,7 +1558,7 @@ public partial class MainWindow : Window
         }
 
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.2.0 Beta 6 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Version 1.2.0 Beta 7 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 8, 0, 10) });
 
 

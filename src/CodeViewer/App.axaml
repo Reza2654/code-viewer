@@ -26,6 +26,7 @@
     <SolidColorBrush x:Key="ThemeStatusBarForeground" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="ThemeAccentBrush" Color="#007ACC"/>
     <SolidColorBrush x:Key="ThemeBorderBrush" Color="#181818"/>
+    <FontFamily x:Key="CodeFontFamily">Google Sans Code, avares://CodeViewer/Assets/Fonts#Google Sans Code, Cascadia Code, Consolas, Segoe UI, sans-serif</FontFamily>
   </Application.Resources>
 
   <Application.Styles>

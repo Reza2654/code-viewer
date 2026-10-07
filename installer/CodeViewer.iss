@@ -2,7 +2,7 @@
 ; Builds a professional Windows 64-bit installer with Windows 11 Context Menu integration.
 
 #define MyAppName "Code Viewer"
-#define MyAppVersion "1.2.0-beta.6"
+#define MyAppVersion "1.2.0-beta.7"
 #define MyAppPublisher "Code Viewer Open Source Community"
 
 #define MyAppURL "https://github.com/Reza2654/code-viewer"
@@ -37,10 +37,13 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "win11contextmenu"; Description: "Integrate with Windows 11 right-click context menu"; GroupDescription: "Explorer Integration:"; Flags: checkedonce
+Name: "installfont"; Description: "Install Google Sans Code font"; GroupDescription: "Additional Tasks:"; Flags: checkedonce
 
 [Files]
 ; Primary application executable - explicitly installed to ensure it is always present
 Source: "..\dist\CodeViewer.exe"; DestDir: "{app}"; Flags: ignoreversion
+; Google Sans Code font files
+Source: "..\fonts\GoogleSansCode*.ttf"; DestDir: "{autofonts}"; FontInstall: "Google Sans Code"; Flags: onlyifdoesntexist uninsneveruninstall; Tasks: installfont
 ; All supporting self-contained runtime assemblies, libraries, and assets
 Source: "..\dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "CodeViewer.exe,*Setup*.exe,*.zip,*.iss,checksums.sha256"
 

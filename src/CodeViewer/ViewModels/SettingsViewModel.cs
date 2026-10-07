@@ -274,6 +274,7 @@ public partial class SettingsViewModel : ViewModelBase
     {
         var codingFonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
+            "Google Sans Code",
             "Cascadia Code",
             "Cascadia Mono",
             "Consolas",
@@ -290,6 +291,9 @@ public partial class SettingsViewModel : ViewModelBase
 
         var result = new List<string>();
 
+        // Always include Google Sans Code as the built-in primary editor font
+        result.Add("Google Sans Code");
+
         try
         {
             var systemFonts = Avalonia.Media.FontManager.Current.SystemFonts;
@@ -297,7 +301,8 @@ public partial class SettingsViewModel : ViewModelBase
             {
                 foreach (var font in codingFonts)
                 {
-                    if (systemFonts.Any(f => string.Equals(f.Name, font, StringComparison.OrdinalIgnoreCase)))
+                    if (!result.Contains(font, StringComparer.OrdinalIgnoreCase) &&
+                        systemFonts.Any(f => string.Equals(f.Name, font, StringComparison.OrdinalIgnoreCase)))
                     {
                         result.Add(font);
                     }
@@ -321,13 +326,14 @@ public partial class SettingsViewModel : ViewModelBase
             // Fallback for headless / test environments
         }
 
-        if (result.Count == 0)
+        if (result.Count <= 1)
         {
             result.AddRange(["Cascadia Code", "Consolas", "Courier New", "Lucida Console", "Segoe UI"]);
         }
 
         return result;
     }
+
 
     [RelayCommand]
     public async Task SaveAsync()

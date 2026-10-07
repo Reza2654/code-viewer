@@ -11,7 +11,7 @@ $csprojContent = Get-Content "$rootDir\src\CodeViewer\CodeViewer.csproj" -Raw
 if ($csprojContent -match '<Version>(.*?)</Version>') {
     $version = $matches[1]
 } else {
-    $version = "1.2.0-beta.6"
+    $version = "1.2.0-beta.7"
 }
 
 
@@ -60,6 +60,9 @@ Write-Host "[3/5] Staging Sparse Package & Assets..." -ForegroundColor Yellow
 Copy-Item "$rootDir\packaging\AppxManifest.xml" $distDir -Force
 if (Test-Path "$rootDir\packaging\Assets") {
     Copy-Item "$rootDir\packaging\Assets" "$distDir\Assets" -Recurse -Force
+}
+if (Test-Path "$rootDir\fonts") {
+    Copy-Item "$rootDir\fonts" "$distDir\fonts" -Recurse -Force
 }
 
 # Copy setup scripts to dist
