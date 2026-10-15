@@ -1120,6 +1120,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             try
             {
                 var theme = await _themeService.ImportThemeFromJsonAsync(file);
+                SelectTheme(theme);
                 OnPropertyChanged(nameof(AvailableThemes));
                 OnPropertyChanged(nameof(CurrentTheme));
                 await _dialogService.ShowMessageAsync("Theme Imported", $"Theme '{theme.Name}' was successfully imported and activated!");
@@ -2201,7 +2202,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _allCommands.Add(new CommandPaletteItem("theme.monokai", "Theme: Monokai", "Preferences", "", "🎨", () => SelectThemeById("monokai")));
         _allCommands.Add(new CommandPaletteItem("theme.dracula", "Theme: Dracula", "Preferences", "", "🎨", () => SelectThemeById("dracula")));
         _allCommands.Add(new CommandPaletteItem("theme.solarizedDark", "Theme: Solarized Dark", "Preferences", "", "🎨", () => SelectThemeById("solarized-dark")));
+        _allCommands.Add(new CommandPaletteItem("theme.tokyoNight", "Theme: Tokyo Night", "Preferences", "", "🎨", () => SelectThemeById("tokyo-night")));
+        _allCommands.Add(new CommandPaletteItem("theme.nord", "Theme: Nord", "Preferences", "", "🎨", () => SelectThemeById("nord")));
+        _allCommands.Add(new CommandPaletteItem("theme.catppuccinMocha", "Theme: Catppuccin Mocha", "Preferences", "", "🎨", () => SelectThemeById("catppuccin-mocha")));
+        _allCommands.Add(new CommandPaletteItem("theme.gitHubDark", "Theme: GitHub Dark", "Preferences", "", "🎨", () => SelectThemeById("github-dark")));
         _allCommands.Add(new CommandPaletteItem("theme.gitHubLight", "Theme: GitHub Light", "Preferences", "", "🎨", () => SelectThemeById("github-light")));
+        _allCommands.Add(new CommandPaletteItem("theme.solarizedLight", "Theme: Solarized Light", "Preferences", "", "🎨", () => SelectThemeById("solarized-light")));
+        _allCommands.Add(new CommandPaletteItem("theme.catppuccinLatte", "Theme: Catppuccin Latte", "Preferences", "", "🎨", () => SelectThemeById("catppuccin-latte")));
         _allCommands.Add(new CommandPaletteItem("theme.import", "Import Color Theme (.json)...", "Preferences", "", "🎨", () => _ = ImportThemeAsync()));
         _allCommands.Add(new CommandPaletteItem("syntax.import", "Import Syntax Definition (.xshd)...", "Preferences", "", "📜", () => _ = ImportSyntaxAsync()));
         _allCommands.Add(new CommandPaletteItem("settings.open", "Open Settings...", "Preferences", "Ctrl+,", "⚙️", () => ShowSettings()));

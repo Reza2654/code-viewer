@@ -56,7 +56,7 @@
   - **Text Statistics**: Comprehensive character, word, line, non-empty line, and byte counts.
   - **Dynamic DLL Plugin Importer**: Drop third-party `.dll` assemblies implementing `IPlugin` into the plugins directory or load them via **Tools -> Import Plugin (.dll)...** without locking the file on disk.
 - 💾 **Safe Local Single-Instance IPC**: Opening files via CLI or File Explorer opens them as tabs inside the existing window using a high-performance local Named Pipe, passing file:line coordinates directly.
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.8-Setup.exe`) and portable standalone `.zip` archive.
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.9-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---
@@ -106,14 +106,14 @@
 ## Installation & Packaging
 
 ### Option 1: Installer (Recommended)
-Download and run `CodeViewer-v1.2.0-beta.8-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
+Download and run `CodeViewer-v1.2.0-beta.9-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
 - Installs Code Viewer to your system.
 - Creates Start Menu and Desktop shortcuts.
 - Optionally installs and registers Google Sans Code font system-wide.
 - Automatically registers the modern Windows 11 right-click context menu.
 
 ### Option 2: Portable ZIP
-Download `CodeViewer-v1.2.0-beta.8-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
+Download `CodeViewer-v1.2.0-beta.9-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
 
 To enable the modern Windows 11 context menu for portable use, right-click `scripts\register-windows11-context-menu.ps1` and select **Run with PowerShell**.
 
@@ -148,7 +148,7 @@ dotnet restore CodeViewer.slnx
 # Build all projects
 dotnet build CodeViewer.slnx
 
-# Run all 104 unit tests
+# Run all unit tests
 dotnet test tests/CodeViewer.Tests/CodeViewer.Tests.csproj
 
 # Run the app locally
@@ -161,8 +161,8 @@ To generate both the portable ZIP and the Inno Setup executable installer:
 powershell -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
 ```
 Output artifacts are saved in `dist/`:
-- `CodeViewer-v1.2.0-beta.8-Setup.exe`
-- `CodeViewer-v1.2.0-beta.8-win-x64-portable.zip`
+- `CodeViewer-v1.2.0-beta.9-Setup.exe`
+- `CodeViewer-v1.2.0-beta.9-win-x64-portable.zip`
 - `checksums.sha256`
 
 ---

@@ -136,46 +136,141 @@ public sealed class SmoothCaretBlinkController : IDisposable
 
 /// <summary>
 /// Provides silky-smooth 60fps/120fps inertial mouse-wheel scrolling for AvaloniaEdit.
-/// Smoothly glides vertical scroll offsets using exponential decay lerp without jitter.
+/// Smoothly glides vertical and horizontal scroll offsets using responsive exponential decay lerp without jitter.
+/// Synchronizes immediately on pointer press, scrollbar thumb drag, and keyboard navigation.
 /// </summary>
 public sealed class SmoothScrollController : IDisposable
 {
     private readonly TextEditor _editor;
     private DispatcherTimer? _scrollTimer;
     private double _targetVerticalOffset;
+    private double _targetHorizontalOffset;
+    private bool _isEnabled = true;
     private bool _isDisposed;
+
+    public bool IsEnabled
+    {
+        get => _isEnabled;
+        set
+        {
+            _isEnabled = value;
+            if (!_isEnabled)
+            {
+                _scrollTimer?.Stop();
+            }
+        }
+    }
 
     public SmoothScrollController(TextEditor editor)
     {
         _editor = editor;
         _targetVerticalOffset = editor.VerticalOffset;
+        _targetHorizontalOffset = editor.HorizontalOffset;
 
         editor.AddHandler(InputElement.PointerWheelChangedEvent, OnPointerWheelChanged, RoutingStrategies.Tunnel);
+        editor.AddHandler(InputElement.PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
+        editor.AddHandler(InputElement.KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+
         _scrollTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(16), DispatcherPriority.Render, OnScrollTick);
+    }
+
+    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        SyncCurrentOffset();
+    }
+
+    private void OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key is Key.Up or Key.Down or Key.PageUp or Key.PageDown or Key.Home or Key.End)
+        {
+            SyncCurrentOffset();
+        }
     }
 
     private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
+        if (!IsEnabled) return;
+
         // Don't intercept zoom (Ctrl + MouseWheel)
         if (e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
 
-        if (Math.Abs(e.Delta.Y) > 0.01)
+        // Shift + Wheel = Horizontal scroll
+        if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+        {
+            var delta = Math.Abs(e.Delta.X) > 0.01 ? e.Delta.X : e.Delta.Y;
+            if (Math.Abs(delta) > 0.01)
+            {
+                e.Handled = true;
+
+                if (_scrollTimer == null || !_scrollTimer.IsEnabled)
+                {
+                    _targetHorizontalOffset = _editor.HorizontalOffset;
+                }
+
+                var lineDelta = delta * 60.0;
+                _targetHorizontalOffset -= lineDelta;
+
+                var maxOffsetH = Math.Max(0.0, _editor.ExtentWidth - _editor.ViewportWidth);
+                _targetHorizontalOffset = Math.Clamp(_targetHorizontalOffset, 0.0, maxOffsetH);
+
+                var currentH = _editor.HorizontalOffset;
+                var maxLeadH = Math.Max(300.0, _editor.ViewportWidth * 2.0);
+                _targetHorizontalOffset = Math.Clamp(_targetHorizontalOffset, currentH - maxLeadH, currentH + maxLeadH);
+
+                if (_scrollTimer != null && !_scrollTimer.IsEnabled)
+                {
+                    _scrollTimer.Start();
+                }
+            }
+            return;
+        }
+
+        // Dedicated horizontal tilt/pan wheel
+        if (Math.Abs(e.Delta.X) > 0.01 && Math.Abs(e.Delta.Y) <= 0.01)
         {
             e.Handled = true;
 
-            // Smooth scroll delta: ~60px per mouse wheel click
-            var lineDelta = e.Delta.Y * 60.0;
+            if (_scrollTimer == null || !_scrollTimer.IsEnabled)
+            {
+                _targetHorizontalOffset = _editor.HorizontalOffset;
+            }
+
+            var lineDelta = e.Delta.X * 60.0;
+            _targetHorizontalOffset -= lineDelta;
+
+            var maxOffsetH = Math.Max(0.0, _editor.ExtentWidth - _editor.ViewportWidth);
+            _targetHorizontalOffset = Math.Clamp(_targetHorizontalOffset, 0.0, maxOffsetH);
+
+            var currentH = _editor.HorizontalOffset;
+            var maxLeadH = Math.Max(300.0, _editor.ViewportWidth * 2.0);
+            _targetHorizontalOffset = Math.Clamp(_targetHorizontalOffset, currentH - maxLeadH, currentH + maxLeadH);
+
+            if (_scrollTimer != null && !_scrollTimer.IsEnabled)
+            {
+                _scrollTimer.Start();
+            }
+            return;
+        }
+
+        // Vertical scroll
+        if (Math.Abs(e.Delta.Y) > 0.01)
+        {
+            e.Handled = true;
 
             if (_scrollTimer == null || !_scrollTimer.IsEnabled)
             {
                 _targetVerticalOffset = _editor.VerticalOffset;
             }
 
+            var lineDelta = e.Delta.Y * 60.0;
             _targetVerticalOffset -= lineDelta;
 
-            // Clamp offset within valid scrollable bounds
-            var maxOffset = Math.Max(0.0, _editor.ExtentHeight - _editor.ViewportHeight);
-            _targetVerticalOffset = Math.Clamp(_targetVerticalOffset, 0.0, maxOffset);
+            var maxOffsetV = Math.Max(0.0, _editor.ExtentHeight - _editor.ViewportHeight);
+            _targetVerticalOffset = Math.Clamp(_targetVerticalOffset, 0.0, maxOffsetV);
+
+            var currentV = _editor.VerticalOffset;
+            var maxLeadV = Math.Max(300.0, _editor.ViewportHeight * 2.5);
+            _targetVerticalOffset = Math.Clamp(_targetVerticalOffset, currentV - maxLeadV, currentV + maxLeadV);
 
             if (_scrollTimer != null && !_scrollTimer.IsEnabled)
             {
@@ -188,25 +283,57 @@ public sealed class SmoothScrollController : IDisposable
     {
         if (_isDisposed) return;
 
-        var current = _editor.VerticalOffset;
-        var diff = _targetVerticalOffset - current;
+        var currentV = _editor.VerticalOffset;
+        var diffV = _targetVerticalOffset - currentV;
 
-        if (Math.Abs(diff) < 0.5)
+        var currentH = _editor.HorizontalOffset;
+        var diffH = _targetHorizontalOffset - currentH;
+
+        bool doneV = Math.Abs(diffV) < 0.8;
+        bool doneH = Math.Abs(diffH) < 0.8;
+
+        if (doneV && doneH)
         {
             _editor.ScrollToVerticalOffset(_targetVerticalOffset);
+            _editor.ScrollToHorizontalOffset(_targetHorizontalOffset);
             _scrollTimer?.Stop();
         }
         else
         {
-            // Smooth lerp: 28% distance closed per 16ms frame (silky easing)
-            var next = current + (diff * 0.28);
-            _editor.ScrollToVerticalOffset(next);
+            if (!doneV)
+            {
+                var stepV = diffV * 0.38;
+                if (Math.Abs(stepV) < 1.0)
+                {
+                    stepV = Math.Sign(diffV) * Math.Min(Math.Abs(diffV), 1.0);
+                }
+                _editor.ScrollToVerticalOffset(currentV + stepV);
+            }
+            else
+            {
+                _editor.ScrollToVerticalOffset(_targetVerticalOffset);
+            }
+
+            if (!doneH)
+            {
+                var stepH = diffH * 0.38;
+                if (Math.Abs(stepH) < 1.0)
+                {
+                    stepH = Math.Sign(diffH) * Math.Min(Math.Abs(diffH), 1.0);
+                }
+                _editor.ScrollToHorizontalOffset(currentH + stepH);
+            }
+            else
+            {
+                _editor.ScrollToHorizontalOffset(_targetHorizontalOffset);
+            }
         }
     }
 
     public void SyncCurrentOffset()
     {
         _targetVerticalOffset = _editor.VerticalOffset;
+        _targetHorizontalOffset = _editor.HorizontalOffset;
         _scrollTimer?.Stop();
     }
 
@@ -218,5 +345,7 @@ public sealed class SmoothScrollController : IDisposable
         _scrollTimer?.Stop();
         _scrollTimer = null;
         _editor.RemoveHandler(InputElement.PointerWheelChangedEvent, OnPointerWheelChanged);
+        _editor.RemoveHandler(InputElement.PointerPressedEvent, OnPointerPressed);
+        _editor.RemoveHandler(InputElement.KeyDownEvent, OnKeyDown);
     }
 }

@@ -178,6 +178,10 @@
                           Content="Highlight matching word occurrences automatically"
                           Foreground="{DynamicResource ThemeWindowForeground}"/>
 
+                <CheckBox IsChecked="{Binding SmoothScrolling}"
+                          Content="Enable silky-smooth mouse wheel scrolling"
+                          Foreground="{DynamicResource ThemeWindowForeground}"/>
+
                 <Grid ColumnDefinitions="Auto,12,100" Margin="0,4,0,0">
                   <TextBlock Grid.Column="0"
                              Text="Tab Size (spaces):"

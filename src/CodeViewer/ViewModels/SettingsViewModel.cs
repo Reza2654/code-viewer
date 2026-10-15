@@ -94,6 +94,9 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private bool _restorePreviousSession;
 
+    [ObservableProperty]
+    private bool _smoothScrolling;
+
     public IReadOnlyList<ColorTheme> AvailableThemes => _themeService.AvailableThemes;
     public IReadOnlyList<ColorTheme> AvailableLightThemes { get; }
     public IReadOnlyList<ColorTheme> AvailableDarkThemes { get; }
@@ -125,6 +128,7 @@ public partial class SettingsViewModel : ViewModelBase
         _maxRecentFiles = current.MaxRecentFiles;
         _restorePreviousSession = current.RestorePreviousSession;
         _highlightWordOccurrences = current.HighlightWordOccurrences;
+        _smoothScrolling = current.SmoothScrolling;
 
         _themeMode = !string.IsNullOrWhiteSpace(current.ThemeMode) ? current.ThemeMode : "System";
         _contrastMode = !string.IsNullOrWhiteSpace(current.ContrastMode) ? current.ContrastMode : "Default";
@@ -218,6 +222,9 @@ public partial class SettingsViewModel : ViewModelBase
             _isUpdatingTheme = true;
             var temp = new AppSettings
             {
+                ThemeId = string.Equals(ThemeMode, "Light", StringComparison.OrdinalIgnoreCase)
+                    ? (SelectedLightPreset?.Id ?? "default-light")
+                    : (SelectedDarkPreset?.Id ?? "default-dark"),
                 ThemeMode = ThemeMode,
                 ContrastMode = ContrastMode,
                 LightPresetId = SelectedLightPreset?.Id ?? "default-light",
@@ -452,7 +459,8 @@ public partial class SettingsViewModel : ViewModelBase
             TabSize = TabSize,
             MaxRecentFiles = MaxRecentFiles,
             RestorePreviousSession = RestorePreviousSession,
-            HighlightWordOccurrences = HighlightWordOccurrences
+            HighlightWordOccurrences = HighlightWordOccurrences,
+            SmoothScrolling = SmoothScrolling
         };
 
         await _settingsService.SaveAsync(settings);
@@ -481,6 +489,7 @@ public partial class SettingsViewModel : ViewModelBase
         MaxRecentFiles = defaults.MaxRecentFiles;
         RestorePreviousSession = defaults.RestorePreviousSession;
         HighlightWordOccurrences = defaults.HighlightWordOccurrences;
+        SmoothScrolling = defaults.SmoothScrolling;
 
         ThemeMode = defaults.ThemeMode;
         ContrastMode = defaults.ContrastMode;

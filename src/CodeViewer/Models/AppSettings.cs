@@ -83,6 +83,9 @@ public class AppSettings
     [JsonPropertyName("highlightWordOccurrences")]
     public bool HighlightWordOccurrences { get; set; } = true;
 
+    [JsonPropertyName("smoothScrolling")]
+    public bool SmoothScrolling { get; set; } = true;
+
     public AppSettings Clone()
     {
         return new AppSettings
@@ -105,7 +108,8 @@ public class AppSettings
             TabSize = TabSize,
             MaxRecentFiles = MaxRecentFiles,
             RestorePreviousSession = RestorePreviousSession,
-            HighlightWordOccurrences = HighlightWordOccurrences
+            HighlightWordOccurrences = HighlightWordOccurrences,
+            SmoothScrolling = SmoothScrolling
         };
     }
 }

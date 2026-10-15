@@ -25,10 +25,13 @@ public class ThemeService : IThemeService
     public ColorTheme CurrentTheme => _currentTheme;
     public event Action<ColorTheme>? ThemeChanged;
 
-    public ThemeService()
+    public ThemeService(string? baseDir = null)
     {
-        var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var baseDir = Path.Combine(appData, "CodeViewer");
+        if (string.IsNullOrWhiteSpace(baseDir))
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            baseDir = Path.Combine(appData, "CodeViewer");
+        }
         _themesDirectory = Path.Combine(baseDir, "Themes");
         _settingsFilePath = Path.Combine(baseDir, "current_theme.txt");
 
@@ -300,6 +303,198 @@ public class ThemeService : IThemeService
             CodePreprocessor = "#D73A49",
             CodePunctuation = "#24292E"
         });
+
+        _themes.Add(new ColorTheme
+        {
+            Id = "tokyo-night",
+            Name = "Tokyo Night",
+            IsDark = true,
+            WindowBackground = "#1A1B26",
+            Foreground = "#A9B1D6",
+            MenuBackground = "#16161E",
+            MenuForeground = "#C0CAF5",
+            TabBarBackground = "#16161E",
+            TabItemActiveBackground = "#1A1B26",
+            TabItemInactiveBackground = "#1F2335",
+            TabItemActiveForeground = "#7AA2F7",
+            TabItemInactiveForeground = "#565F89",
+            EditorBackground = "#1A1B26",
+            EditorForeground = "#A9B1D6",
+            LineNumbersForeground = "#3B4261",
+            SelectionBackground = "#283457",
+            StatusBarBackground = "#7AA2F7",
+            StatusBarForeground = "#15161E",
+            AccentColor = "#7AA2F7",
+            BorderColor = "#101014",
+            CodeKeyword = "#BB9AF7",
+            CodeComment = "#565F89",
+            CodeString = "#9ECE6A",
+            CodeNumber = "#FF9E64",
+            CodeType = "#2AC3DE",
+            CodeMethod = "#7AA2F7",
+            CodePreprocessor = "#F7768E",
+            CodePunctuation = "#C0CAF5"
+        });
+
+        _themes.Add(new ColorTheme
+        {
+            Id = "nord",
+            Name = "Nord",
+            IsDark = true,
+            WindowBackground = "#2E3440",
+            Foreground = "#D8DEE9",
+            MenuBackground = "#242933",
+            MenuForeground = "#ECEFF4",
+            TabBarBackground = "#242933",
+            TabItemActiveBackground = "#2E3440",
+            TabItemInactiveBackground = "#3B4252",
+            TabItemActiveForeground = "#88C0D0",
+            TabItemInactiveForeground = "#4C566A",
+            EditorBackground = "#2E3440",
+            EditorForeground = "#D8DEE9",
+            LineNumbersForeground = "#4C566A",
+            SelectionBackground = "#434C5E",
+            StatusBarBackground = "#5E81AC",
+            StatusBarForeground = "#ECEFF4",
+            AccentColor = "#88C0D0",
+            BorderColor = "#1D2128",
+            CodeKeyword = "#81A1C1",
+            CodeComment = "#616E88",
+            CodeString = "#A3BE8C",
+            CodeNumber = "#B48EAD",
+            CodeType = "#8FBCBB",
+            CodeMethod = "#88C0D0",
+            CodePreprocessor = "#D08770",
+            CodePunctuation = "#ECEFF4"
+        });
+
+        _themes.Add(new ColorTheme
+        {
+            Id = "catppuccin-mocha",
+            Name = "Catppuccin Mocha",
+            IsDark = true,
+            WindowBackground = "#1E1E2E",
+            Foreground = "#CDD6F4",
+            MenuBackground = "#181825",
+            MenuForeground = "#CDD6F4",
+            TabBarBackground = "#181825",
+            TabItemActiveBackground = "#1E1E2E",
+            TabItemInactiveBackground = "#313244",
+            TabItemActiveForeground = "#CBA6F7",
+            TabItemInactiveForeground = "#6C7086",
+            EditorBackground = "#1E1E2E",
+            EditorForeground = "#CDD6F4",
+            LineNumbersForeground = "#585B70",
+            SelectionBackground = "#45475A",
+            StatusBarBackground = "#CBA6F7",
+            StatusBarForeground = "#11111B",
+            AccentColor = "#CBA6F7",
+            BorderColor = "#11111B",
+            CodeKeyword = "#CBA6F7",
+            CodeComment = "#6C7086",
+            CodeString = "#A6E3A1",
+            CodeNumber = "#FAB387",
+            CodeType = "#F9E2AF",
+            CodeMethod = "#89B4FA",
+            CodePreprocessor = "#F38BA8",
+            CodePunctuation = "#9399B2"
+        });
+
+        _themes.Add(new ColorTheme
+        {
+            Id = "github-dark",
+            Name = "GitHub Dark",
+            IsDark = true,
+            WindowBackground = "#0D1117",
+            Foreground = "#C9D1D9",
+            MenuBackground = "#161B22",
+            MenuForeground = "#C9D1D9",
+            TabBarBackground = "#161B22",
+            TabItemActiveBackground = "#0D1117",
+            TabItemInactiveBackground = "#21262D",
+            TabItemActiveForeground = "#58A6FF",
+            TabItemInactiveForeground = "#8B949E",
+            EditorBackground = "#0D1117",
+            EditorForeground = "#C9D1D9",
+            LineNumbersForeground = "#484F58",
+            SelectionBackground = "#1F6FEB",
+            StatusBarBackground = "#1F6FEB",
+            StatusBarForeground = "#FFFFFF",
+            AccentColor = "#58A6FF",
+            BorderColor = "#010409",
+            CodeKeyword = "#FF7B72",
+            CodeComment = "#8B949E",
+            CodeString = "#A5D6FF",
+            CodeNumber = "#79C0FF",
+            CodeType = "#FFA657",
+            CodeMethod = "#D2A8FF",
+            CodePreprocessor = "#FF7B72",
+            CodePunctuation = "#C9D1D9"
+        });
+
+        _themes.Add(new ColorTheme
+        {
+            Id = "solarized-light",
+            Name = "Solarized Light",
+            IsDark = false,
+            WindowBackground = "#FDF6E3",
+            Foreground = "#657B83",
+            MenuBackground = "#EEE8D5",
+            MenuForeground = "#586E75",
+            TabBarBackground = "#EEE8D5",
+            TabItemActiveBackground = "#FDF6E3",
+            TabItemInactiveBackground = "#E0D9C5",
+            TabItemActiveForeground = "#268BD2",
+            TabItemInactiveForeground = "#93A1A1",
+            EditorBackground = "#FDF6E3",
+            EditorForeground = "#657B83",
+            LineNumbersForeground = "#93A1A1",
+            SelectionBackground = "#EEE8D5",
+            StatusBarBackground = "#268BD2",
+            StatusBarForeground = "#FDF6E3",
+            AccentColor = "#2AA198",
+            BorderColor = "#D33682",
+            CodeKeyword = "#859900",
+            CodeComment = "#93A1A1",
+            CodeString = "#2AA198",
+            CodeNumber = "#D33682",
+            CodeType = "#B58900",
+            CodeMethod = "#268BD2",
+            CodePreprocessor = "#CB4B16",
+            CodePunctuation = "#657B83"
+        });
+
+        _themes.Add(new ColorTheme
+        {
+            Id = "catppuccin-latte",
+            Name = "Catppuccin Latte",
+            IsDark = false,
+            WindowBackground = "#EFF1F5",
+            Foreground = "#4C4F69",
+            MenuBackground = "#E6E9EF",
+            MenuForeground = "#4C4F69",
+            TabBarBackground = "#E6E9EF",
+            TabItemActiveBackground = "#EFF1F5",
+            TabItemInactiveBackground = "#CCD0DA",
+            TabItemActiveForeground = "#8839EF",
+            TabItemInactiveForeground = "#9CA0B0",
+            EditorBackground = "#EFF1F5",
+            EditorForeground = "#4C4F69",
+            LineNumbersForeground = "#9CA0B0",
+            SelectionBackground = "#BCC0CC",
+            StatusBarBackground = "#8839EF",
+            StatusBarForeground = "#FFFFFF",
+            AccentColor = "#8839EF",
+            BorderColor = "#DCE0E8",
+            CodeKeyword = "#8839EF",
+            CodeComment = "#9CA0B0",
+            CodeString = "#40A02B",
+            CodeNumber = "#FE640B",
+            CodeType = "#DF8E1D",
+            CodeMethod = "#1E66F5",
+            CodePreprocessor = "#EA76CB",
+            CodePunctuation = "#5C5F77"
+        });
     }
 
     private void EnsureDirectoriesAndSamples()
@@ -368,9 +563,23 @@ public class ThemeService : IThemeService
                 {
                     var json = File.ReadAllText(file);
                     var theme = JsonSerializer.Deserialize<ColorTheme>(json);
-                    if (theme != null && !string.IsNullOrWhiteSpace(theme.Id) && !string.IsNullOrWhiteSpace(theme.Name))
+                    if (theme != null)
                     {
-                        if (!_themes.Any(t => string.Equals(t.Id, theme.Id, StringComparison.OrdinalIgnoreCase)))
+                        if (string.IsNullOrWhiteSpace(theme.Id))
+                        {
+                            theme.Id = Path.GetFileNameWithoutExtension(file).ToLowerInvariant().Replace(' ', '-');
+                        }
+                        if (string.IsNullOrWhiteSpace(theme.Name))
+                        {
+                            theme.Name = Path.GetFileNameWithoutExtension(file);
+                        }
+
+                        var existingIndex = _themes.FindIndex(t => string.Equals(t.Id, theme.Id, StringComparison.OrdinalIgnoreCase));
+                        if (existingIndex >= 0)
+                        {
+                            _themes[existingIndex] = theme;
+                        }
+                        else
                         {
                             _themes.Add(theme);
                         }
@@ -508,14 +717,20 @@ public class ThemeService : IThemeService
         ColorTheme? baseTheme = null;
         if (!isDark)
         {
-            var targetId = !string.IsNullOrWhiteSpace(settings.LightPresetId) ? settings.LightPresetId : "default-light";
+            var targetId = !string.IsNullOrWhiteSpace(settings.LightPresetId) && !string.Equals(settings.LightPresetId, "default-light", StringComparison.OrdinalIgnoreCase)
+                ? settings.LightPresetId
+                : (!string.IsNullOrWhiteSpace(settings.ThemeId) ? settings.ThemeId : (!string.IsNullOrWhiteSpace(settings.LightPresetId) ? settings.LightPresetId : "default-light"));
+
             baseTheme = _themes.FirstOrDefault(t => !t.IsDark && (string.Equals(t.Id, targetId, StringComparison.OrdinalIgnoreCase) || string.Equals(t.Name, targetId, StringComparison.OrdinalIgnoreCase)))
                         ?? _themes.FirstOrDefault(t => !t.IsDark)
                         ?? _themes[0];
         }
         else
         {
-            var targetId = !string.IsNullOrWhiteSpace(settings.DarkPresetId) ? settings.DarkPresetId : "default-dark";
+            var targetId = !string.IsNullOrWhiteSpace(settings.DarkPresetId) && !string.Equals(settings.DarkPresetId, "default-dark", StringComparison.OrdinalIgnoreCase)
+                ? settings.DarkPresetId
+                : (!string.IsNullOrWhiteSpace(settings.ThemeId) ? settings.ThemeId : (!string.IsNullOrWhiteSpace(settings.DarkPresetId) ? settings.DarkPresetId : "default-dark"));
+
             baseTheme = _themes.FirstOrDefault(t => t.IsDark && (string.Equals(t.Id, targetId, StringComparison.OrdinalIgnoreCase) || string.Equals(t.Name, targetId, StringComparison.OrdinalIgnoreCase)))
                         ?? _themes.FirstOrDefault(t => t.IsDark)
                         ?? _themes[0];
@@ -525,21 +740,22 @@ public class ThemeService : IThemeService
 
         if (!isDark)
         {
-            if (IsValidHexColor(settings.LightBackgroundHex))
+            var isCustomTheme = !string.Equals(baseTheme.Id, "default-light", StringComparison.OrdinalIgnoreCase);
+            if (IsValidHexColor(settings.LightBackgroundHex) && (!isCustomTheme || !string.Equals(NormalizeHex(settings.LightBackgroundHex), "#F9F9F9", StringComparison.OrdinalIgnoreCase)))
             {
                 var bg = NormalizeHex(settings.LightBackgroundHex);
                 effective.WindowBackground = bg;
                 effective.EditorBackground = bg;
                 effective.TabItemActiveBackground = bg;
             }
-            if (IsValidHexColor(settings.LightForegroundHex))
+            if (IsValidHexColor(settings.LightForegroundHex) && (!isCustomTheme || !string.Equals(NormalizeHex(settings.LightForegroundHex), "#101010", StringComparison.OrdinalIgnoreCase)))
             {
                 var fg = NormalizeHex(settings.LightForegroundHex);
                 effective.Foreground = fg;
                 effective.EditorForeground = fg;
                 effective.TabItemActiveForeground = fg;
             }
-            if (IsValidHexColor(settings.LightAccentHex))
+            if (IsValidHexColor(settings.LightAccentHex) && (!isCustomTheme || !string.Equals(NormalizeHex(settings.LightAccentHex), "#007ACC", StringComparison.OrdinalIgnoreCase)))
             {
                 var acc = NormalizeHex(settings.LightAccentHex);
                 effective.AccentColor = acc;
@@ -560,21 +776,22 @@ public class ThemeService : IThemeService
         }
         else
         {
-            if (IsValidHexColor(settings.DarkBackgroundHex))
+            var isCustomTheme = !string.Equals(baseTheme.Id, "default-dark", StringComparison.OrdinalIgnoreCase);
+            if (IsValidHexColor(settings.DarkBackgroundHex) && (!isCustomTheme || !string.Equals(NormalizeHex(settings.DarkBackgroundHex), "#101010", StringComparison.OrdinalIgnoreCase)))
             {
                 var bg = NormalizeHex(settings.DarkBackgroundHex);
                 effective.WindowBackground = bg;
                 effective.EditorBackground = bg;
                 effective.TabItemActiveBackground = bg;
             }
-            if (IsValidHexColor(settings.DarkForegroundHex))
+            if (IsValidHexColor(settings.DarkForegroundHex) && (!isCustomTheme || !string.Equals(NormalizeHex(settings.DarkForegroundHex), "#CCCCCC", StringComparison.OrdinalIgnoreCase)))
             {
                 var fg = NormalizeHex(settings.DarkForegroundHex);
                 effective.Foreground = fg;
                 effective.EditorForeground = fg;
                 effective.TabItemActiveForeground = fg;
             }
-            if (IsValidHexColor(settings.DarkAccentHex))
+            if (IsValidHexColor(settings.DarkAccentHex) && (!isCustomTheme || !string.Equals(NormalizeHex(settings.DarkAccentHex), "#007ACC", StringComparison.OrdinalIgnoreCase)))
             {
                 var acc = NormalizeHex(settings.DarkAccentHex);
                 effective.AccentColor = acc;
@@ -648,11 +865,15 @@ public class ThemeService : IThemeService
             foreach (var color in definition.NamedHighlightingColors)
             {
                 var name = color.Name?.ToLowerInvariant() ?? string.Empty;
-                if (name.Contains("comment") || name.Contains("xml") && name.Contains("doc"))
+                if (name.Contains("comment") || (name.Contains("xml") && name.Contains("doc")))
                 {
                     color.Foreground = commentBrush;
                 }
-                else if (name.Contains("string") || name.Contains("char") || name.Contains("regex") || name.Contains("literal") && !name.Contains("number"))
+                else if (name.Contains("string") || name.Contains("char") || name.Contains("regex") || (name.Contains("literal") && !name.Contains("number")))
+                {
+                    color.Foreground = stringBrush;
+                }
+                else if (name.Contains("attributevalue") || name.Contains("attrvalue"))
                 {
                     color.Foreground = stringBrush;
                 }
@@ -668,6 +889,14 @@ public class ThemeService : IThemeService
                 {
                     color.Foreground = typeBrush;
                 }
+                else if (name.Contains("tag") || name.Contains("element"))
+                {
+                    color.Foreground = kwBrush;
+                }
+                else if (name.Contains("attribute") || name.Contains("annotation"))
+                {
+                    color.Foreground = methodBrush;
+                }
                 else if (name.Contains("method") || name.Contains("function") || name.Contains("call") || name.Contains("invoc"))
                 {
                     color.Foreground = methodBrush;
@@ -676,13 +905,29 @@ public class ThemeService : IThemeService
                 {
                     color.Foreground = preprocBrush;
                 }
+                else if (name.Contains("heading") || name.Contains("header"))
+                {
+                    color.Foreground = kwBrush;
+                }
+                else if (name.Contains("bold") || name.Contains("strong"))
+                {
+                    color.Foreground = varBrush;
+                }
+                else if (name.Contains("italic") || name.Contains("emphasis"))
+                {
+                    color.Foreground = commentBrush;
+                }
+                else if (name.Contains("link") || name.Contains("url"))
+                {
+                    color.Foreground = methodBrush;
+                }
+                else if (name.Contains("propertykey") || name.Contains("key"))
+                {
+                    color.Foreground = typeBrush;
+                }
                 else if (name.Contains("punctuation") || name.Contains("delimiter") || name.Contains("operator") || name.Contains("parenthes") || name.Contains("bracket") || name.Contains("brace") || name.Contains("colon") || name.Contains("semicolon"))
                 {
                     color.Foreground = punctBrush;
-                }
-                else if (name.Contains("attribute") || name.Contains("annotation") || name.Contains("tag"))
-                {
-                    color.Foreground = typeBrush;
                 }
                 else if (name.Contains("variable") || name.Contains("property") || name.Contains("field") || name.Contains("parameter"))
                 {
@@ -738,12 +983,12 @@ public class ThemeService : IThemeService
             theme.Name = Path.GetFileNameWithoutExtension(jsonFilePath);
         }
 
-        // Copy file to themes directory
+        GetThemesDirectory();
+
+        // Write sanitized theme JSON guaranteeing Id and Name are present on disk
         var targetFile = Path.Combine(_themesDirectory, $"{theme.Id}.json");
-        if (!string.Equals(Path.GetFullPath(jsonFilePath), Path.GetFullPath(targetFile), StringComparison.OrdinalIgnoreCase))
-        {
-            await File.WriteAllTextAsync(targetFile, json);
-        }
+        var serialized = JsonSerializer.Serialize(theme, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(targetFile, serialized);
 
         // Add or update in list
         var existingIndex = _themes.FindIndex(t => string.Equals(t.Id, theme.Id, StringComparison.OrdinalIgnoreCase));
@@ -756,6 +1001,7 @@ public class ThemeService : IThemeService
             _themes.Add(theme);
         }
 
+        SaveThemeName(theme.Id);
         ApplyTheme(theme);
         return theme;
     }
