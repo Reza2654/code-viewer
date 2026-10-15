@@ -33,6 +33,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private readonly IWorkspaceSearchService _workspaceSearchService;
     private readonly AppConfig _config;
 
+    public record ClosedTabState(string? FilePath, string Title, string Content, int CaretLine, int CaretColumn, string Language);
+    private readonly Stack<ClosedTabState> _recentlyClosedTabs = new();
+
     private readonly HashSet<string> _activeReloadPrompts = new(StringComparer.OrdinalIgnoreCase);
     private CancellationTokenSource? _statusCts;
     private bool _isDisposed;
@@ -499,7 +502,20 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             }
 
             // If the only document is an untouched empty Untitled tab, replace it
-            if (Documents.Count == 1 && Documents[0].Model.IsNewFile && !Documents[0].IsModified && Documents[0].TextDocument.TextLength == 0)
+            bool isUntouchedEmpty = false;
+            if (Documents.Count == 1 && Documents[0].Model.IsNewFile && !Documents[0].IsModified)
+            {
+                try
+                {
+                    isUntouchedEmpty = Documents[0].TextDocument.TextLength == 0;
+                }
+                catch
+                {
+                    isUntouchedEmpty = string.IsNullOrEmpty(Documents[0].Model.Text);
+                }
+            }
+
+            if (isUntouchedEmpty)
             {
                 Documents[0] = docVm;
             }
@@ -622,6 +638,28 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             }
         }
 
+        if (!string.IsNullOrEmpty(targetDoc.FilePath) || !string.IsNullOrEmpty(targetDoc.TextDocument.Text))
+        {
+            if (_recentlyClosedTabs.Count >= 20)
+            {
+                var list = _recentlyClosedTabs.ToList();
+                list.RemoveAt(list.Count - 1);
+                _recentlyClosedTabs.Clear();
+                for (int i = list.Count - 1; i >= 0; i--) _recentlyClosedTabs.Push(list[i]);
+            }
+            string text = string.Empty;
+            try
+            {
+                text = targetDoc.TextDocument?.Text ?? string.Empty;
+            }
+            catch
+            {
+                // Fallback for background thread/test executions where UI dispatcher isn't current
+            }
+            _recentlyClosedTabs.Push(new ClosedTabState(targetDoc.FilePath, targetDoc.Title, text, targetDoc.CaretLine, targetDoc.CaretColumn, targetDoc.Language));
+            OnPropertyChanged(nameof(CanReopenClosedTab));
+        }
+
         if (!string.IsNullOrEmpty(targetDoc.FilePath))
         {
             _fileWatcherService.UnwatchFile(targetDoc.FilePath);
@@ -643,6 +681,33 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         UpdateActiveDocumentSelection();
         OnPropertyChanged(nameof(WindowTitle));
         _ = SaveCurrentSessionAsync();
+    }
+
+    public bool CanReopenClosedTab => _recentlyClosedTabs.Count > 0;
+
+    [RelayCommand]
+    public async Task ReopenClosedTabAsync()
+    {
+        if (_recentlyClosedTabs.Count == 0) return;
+
+        var closed = _recentlyClosedTabs.Pop();
+        OnPropertyChanged(nameof(CanReopenClosedTab));
+        if (!string.IsNullOrEmpty(closed.FilePath) && File.Exists(closed.FilePath))
+        {
+            await OpenFileInternalAsync(closed.FilePath, closed.CaretLine, closed.CaretColumn);
+        }
+        else if (!string.IsNullOrEmpty(closed.Content))
+        {
+            CreateNewDocument();
+            if (ActiveDocument != null)
+            {
+                ActiveDocument.TextDocument.Text = closed.Content;
+                ActiveDocument.Title = closed.Title;
+                ActiveDocument.Language = closed.Language;
+                ActiveDocument.CaretLine = closed.CaretLine;
+                ActiveDocument.CaretColumn = closed.CaretColumn;
+            }
+        }
     }
 
     #region Tab Context Menu Operations
@@ -694,6 +759,22 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             await RequestSetClipboardText(target.FilePath);
             _ = ShowTemporaryStatusAsync("✓ Copied path to clipboard");
+        }
+    }
+
+    [RelayCommand]
+    public async Task CopyDocumentRelativePathAsync(DocumentViewModel? doc)
+    {
+        var target = doc ?? ActiveDocument;
+        if (target?.FilePath != null && RequestSetClipboardText != null)
+        {
+            var path = target.FilePath;
+            if (RootFolder != null && path.StartsWith(RootFolder.FullPath, StringComparison.OrdinalIgnoreCase))
+            {
+                path = Path.GetRelativePath(RootFolder.FullPath, path);
+            }
+            await RequestSetClipboardText(path);
+            _ = ShowTemporaryStatusAsync("✓ Copied relative path to clipboard");
         }
     }
 
@@ -907,6 +988,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     #endregion
 
+    #region Editor and Theme Operations
+
     [RelayCommand]
     public void ShowSearch()
     {
@@ -999,8 +1082,6 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         RequestOpenSettings?.Invoke();
     }
 
-    #region Theme Operations
-
     [RelayCommand]
     public void SelectTheme(ColorTheme? theme)
     {
@@ -1010,6 +1091,22 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(CurrentTheme));
             var settings = _settingsService.CurrentSettings;
             settings.ThemeId = theme.Id;
+            if (theme.IsDark)
+            {
+                settings.ThemeMode = "Dark";
+                settings.DarkPresetId = theme.Id;
+                settings.DarkBackgroundHex = theme.WindowBackground;
+                settings.DarkForegroundHex = theme.Foreground;
+                settings.DarkAccentHex = theme.AccentColor;
+            }
+            else
+            {
+                settings.ThemeMode = "Light";
+                settings.LightPresetId = theme.Id;
+                settings.LightBackgroundHex = theme.WindowBackground;
+                settings.LightForegroundHex = theme.Foreground;
+                settings.LightAccentHex = theme.AccentColor;
+            }
             _ = _settingsService.SaveAsync(settings);
         }
     }

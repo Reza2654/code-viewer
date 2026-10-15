@@ -36,15 +36,17 @@
   - Move Lines Up / Down (`Alt+Up` / `Alt+Down`): Swap lines or multi-line selections with clean atomic undo (`Ctrl+Z`).
   - Delete Line (`Ctrl+Shift+K`): Remove current line cleanly.
 - 📑 **Power Tab Management**:
-  - Tab context menu: Close Other Tabs, Close Tabs to the Right, Close Saved Tabs, Copy Full Path, Reveal in Explorer.
+  - Reopen closed tabs instantly with `Ctrl+Shift+T` or via tab context menu.
+  - Tab context menu: Reopen Closed Tab, Close Other Tabs, Close Tabs to the Right, Close Saved Tabs, Copy Full Path, Copy Relative Path, Reveal in File Explorer.
   - Middle-click any tab to close instantly.
+- 🔦 **Word Occurrence Highlighting**: Automatically highlights all matching occurrences of the word or identifier under the caret or active selection across the document, with theme-tailored background styling, zero lag, and Settings toggle.
 - 📊 **Enhanced Status Bar & Redesigned Code Mode**: Real-time line and column tracking with selection length and selected line count, live encoding, line ending indicators, interactive zoom indicator with one-click reset, and a redesigned Language Mode flyout with instant search, checkmark indicators, in-app update checking, and syntax highlighting for **AgentLang** (`.agent`), **PS2** (`.ps2`, `.ps2bundle`), and 25+ languages.
 - 🎨 **Modern Theme & Appearance System**:
   - **Appearance Mode**: Seamless switching between **System/OS (💻)**, **Light (☀️)**, and **Dark (🌙)** modes.
   - **Contrast Controls**: One-click toggling between **Default** and accessible **Strong** contrast.
   - **Light Theme Presets & Color Customizer**: Default Light, GitHub Light, with customizable Background (`#F9F9F9`), Foreground (`#101010`), and Accent (`#007ACC`) hex codes and live color swatches.
   - **Dark Theme Presets & Color Customizer**: Default Dark, Dark+ (VS Code), One Dark Pro, Monokai, Dracula, Solarized Dark, with customizable Background (`#101010`), Foreground (`#CCCCCC`), and Accent (`#007ACC`) hex codes and live color swatches.
-  - **Dynamic Real-Time Re-Theming**: Instant live application styling without restarts.
+  - **Dynamic Real-Time Re-Theming**: Instant live application styling without restarts, with fixed theme persistence, real-time live preview synchronization, and automatic AvaloniaEdit line transformer re-brushing.
   - **Theme Importer**: Easily import custom UI themes (`.json`) or custom syntax highlighting definitions (`.xshd`).
 - 🧩 **Extensible Plugin & Tool System**:
   - **JSON Tools**: Format with 2 spaces, minify, and validate JSON.
@@ -54,7 +56,7 @@
   - **Text Statistics**: Comprehensive character, word, line, non-empty line, and byte counts.
   - **Dynamic DLL Plugin Importer**: Drop third-party `.dll` assemblies implementing `IPlugin` into the plugins directory or load them via **Tools -> Import Plugin (.dll)...** without locking the file on disk.
 - 💾 **Safe Local Single-Instance IPC**: Opening files via CLI or File Explorer opens them as tabs inside the existing window using a high-performance local Named Pipe, passing file:line coordinates directly.
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.6-Setup.exe`) and portable standalone `.zip` archive.
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.8-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---
@@ -90,6 +92,7 @@
 | `Ctrl + Shift + S` | Save As |
 | `Ctrl + Shift + C` | Copy All Content to Clipboard |
 | `Ctrl + W` | Close Active Tab (or middle-click tab) |
+| `Ctrl + Shift + T` | Reopen Closed Tab |
 | `Ctrl + Z` | Undo (Atomic) |
 | `Ctrl + Y` | Redo |
 | `Ctrl + +` / `Ctrl + -` | Zoom In / Out |
@@ -103,14 +106,14 @@
 ## Installation & Packaging
 
 ### Option 1: Installer (Recommended)
-Download and run `CodeViewer-v1.2.0-beta.7-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
+Download and run `CodeViewer-v1.2.0-beta.8-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
 - Installs Code Viewer to your system.
 - Creates Start Menu and Desktop shortcuts.
 - Optionally installs and registers Google Sans Code font system-wide.
 - Automatically registers the modern Windows 11 right-click context menu.
 
 ### Option 2: Portable ZIP
-Download `CodeViewer-v1.2.0-beta.7-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
+Download `CodeViewer-v1.2.0-beta.8-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
 
 To enable the modern Windows 11 context menu for portable use, right-click `scripts\register-windows11-context-menu.ps1` and select **Run with PowerShell**.
 
@@ -158,8 +161,8 @@ To generate both the portable ZIP and the Inno Setup executable installer:
 powershell -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
 ```
 Output artifacts are saved in `dist/`:
-- `CodeViewer-v1.2.1-Setup.exe`
-- `CodeViewer-v1.2.1-win-x64-portable.zip`
+- `CodeViewer-v1.2.0-beta.8-Setup.exe`
+- `CodeViewer-v1.2.0-beta.8-win-x64-portable.zip`
 - `checksums.sha256`
 
 ---

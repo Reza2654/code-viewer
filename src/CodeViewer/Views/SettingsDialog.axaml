@@ -174,6 +174,10 @@
                           Content="Restore previously opened tabs on startup"
                           Foreground="{DynamicResource ThemeWindowForeground}"/>
 
+                <CheckBox IsChecked="{Binding HighlightWordOccurrences}"
+                          Content="Highlight matching word occurrences automatically"
+                          Foreground="{DynamicResource ThemeWindowForeground}"/>
+
                 <Grid ColumnDefinitions="Auto,12,100" Margin="0,4,0,0">
                   <TextBlock Grid.Column="0"
                              Text="Tab Size (spaces):"
@@ -311,7 +315,7 @@
                                Foreground="{DynamicResource ThemeWindowForeground}"
                                VerticalAlignment="Center"/>
                     <Border Grid.Column="1" Classes="hex-box">
-                      <Grid ColumnDefinitions="Auto,Auto,*">
+                      <Grid ColumnDefinitions="Auto,*">
                         <Border Grid.Column="0"
                                 Width="14" Height="14"
                                 CornerRadius="3"
@@ -320,14 +324,7 @@
                                 BorderThickness="1"
                                 Margin="0,0,6,0"
                                 VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1"
-                                   Text="#"
-                                   Foreground="#888888"
-                                   FontSize="12"
-                                   FontFamily="Consolas, Cascadia Code, Monospace"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,4,0"/>
-                        <TextBox Grid.Column="2"
+                        <TextBox Grid.Column="1"
                                  Text="{Binding LightBackgroundHex}"
                                  BorderThickness="0"
                                  Background="Transparent"
@@ -347,7 +344,7 @@
                                Foreground="{DynamicResource ThemeWindowForeground}"
                                VerticalAlignment="Center"/>
                     <Border Grid.Column="1" Classes="hex-box">
-                      <Grid ColumnDefinitions="Auto,Auto,*">
+                      <Grid ColumnDefinitions="Auto,*">
                         <Border Grid.Column="0"
                                 Width="14" Height="14"
                                 CornerRadius="3"
@@ -356,14 +353,7 @@
                                 BorderThickness="1"
                                 Margin="0,0,6,0"
                                 VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1"
-                                   Text="#"
-                                   Foreground="#888888"
-                                   FontSize="12"
-                                   FontFamily="Consolas, Cascadia Code, Monospace"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,4,0"/>
-                        <TextBox Grid.Column="2"
+                        <TextBox Grid.Column="1"
                                  Text="{Binding LightForegroundHex}"
                                  BorderThickness="0"
                                  Background="Transparent"
@@ -383,7 +373,7 @@
                                Foreground="{DynamicResource ThemeWindowForeground}"
                                VerticalAlignment="Center"/>
                     <Border Grid.Column="1" Classes="hex-box">
-                      <Grid ColumnDefinitions="Auto,Auto,*">
+                      <Grid ColumnDefinitions="Auto,*">
                         <Border Grid.Column="0"
                                 Width="14" Height="14"
                                 CornerRadius="3"
@@ -392,14 +382,7 @@
                                 BorderThickness="1"
                                 Margin="0,0,6,0"
                                 VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1"
-                                   Text="#"
-                                   Foreground="#888888"
-                                   FontSize="12"
-                                   FontFamily="Consolas, Cascadia Code, Monospace"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,4,0"/>
-                        <TextBox Grid.Column="2"
+                        <TextBox Grid.Column="1"
                                  Text="{Binding LightAccentHex}"
                                  BorderThickness="0"
                                  Background="Transparent"
@@ -451,7 +434,7 @@
                                Foreground="{DynamicResource ThemeWindowForeground}"
                                VerticalAlignment="Center"/>
                     <Border Grid.Column="1" Classes="hex-box">
-                      <Grid ColumnDefinitions="Auto,Auto,*">
+                      <Grid ColumnDefinitions="Auto,*">
                         <Border Grid.Column="0"
                                 Width="14" Height="14"
                                 CornerRadius="3"
@@ -460,14 +443,7 @@
                                 BorderThickness="1"
                                 Margin="0,0,6,0"
                                 VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1"
-                                   Text="#"
-                                   Foreground="#888888"
-                                   FontSize="12"
-                                   FontFamily="Consolas, Cascadia Code, Monospace"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,4,0"/>
-                        <TextBox Grid.Column="2"
+                        <TextBox Grid.Column="1"
                                  Text="{Binding DarkBackgroundHex}"
                                  BorderThickness="0"
                                  Background="Transparent"
@@ -487,7 +463,7 @@
                                Foreground="{DynamicResource ThemeWindowForeground}"
                                VerticalAlignment="Center"/>
                     <Border Grid.Column="1" Classes="hex-box">
-                      <Grid ColumnDefinitions="Auto,Auto,*">
+                      <Grid ColumnDefinitions="Auto,*">
                         <Border Grid.Column="0"
                                 Width="14" Height="14"
                                 CornerRadius="3"
@@ -496,14 +472,7 @@
                                 BorderThickness="1"
                                 Margin="0,0,6,0"
                                 VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1"
-                                   Text="#"
-                                   Foreground="#888888"
-                                   FontSize="12"
-                                   FontFamily="Consolas, Cascadia Code, Monospace"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,4,0"/>
-                        <TextBox Grid.Column="2"
+                        <TextBox Grid.Column="1"
                                  Text="{Binding DarkForegroundHex}"
                                  BorderThickness="0"
                                  Background="Transparent"
@@ -523,7 +492,7 @@
                                Foreground="{DynamicResource ThemeWindowForeground}"
                                VerticalAlignment="Center"/>
                     <Border Grid.Column="1" Classes="hex-box">
-                      <Grid ColumnDefinitions="Auto,Auto,*">
+                      <Grid ColumnDefinitions="Auto,*">
                         <Border Grid.Column="0"
                                 Width="14" Height="14"
                                 CornerRadius="3"
@@ -532,14 +501,7 @@
                                 BorderThickness="1"
                                 Margin="0,0,6,0"
                                 VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1"
-                                   Text="#"
-                                   Foreground="#888888"
-                                   FontSize="12"
-                                   FontFamily="Consolas, Cascadia Code, Monospace"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,4,0"/>
-                        <TextBox Grid.Column="2"
+                        <TextBox Grid.Column="1"
                                  Text="{Binding DarkAccentHex}"
                                  BorderThickness="0"
                                  Background="Transparent"

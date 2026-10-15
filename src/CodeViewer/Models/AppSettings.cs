@@ -80,6 +80,9 @@ public class AppSettings
     [JsonPropertyName("darkAccentHex")]
     public string DarkAccentHex { get; set; } = "#007ACC";
 
+    [JsonPropertyName("highlightWordOccurrences")]
+    public bool HighlightWordOccurrences { get; set; } = true;
+
     public AppSettings Clone()
     {
         return new AppSettings
@@ -101,7 +104,8 @@ public class AppSettings
             ShowLineNumbers = ShowLineNumbers,
             TabSize = TabSize,
             MaxRecentFiles = MaxRecentFiles,
-            RestorePreviousSession = RestorePreviousSession
+            RestorePreviousSession = RestorePreviousSession,
+            HighlightWordOccurrences = HighlightWordOccurrences
         };
     }
 }

@@ -604,18 +604,26 @@ public class ThemeService : IThemeService
         ApplyTheme(effective);
     }
 
-    private static bool IsValidHexColor(string? hex)
+    public static bool IsValidHexColor(string? hex)
     {
         if (string.IsNullOrWhiteSpace(hex)) return false;
-        var clean = hex.Trim();
-        if (!clean.StartsWith('#')) clean = "#" + clean;
-        return Color.TryParse(clean, out _);
+        var clean = hex.Trim().TrimStart('#');
+        if (clean.Length == 3)
+        {
+            clean = $"{clean[0]}{clean[0]}{clean[1]}{clean[1]}{clean[2]}{clean[2]}";
+        }
+        var withHash = "#" + clean;
+        return Color.TryParse(withHash, out _);
     }
 
-    private static string NormalizeHex(string hex)
+    public static string NormalizeHex(string hex)
     {
-        var clean = hex.Trim();
-        return clean.StartsWith('#') ? clean : "#" + clean;
+        var clean = hex.Trim().TrimStart('#');
+        if (clean.Length == 3)
+        {
+            clean = $"{clean[0]}{clean[0]}{clean[1]}{clean[1]}{clean[2]}{clean[2]}";
+        }
+        return "#" + clean.ToUpperInvariant();
     }
 
     public void ApplyCodeColorsToHighlighting(IHighlightingDefinition? definition, ColorTheme? theme = null)

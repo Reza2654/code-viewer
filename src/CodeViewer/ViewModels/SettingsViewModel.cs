@@ -69,6 +69,9 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private IBrush _darkAccentBrush;
 
+    [ObservableProperty]
+    private bool _highlightWordOccurrences = true;
+
     // Fonts & Editor
     [ObservableProperty]
     private string _selectedFont;
@@ -121,6 +124,7 @@ public partial class SettingsViewModel : ViewModelBase
         _tabSize = current.TabSize;
         _maxRecentFiles = current.MaxRecentFiles;
         _restorePreviousSession = current.RestorePreviousSession;
+        _highlightWordOccurrences = current.HighlightWordOccurrences;
 
         _themeMode = !string.IsNullOrWhiteSpace(current.ThemeMode) ? current.ThemeMode : "System";
         _contrastMode = !string.IsNullOrWhiteSpace(current.ContrastMode) ? current.ContrastMode : "Default";
@@ -167,6 +171,74 @@ public partial class SettingsViewModel : ViewModelBase
         {
             AvailableFonts.Insert(0, _selectedFont);
         }
+
+        UpdateEffectivePreviewTheme();
+    }
+
+    private bool _isUpdatingTheme;
+
+    partial void OnSelectedThemeChanged(ColorTheme value)
+    {
+        if (value == null || _isUpdatingTheme) return;
+
+        try
+        {
+            _isUpdatingTheme = true;
+            if (value.IsDark)
+            {
+                ThemeMode = "Dark";
+                var match = AvailableDarkThemes.FirstOrDefault(t => t.Id == value.Id);
+                if (match != null)
+                {
+                    SelectedDarkPreset = match;
+                }
+            }
+            else
+            {
+                ThemeMode = "Light";
+                var match = AvailableLightThemes.FirstOrDefault(t => t.Id == value.Id);
+                if (match != null)
+                {
+                    SelectedLightPreset = match;
+                }
+            }
+        }
+        finally
+        {
+            _isUpdatingTheme = false;
+        }
+    }
+
+    private void UpdateEffectivePreviewTheme()
+    {
+        if (_isUpdatingTheme) return;
+
+        try
+        {
+            _isUpdatingTheme = true;
+            var temp = new AppSettings
+            {
+                ThemeMode = ThemeMode,
+                ContrastMode = ContrastMode,
+                LightPresetId = SelectedLightPreset?.Id ?? "default-light",
+                LightBackgroundHex = NormalizeHex(LightBackgroundHex, "#F9F9F9"),
+                LightForegroundHex = NormalizeHex(LightForegroundHex, "#101010"),
+                LightAccentHex = NormalizeHex(LightAccentHex, "#007ACC"),
+                DarkPresetId = SelectedDarkPreset?.Id ?? "default-dark",
+                DarkBackgroundHex = NormalizeHex(DarkBackgroundHex, "#101010"),
+                DarkForegroundHex = NormalizeHex(DarkForegroundHex, "#CCCCCC"),
+                DarkAccentHex = NormalizeHex(DarkAccentHex, "#007ACC"),
+            };
+            SelectedTheme = _themeService.ResolveEffectiveTheme(temp);
+        }
+        catch
+        {
+            // Graceful fallback
+        }
+        finally
+        {
+            _isUpdatingTheme = false;
+        }
     }
 
     partial void OnThemeModeChanged(string value)
@@ -174,12 +246,14 @@ public partial class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsSystemTheme));
         OnPropertyChanged(nameof(IsLightTheme));
         OnPropertyChanged(nameof(IsDarkTheme));
+        UpdateEffectivePreviewTheme();
     }
 
     partial void OnContrastModeChanged(string value)
     {
         OnPropertyChanged(nameof(IsDefaultContrast));
         OnPropertyChanged(nameof(IsStrongContrast));
+        UpdateEffectivePreviewTheme();
     }
 
     partial void OnSelectedLightPresetChanged(ColorTheme value)
@@ -189,6 +263,7 @@ public partial class SettingsViewModel : ViewModelBase
             LightBackgroundHex = value.WindowBackground;
             LightForegroundHex = value.Foreground;
             LightAccentHex = value.AccentColor;
+            UpdateEffectivePreviewTheme();
         }
     }
 
@@ -199,49 +274,58 @@ public partial class SettingsViewModel : ViewModelBase
             DarkBackgroundHex = value.WindowBackground;
             DarkForegroundHex = value.Foreground;
             DarkAccentHex = value.AccentColor;
+            UpdateEffectivePreviewTheme();
         }
     }
 
     partial void OnLightBackgroundHexChanged(string value)
     {
         LightBackgroundBrush = TryParseBrush(value, "#F9F9F9");
+        UpdateEffectivePreviewTheme();
     }
 
     partial void OnLightForegroundHexChanged(string value)
     {
         LightForegroundBrush = TryParseBrush(value, "#101010");
+        UpdateEffectivePreviewTheme();
     }
 
     partial void OnLightAccentHexChanged(string value)
     {
         LightAccentBrush = TryParseBrush(value, "#007ACC");
+        UpdateEffectivePreviewTheme();
     }
 
     partial void OnDarkBackgroundHexChanged(string value)
     {
         DarkBackgroundBrush = TryParseBrush(value, "#101010");
+        UpdateEffectivePreviewTheme();
     }
 
     partial void OnDarkForegroundHexChanged(string value)
     {
         DarkForegroundBrush = TryParseBrush(value, "#CCCCCC");
+        UpdateEffectivePreviewTheme();
     }
 
     partial void OnDarkAccentHexChanged(string value)
     {
         DarkAccentBrush = TryParseBrush(value, "#007ACC");
+        UpdateEffectivePreviewTheme();
     }
 
     [RelayCommand]
     public void SetThemeMode(string mode)
     {
         ThemeMode = mode;
+        UpdateEffectivePreviewTheme();
     }
 
     [RelayCommand]
     public void SetContrastMode(string mode)
     {
         ContrastMode = mode;
+        UpdateEffectivePreviewTheme();
     }
 
     private static IBrush TryParseBrush(string? hex, string fallbackHex)
@@ -250,9 +334,13 @@ public partial class SettingsViewModel : ViewModelBase
         {
             if (!string.IsNullOrWhiteSpace(hex))
             {
-                var clean = hex.Trim();
-                if (!clean.StartsWith('#')) clean = "#" + clean;
-                if (Color.TryParse(clean, out var color))
+                var clean = hex.Trim().TrimStart('#');
+                if (clean.Length == 3)
+                {
+                    clean = $"{clean[0]}{clean[0]}{clean[1]}{clean[1]}{clean[2]}{clean[2]}";
+                }
+                var withHash = "#" + clean;
+                if (Color.TryParse(withHash, out var color))
                 {
                     return new SolidColorBrush(color);
                 }
@@ -265,9 +353,13 @@ public partial class SettingsViewModel : ViewModelBase
     private static string NormalizeHex(string? hex, string fallbackHex)
     {
         if (string.IsNullOrWhiteSpace(hex)) return fallbackHex;
-        var clean = hex.Trim();
-        if (!clean.StartsWith('#')) clean = "#" + clean;
-        return Color.TryParse(clean, out _) ? clean : fallbackHex;
+        var clean = hex.Trim().TrimStart('#');
+        if (clean.Length == 3)
+        {
+            clean = $"{clean[0]}{clean[0]}{clean[1]}{clean[1]}{clean[2]}{clean[2]}";
+        }
+        var withHash = "#" + clean;
+        return Color.TryParse(withHash, out _) ? withHash : fallbackHex;
     }
 
     private static List<string> DiscoverSystemFonts()
@@ -338,6 +430,8 @@ public partial class SettingsViewModel : ViewModelBase
     [RelayCommand]
     public async Task SaveAsync()
     {
+        UpdateEffectivePreviewTheme();
+
         var settings = new AppSettings
         {
             ThemeId = SelectedTheme?.Id ?? (string.Equals(ThemeMode, "Light", StringComparison.OrdinalIgnoreCase) ? (SelectedLightPreset?.Id ?? "default-light") : (SelectedDarkPreset?.Id ?? "default-dark")),
@@ -357,7 +451,8 @@ public partial class SettingsViewModel : ViewModelBase
             ShowLineNumbers = ShowLineNumbers,
             TabSize = TabSize,
             MaxRecentFiles = MaxRecentFiles,
-            RestorePreviousSession = RestorePreviousSession
+            RestorePreviousSession = RestorePreviousSession,
+            HighlightWordOccurrences = HighlightWordOccurrences
         };
 
         await _settingsService.SaveAsync(settings);
@@ -385,6 +480,7 @@ public partial class SettingsViewModel : ViewModelBase
         TabSize = defaults.TabSize;
         MaxRecentFiles = defaults.MaxRecentFiles;
         RestorePreviousSession = defaults.RestorePreviousSession;
+        HighlightWordOccurrences = defaults.HighlightWordOccurrences;
 
         ThemeMode = defaults.ThemeMode;
         ContrastMode = defaults.ContrastMode;
@@ -403,5 +499,6 @@ public partial class SettingsViewModel : ViewModelBase
 
         var defaultTheme = AvailableThemes.FirstOrDefault(t => t.Id == defaults.ThemeId) ?? AvailableThemes[0];
         SelectedTheme = defaultTheme;
+        UpdateEffectivePreviewTheme();
     }
 }

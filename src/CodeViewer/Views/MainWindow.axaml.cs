@@ -19,6 +19,7 @@ public partial class MainWindow : Window
 {
     private readonly CurrentLineHighlighter _currentLineHighlighter;
     private readonly BracketMatchingRenderer _bracketMatchingRenderer;
+    private readonly WordOccurrenceRenderer _wordOccurrenceRenderer;
     private readonly SearchHighlightRenderer _searchHighlightRenderer;
     private readonly SmoothCaretBlinkController _caretBlinkController;
     private readonly SmoothScrollController _smoothScrollController;
@@ -31,12 +32,14 @@ public partial class MainWindow : Window
 
         _currentLineHighlighter = new CurrentLineHighlighter(Editor);
         _bracketMatchingRenderer = new BracketMatchingRenderer(Editor);
+        _wordOccurrenceRenderer = new WordOccurrenceRenderer(Editor);
         _searchHighlightRenderer = new SearchHighlightRenderer(Editor);
         _caretBlinkController = new SmoothCaretBlinkController(Editor);
         _smoothScrollController = new SmoothScrollController(Editor);
 
         Editor.TextArea.TextView.BackgroundRenderers.Add(_currentLineHighlighter);
         Editor.TextArea.TextView.BackgroundRenderers.Add(_bracketMatchingRenderer);
+        Editor.TextArea.TextView.BackgroundRenderers.Add(_wordOccurrenceRenderer);
         Editor.TextArea.TextView.BackgroundRenderers.Add(_searchHighlightRenderer);
 
         DataContextChanged += OnDataContextChanged;
@@ -170,6 +173,7 @@ public partial class MainWindow : Window
                 {
                     UpdateMarkdownPreview();
                 }
+                _wordOccurrenceRenderer.UpdateOccurrences();
             };
 
             // Keep word wrap, bracket matching, search, and palettes updated on property changes
@@ -185,6 +189,7 @@ public partial class MainWindow : Window
                         _caretBlinkController?.ResetSolid();
                         _smoothScrollController?.SyncCurrentOffset();
                         _bracketMatchingRenderer.UpdateMatchingBrackets();
+                        _wordOccurrenceRenderer.UpdateOccurrences();
                         UpdateSearchMatches();
                         Editor.TextArea.TextView.InvalidateVisual();
                     }
@@ -311,6 +316,9 @@ public partial class MainWindow : Window
                 {
                     RunnerOutputTextBox.FontFamily = FontHelper.GetFontFamily(settings.FontFamily);
                 }
+
+                _wordOccurrenceRenderer.IsEnabled = settings.HighlightWordOccurrences;
+                _wordOccurrenceRenderer.UpdateOccurrences();
             }
             catch
             {
@@ -325,6 +333,24 @@ public partial class MainWindow : Window
         {
             var settings = vm.SettingsService.CurrentSettings;
             FontHelper.ApplyToEditor(splitEditor, settings.FontFamily, settings.FontSize);
+            var theme = vm.CurrentTheme;
+            if (theme != null)
+            {
+                try
+                {
+                    var editorBg = new SolidColorBrush(Color.Parse(theme.EditorBackground));
+                    var editorFg = new SolidColorBrush(Color.Parse(theme.EditorForeground));
+                    var lineNumbersFg = new SolidColorBrush(Color.Parse(theme.LineNumbersForeground));
+                    splitEditor.Background = editorBg;
+                    splitEditor.Foreground = editorFg;
+                    if (splitEditor.TextArea != null)
+                    {
+                        splitEditor.TextArea.Foreground = editorFg;
+                    }
+                    splitEditor.LineNumbersForeground = lineNumbersFg;
+                }
+                catch { }
+            }
         }
     }
 
@@ -368,7 +394,7 @@ public partial class MainWindow : Window
             {
                 var winBg = new SolidColorBrush(Color.Parse(theme.WindowBackground));
                 var editorBg = new SolidColorBrush(Color.Parse(theme.EditorBackground));
-                var editorFg = new SolidColorBrush(Color.Parse(theme.Foreground));
+                var editorFg = new SolidColorBrush(Color.Parse(theme.EditorForeground));
                 var lineNumbersFg = new SolidColorBrush(Color.Parse(theme.LineNumbersForeground));
                 var statusBg = new SolidColorBrush(Color.Parse(theme.StatusBarBackground));
                 var tabBg = new SolidColorBrush(Color.Parse(theme.TabBarBackground));
@@ -376,6 +402,10 @@ public partial class MainWindow : Window
                 Background = winBg;
                 Editor.Background = editorBg;
                 Editor.Foreground = editorFg;
+                if (Editor.TextArea != null)
+                {
+                    Editor.TextArea.Foreground = editorFg;
+                }
                 Editor.LineNumbersForeground = lineNumbersFg;
 
                 if (StatusBarBorder != null) StatusBarBorder.Background = statusBg;
@@ -383,11 +413,16 @@ public partial class MainWindow : Window
 
                 _currentLineHighlighter?.UpdateTheme(theme.IsDark);
                 _bracketMatchingRenderer?.UpdateTheme(theme);
+                _wordOccurrenceRenderer?.UpdateTheme(theme);
 
                 if (DataContext is MainViewModel vm)
                 {
                     vm.ApplyCodeColorsToAllDocuments(theme);
-                    Editor.TextArea.TextView.Redraw();
+                    // Force AvaloniaEdit to recreate line transformers with updated color brushes
+                    var highlight = Editor.SyntaxHighlighting;
+                    Editor.SyntaxHighlighting = null;
+                    Editor.SyntaxHighlighting = highlight;
+                    Editor.TextArea?.TextView?.Redraw();
                 }
             }
             catch
@@ -623,6 +658,14 @@ public partial class MainWindow : Window
                 return;
             }
 
+            // Ctrl + Shift + T : Reopen Closed Tab
+            if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.T)
+            {
+                _ = vm.ReopenClosedTabCommand.ExecuteAsync(null);
+                e.Handled = true;
+                return;
+            }
+
             // Ctrl + , : Settings
             if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.OemComma || e.Key == Key.OemPeriod))
             {
@@ -653,6 +696,7 @@ public partial class MainWindow : Window
 
             vm.ActiveDocument.UpdateCaretPosition(caret.Line, caret.Column, selectionLength, selectedLineCount);
             _bracketMatchingRenderer.UpdateMatchingBrackets();
+            _wordOccurrenceRenderer.UpdateOccurrences();
             Editor.TextArea.TextView.InvalidateVisual();
         }
     }
@@ -672,6 +716,7 @@ public partial class MainWindow : Window
             vm.ActiveDocument = doc;
             Editor.WordWrap = doc.WordWrap;
             _bracketMatchingRenderer.UpdateMatchingBrackets();
+            _wordOccurrenceRenderer.UpdateOccurrences();
             UpdateSearchMatches();
             Editor.TextArea.TextView.InvalidateVisual();
             Editor.Focus();
@@ -1558,7 +1603,7 @@ public partial class MainWindow : Window
         }
 
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.2.0 Beta 7 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Version 1.2.0 Beta 8 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 8, 0, 10) });
 
 
