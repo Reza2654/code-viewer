@@ -21,9 +21,19 @@ public class ThemeService : IThemeService
     private readonly List<ColorTheme> _themes = [];
     private ColorTheme _currentTheme;
 
-    public IReadOnlyList<ColorTheme> AvailableThemes => _themes.AsReadOnly();
+    public IReadOnlyList<ColorTheme> AvailableThemes
+    {
+        get
+        {
+            lock (_themes)
+            {
+                return _themes.ToList().AsReadOnly();
+            }
+        }
+    }
     public ColorTheme CurrentTheme => _currentTheme;
     public event Action<ColorTheme>? ThemeChanged;
+    public Task InitializationTask { get; }
 
     public ThemeService(string? baseDir = null)
     {
@@ -35,15 +45,62 @@ public class ThemeService : IThemeService
         _themesDirectory = Path.Combine(baseDir, "Themes");
         _settingsFilePath = Path.Combine(baseDir, "current_theme.txt");
 
-        EnsureDirectoriesAndSamples();
         RegisterBuiltInThemes();
-        LoadUserThemes();
 
-        // Restore last chosen theme or default to Dark+
+        // Instant in-memory resolution of saved theme
         var savedTheme = LoadSavedThemeName();
-        _currentTheme = _themes.FirstOrDefault(t => string.Equals(t.Id, savedTheme, StringComparison.OrdinalIgnoreCase) ||
-                                                    string.Equals(t.Name, savedTheme, StringComparison.OrdinalIgnoreCase))
-                        ?? _themes[0];
+        ColorTheme? initialTheme = null;
+        lock (_themes)
+        {
+            initialTheme = _themes.FirstOrDefault(t => string.Equals(t.Id, savedTheme, StringComparison.OrdinalIgnoreCase) ||
+                                                       string.Equals(t.Name, savedTheme, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // If saved theme is not built-in, load only that single theme file synchronously
+        if (initialTheme == null && !string.IsNullOrWhiteSpace(savedTheme))
+        {
+            initialTheme = LoadSingleUserTheme(savedTheme);
+            if (initialTheme != null)
+            {
+                lock (_themes)
+                {
+                    _themes.Add(initialTheme);
+                }
+            }
+        }
+
+        _currentTheme = initialTheme ?? _themes[0];
+
+        // Defer directory creation, sample file generation, and full scanning to background
+        InitializationTask = Task.Run(() =>
+        {
+            EnsureDirectoriesAndSamples();
+            LoadUserThemes();
+        });
+    }
+
+    private ColorTheme? LoadSingleUserTheme(string themeId)
+    {
+        try
+        {
+            var path = Path.Combine(_themesDirectory, $"{themeId}.json");
+            if (File.Exists(path))
+            {
+                var json = File.ReadAllText(path);
+                var theme = JsonSerializer.Deserialize<ColorTheme>(json);
+                if (theme != null)
+                {
+                    if (string.IsNullOrWhiteSpace(theme.Id)) theme.Id = themeId;
+                    if (string.IsNullOrWhiteSpace(theme.Name)) theme.Name = Path.GetFileNameWithoutExtension(path);
+                    return theme;
+                }
+            }
+        }
+        catch
+        {
+            // Ignore
+        }
+        return null;
     }
 
     private void RegisterBuiltInThemes()
@@ -574,14 +631,17 @@ public class ThemeService : IThemeService
                             theme.Name = Path.GetFileNameWithoutExtension(file);
                         }
 
-                        var existingIndex = _themes.FindIndex(t => string.Equals(t.Id, theme.Id, StringComparison.OrdinalIgnoreCase));
-                        if (existingIndex >= 0)
+                        lock (_themes)
                         {
-                            _themes[existingIndex] = theme;
-                        }
-                        else
-                        {
-                            _themes.Add(theme);
+                            var existingIndex = _themes.FindIndex(t => string.Equals(t.Id, theme.Id, StringComparison.OrdinalIgnoreCase));
+                            if (existingIndex >= 0)
+                            {
+                                _themes[existingIndex] = theme;
+                            }
+                            else
+                            {
+                                _themes.Add(theme);
+                            }
                         }
                     }
                 }
@@ -613,8 +673,12 @@ public class ThemeService : IThemeService
 
     public void ApplyTheme(string themeIdOrName)
     {
-        var target = _themes.FirstOrDefault(t => string.Equals(t.Id, themeIdOrName, StringComparison.OrdinalIgnoreCase) ||
+        ColorTheme? target;
+        lock (_themes)
+        {
+            target = _themes.FirstOrDefault(t => string.Equals(t.Id, themeIdOrName, StringComparison.OrdinalIgnoreCase) ||
                                                  string.Equals(t.Name, themeIdOrName, StringComparison.OrdinalIgnoreCase));
+        }
         if (target != null)
         {
             ApplyTheme(target);
@@ -715,25 +779,28 @@ public class ThemeService : IThemeService
         }
 
         ColorTheme? baseTheme = null;
-        if (!isDark)
+        lock (_themes)
         {
-            var targetId = !string.IsNullOrWhiteSpace(settings.LightPresetId) && !string.Equals(settings.LightPresetId, "default-light", StringComparison.OrdinalIgnoreCase)
-                ? settings.LightPresetId
-                : (!string.IsNullOrWhiteSpace(settings.ThemeId) ? settings.ThemeId : (!string.IsNullOrWhiteSpace(settings.LightPresetId) ? settings.LightPresetId : "default-light"));
+            if (!isDark)
+            {
+                var targetId = !string.IsNullOrWhiteSpace(settings.LightPresetId) && !string.Equals(settings.LightPresetId, "default-light", StringComparison.OrdinalIgnoreCase)
+                    ? settings.LightPresetId
+                    : (!string.IsNullOrWhiteSpace(settings.ThemeId) ? settings.ThemeId : (!string.IsNullOrWhiteSpace(settings.LightPresetId) ? settings.LightPresetId : "default-light"));
 
-            baseTheme = _themes.FirstOrDefault(t => !t.IsDark && (string.Equals(t.Id, targetId, StringComparison.OrdinalIgnoreCase) || string.Equals(t.Name, targetId, StringComparison.OrdinalIgnoreCase)))
-                        ?? _themes.FirstOrDefault(t => !t.IsDark)
-                        ?? _themes[0];
-        }
-        else
-        {
-            var targetId = !string.IsNullOrWhiteSpace(settings.DarkPresetId) && !string.Equals(settings.DarkPresetId, "default-dark", StringComparison.OrdinalIgnoreCase)
-                ? settings.DarkPresetId
-                : (!string.IsNullOrWhiteSpace(settings.ThemeId) ? settings.ThemeId : (!string.IsNullOrWhiteSpace(settings.DarkPresetId) ? settings.DarkPresetId : "default-dark"));
+                baseTheme = _themes.FirstOrDefault(t => !t.IsDark && (string.Equals(t.Id, targetId, StringComparison.OrdinalIgnoreCase) || string.Equals(t.Name, targetId, StringComparison.OrdinalIgnoreCase)))
+                            ?? _themes.FirstOrDefault(t => !t.IsDark)
+                            ?? _themes[0];
+            }
+            else
+            {
+                var targetId = !string.IsNullOrWhiteSpace(settings.DarkPresetId) && !string.Equals(settings.DarkPresetId, "default-dark", StringComparison.OrdinalIgnoreCase)
+                    ? settings.DarkPresetId
+                    : (!string.IsNullOrWhiteSpace(settings.ThemeId) ? settings.ThemeId : (!string.IsNullOrWhiteSpace(settings.DarkPresetId) ? settings.DarkPresetId : "default-dark"));
 
-            baseTheme = _themes.FirstOrDefault(t => t.IsDark && (string.Equals(t.Id, targetId, StringComparison.OrdinalIgnoreCase) || string.Equals(t.Name, targetId, StringComparison.OrdinalIgnoreCase)))
-                        ?? _themes.FirstOrDefault(t => t.IsDark)
-                        ?? _themes[0];
+                baseTheme = _themes.FirstOrDefault(t => t.IsDark && (string.Equals(t.Id, targetId, StringComparison.OrdinalIgnoreCase) || string.Equals(t.Name, targetId, StringComparison.OrdinalIgnoreCase)))
+                            ?? _themes.FirstOrDefault(t => t.IsDark)
+                            ?? _themes[0];
+            }
         }
 
         var effective = baseTheme.Clone();
@@ -991,14 +1058,17 @@ public class ThemeService : IThemeService
         await File.WriteAllTextAsync(targetFile, serialized);
 
         // Add or update in list
-        var existingIndex = _themes.FindIndex(t => string.Equals(t.Id, theme.Id, StringComparison.OrdinalIgnoreCase));
-        if (existingIndex >= 0)
+        lock (_themes)
         {
-            _themes[existingIndex] = theme;
-        }
-        else
-        {
-            _themes.Add(theme);
+            var existingIndex = _themes.FindIndex(t => string.Equals(t.Id, theme.Id, StringComparison.OrdinalIgnoreCase));
+            if (existingIndex >= 0)
+            {
+                _themes[existingIndex] = theme;
+            }
+            else
+            {
+                _themes.Add(theme);
+            }
         }
 
         SaveThemeName(theme.Id);

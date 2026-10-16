@@ -102,17 +102,47 @@ public class LanguageService : ILanguageService
         { ".ps2bundle", "PS2" }
     };
 
+    private static readonly object CustomHighlighterLock = new();
+    private static readonly HashSet<string> LoadedCustomHighlighters = new(StringComparer.OrdinalIgnoreCase);
+
     public LanguageService()
     {
-        RegisterCustomHighlighters();
+        // Custom highlighters are loaded lazily on demand for instant startup
     }
 
-    private void RegisterCustomHighlighters()
+    public static void EnsureCustomHighlighterLoaded(string language)
     {
-        var asm = typeof(LanguageService).Assembly;
-        RegisterHighlighter(asm, "CodeViewer.Assets.Syntax.Dart.xshd", "Dart", new[] { ".dart" });
-        RegisterHighlighter(asm, "CodeViewer.Assets.Syntax.AgentLang.xshd", "AgentLang", new[] { ".agent" });
-        RegisterHighlighter(asm, "CodeViewer.Assets.Syntax.PS2.xshd", "PS2", new[] { ".ps2", ".ps2bundle" });
+        if (string.IsNullOrWhiteSpace(language) || LoadedCustomHighlighters.Contains(language)) return;
+
+        lock (CustomHighlighterLock)
+        {
+            if (LoadedCustomHighlighters.Contains(language)) return;
+
+            var asm = typeof(LanguageService).Assembly;
+            var upper = language.ToUpperInvariant();
+            if (upper == "DART")
+            {
+                RegisterHighlighter(asm, "CodeViewer.Assets.Syntax.Dart.xshd", "Dart", new[] { ".dart" });
+                LoadedCustomHighlighters.Add("Dart");
+            }
+            else if (upper == "AGENTLANG")
+            {
+                RegisterHighlighter(asm, "CodeViewer.Assets.Syntax.AgentLang.xshd", "AgentLang", new[] { ".agent" });
+                LoadedCustomHighlighters.Add("AgentLang");
+            }
+            else if (upper == "PS2")
+            {
+                RegisterHighlighter(asm, "CodeViewer.Assets.Syntax.PS2.xshd", "PS2", new[] { ".ps2", ".ps2bundle" });
+                LoadedCustomHighlighters.Add("PS2");
+            }
+        }
+    }
+
+    public static void RegisterCustomHighlighters()
+    {
+        EnsureCustomHighlighterLoaded("Dart");
+        EnsureCustomHighlighterLoaded("AgentLang");
+        EnsureCustomHighlighterLoaded("PS2");
     }
 
     private static void RegisterHighlighter(System.Reflection.Assembly asm, string resourceName, string name, string[] extensions)
@@ -167,6 +197,13 @@ public class LanguageService : ILanguageService
 
     public IHighlightingDefinition? GetHighlightingDefinition(string language)
     {
+        if (string.Equals(language, "Dart", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(language, "AgentLang", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(language, "PS2", StringComparison.OrdinalIgnoreCase))
+        {
+            EnsureCustomHighlighterLoaded(language);
+        }
+
         var manager = HighlightingManager.Instance;
 
         // Try exact name first

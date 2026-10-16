@@ -17,6 +17,8 @@ public class FileService : IFileService
     private static readonly UnicodeEncoding Utf16Le = new(false, true);
     private static readonly UnicodeEncoding Utf16Be = new(true, true);
 
+    private const int ReadBufferSize = 65536; // 64 KB buffer for high-throughput sequential reading
+
     public async Task<DocumentModel> OpenFileAsync(string filePath, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(filePath))
@@ -30,15 +32,23 @@ public class FileService : IFileService
             throw new FileNotFoundException($"File not found: {filePath}", filePath);
         }
 
-        // Fast encoding detection from initial bytes
-        var encodingInfo = await DetectEncodingAsync(filePath, cancellationToken).ConfigureAwait(false);
-
-        // Read text using detected encoding
+        // Single-pass high-performance sequential read
+        FileEncodingInfo encodingInfo;
         string text;
-        using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, FileOptions.Asynchronous | FileOptions.SequentialScan))
-        using (var reader = new StreamReader(stream, encodingInfo.Encoding, detectEncodingFromByteOrderMarks: true))
+
+        using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, ReadBufferSize, FileOptions.Asynchronous | FileOptions.SequentialScan))
         {
-            text = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            var bomBuffer = new byte[4];
+            int bytesRead = await stream.ReadAsync(bomBuffer.AsMemory(0, 4), cancellationToken).ConfigureAwait(false);
+            encodingInfo = DetectEncodingFromBytes(bomBuffer, bytesRead);
+
+            // Rewind to start of stream for StreamReader to decode text with proper BOM handling
+            stream.Seek(0, SeekOrigin.Begin);
+
+            using (var reader = new StreamReader(stream, encodingInfo.Encoding, detectEncodingFromByteOrderMarks: true, bufferSize: ReadBufferSize, leaveOpen: true))
+            {
+                text = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+            }
         }
 
         // Detect line ending type
@@ -175,16 +185,8 @@ public class FileService : IFileService
         return $"{bytes / (1024.0 * 1024.0 * 1024.0):F2} GB";
     }
 
-    private static async Task<FileEncodingInfo> DetectEncodingAsync(string filePath, CancellationToken cancellationToken)
+    public static FileEncodingInfo DetectEncodingFromBytes(byte[] buffer, int bytesRead)
     {
-        var buffer = new byte[4];
-        int bytesRead;
-
-        using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-        {
-            bytesRead = await stream.ReadAsync(buffer.AsMemory(0, 4), cancellationToken).ConfigureAwait(false);
-        }
-
         if (bytesRead >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF)
         {
             return new FileEncodingInfo { Encoding = Utf8WithBom, HasBom = true };
@@ -202,6 +204,19 @@ public class FileService : IFileService
 
         // Default to UTF-8 without BOM (modern industry standard)
         return new FileEncodingInfo { Encoding = Utf8WithoutBom, HasBom = false };
+    }
+
+    public static async Task<FileEncodingInfo> DetectEncodingAsync(string filePath, CancellationToken cancellationToken = default)
+    {
+        var buffer = new byte[4];
+        int bytesRead;
+
+        using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        {
+            bytesRead = await stream.ReadAsync(buffer.AsMemory(0, 4), cancellationToken).ConfigureAwait(false);
+        }
+
+        return DetectEncodingFromBytes(buffer, bytesRead);
     }
 
     private static string NormalizeLineEndings(string text, LineEndingType lineEnding)

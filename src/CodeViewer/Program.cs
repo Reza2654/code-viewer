@@ -43,10 +43,16 @@ internal sealed class Program
     }
 
     public static AppBuilder BuildAvaloniaApp()
-        => AppBuilder.Configure<App>()
-            .UsePlatformDetect()
-            .WithInterFont()
-            .LogToTrace();
+    {
+        var builder = AppBuilder.Configure<App>()
+            .UsePlatformDetect();
+
+#if DEBUG
+        builder = builder.LogToTrace();
+#endif
+
+        return builder;
+    }
 
     public static void LogCrash(Exception? ex)
     {

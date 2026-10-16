@@ -71,7 +71,7 @@ public static class SingleInstanceService
         try
         {
             using var client = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
-            client.Connect(2000);
+            client.Connect(500);
 
             using var writer = new StreamWriter(client, Encoding.UTF8);
             if (args.Length == 0)

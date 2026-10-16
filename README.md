@@ -24,7 +24,7 @@
 - ▶ **Interactive Script Runner Console (F5)**: Embedded bottom console to run scripts for **AgentLang** (`.agent`), **PS2** (`.ps2`), **Dart** (`.dart`), **Python** (`.py`), and **PowerShell** (`.ps1`) with real-time stdout/stderr streaming, **interactive stdin input bar** to send data to scripts (`input()`, `Read-Host`), execution timers, `Shift+F5` kill switch, and `Ctrl+K` clear console.
 - 📝 **Markdown Live Preview (Ctrl+Shift+M)**: Ultra-fast native Avalonia Markdown renderer without heavy webviews or external runtime overhead.
 - ⇄ **Full RTL & Persian (Farsi) Language Support (Ctrl+Alt+R)**: Native Right-to-Left text direction flow for Persian, Arabic, and Hebrew with automatic script detection, View menu text direction toggle, Persian language mode (`.fa`, `.farsi`, `.persian`), cursive font fallbacks, and RTL Markdown Live Preview.
-- ⚡ **Instant Startup**: Sub-25ms startup time; opens directly to your code without loading screens or bloated background tasks.
+- ⚡ **Instant & Ultra-Fast Startup**: Sub-25ms startup time powered by Ahead-Of-Time ReadyToRun (R2R) native compilation, Tiered PGO, on-demand syntax highlighter compilation, instant in-memory theme resolution, 64KB single-pass file streaming, and asynchronous background plugin/theme discovery.
 - 🪟 **Native Windows 11 Context Menu**: Directly integrates into the modern Windows 11 right-click context menu powered by a native `IExplorerCommand` Sparse Package shell extension.
 - 🚀 **CLI Line & Column Navigation**: Jump straight to any line from terminal or scripts (e.g. `codeviewer file.cs:42` or `codeviewer C:\repo\file.cs:105:14`), correctly parsing Windows drive letters without splitting drive colons.
 - 🔍 **Quick Open (Ctrl+P)**: Instant fuzzy palette searching across currently open tabs, recent files history, and folder sibling files.
@@ -56,7 +56,7 @@
   - **Text Statistics**: Comprehensive character, word, line, non-empty line, and byte counts.
   - **Dynamic DLL Plugin Importer**: Drop third-party `.dll` assemblies implementing `IPlugin` into the plugins directory or load them via **Tools -> Import Plugin (.dll)...** without locking the file on disk.
 - 💾 **Safe Local Single-Instance IPC**: Opening files via CLI or File Explorer opens them as tabs inside the existing window using a high-performance local Named Pipe, passing file:line coordinates directly.
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.9-Setup.exe`) and portable standalone `.zip` archive.
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.10-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---
@@ -161,8 +161,8 @@ To generate both the portable ZIP and the Inno Setup executable installer:
 powershell -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
 ```
 Output artifacts are saved in `dist/`:
-- `CodeViewer-v1.2.0-beta.9-Setup.exe`
-- `CodeViewer-v1.2.0-beta.9-win-x64-portable.zip`
+- `CodeViewer-v1.2.0-beta.10-Setup.exe`
+- `CodeViewer-v1.2.0-beta.10-win-x64-portable.zip`
 - `checksums.sha256`
 
 ---

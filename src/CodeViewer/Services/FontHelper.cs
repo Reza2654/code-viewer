@@ -14,14 +14,19 @@ public static class FontHelper
 {
     public const string DefaultFontName = "Google Sans Code";
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, FontFamily> FontCache = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
-    /// Creates a composite FontFamily with embedded font fallbacks and system font fallbacks.
+    /// Creates or returns a cached composite FontFamily with embedded font fallbacks and system font fallbacks.
     /// </summary>
     public static FontFamily GetFontFamily(string? fontName)
     {
         var primary = AppSettings.SanitizeFontFamily(fontName);
-        var composite = $"{primary}, Google Sans Code, avares://CodeViewer/Assets/Fonts#Google Sans Code, Cascadia Code, Consolas, Segoe UI, Tahoma, Vazirmatn, Arial, sans-serif, monospace";
-        return new FontFamily(composite);
+        return FontCache.GetOrAdd(primary, p =>
+        {
+            var composite = $"{p}, Google Sans Code, avares://CodeViewer/Assets/Fonts#Google Sans Code, Cascadia Code, Consolas, Segoe UI, Tahoma, Vazirmatn, Arial, sans-serif, monospace";
+            return new FontFamily(composite);
+        });
     }
 
     /// <summary>

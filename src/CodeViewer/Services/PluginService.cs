@@ -16,17 +16,42 @@ public class PluginService : IPluginService
     private readonly string _pluginsDirectory;
     private readonly List<IPlugin> _plugins = [];
 
-    public IReadOnlyList<IPlugin> Plugins => _plugins.AsReadOnly();
+    public IReadOnlyList<IPlugin> Plugins
+    {
+        get
+        {
+            lock (_plugins)
+            {
+                return _plugins.ToList().AsReadOnly();
+            }
+        }
+    }
     public event Action? PluginsChanged;
+    public Task InitializationTask { get; }
 
     public PluginService()
     {
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         _pluginsDirectory = Path.Combine(appData, "CodeViewer", "Plugins");
 
-        EnsureDirectoriesAndDocumentation();
         RegisterBuiltInPlugins();
-        LoadExternalPlugins();
+
+        InitializationTask = Task.Run(() =>
+        {
+            EnsureDirectoriesAndDocumentation();
+            var addedCount = LoadExternalPlugins();
+            if (addedCount > 0)
+            {
+                if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+                {
+                    PluginsChanged?.Invoke();
+                }
+                else
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() => PluginsChanged?.Invoke());
+                }
+            }
+        });
     }
 
     private void RegisterBuiltInPlugins()
@@ -122,22 +147,25 @@ public class MyRot13Plugin : IPlugin
         }
     }
 
-    private void LoadExternalPlugins()
+    private int LoadExternalPlugins()
     {
-        if (!Directory.Exists(_pluginsDirectory)) return;
+        if (!Directory.Exists(_pluginsDirectory)) return 0;
 
+        int totalLoaded = 0;
         try
         {
             var dllFiles = Directory.GetFiles(_pluginsDirectory, "*.dll");
             foreach (var dll in dllFiles)
             {
-                LoadPluginsFromAssemblyFile(dll);
+                var loaded = LoadPluginsFromAssemblyFile(dll);
+                totalLoaded += loaded.Count;
             }
         }
         catch
         {
             // Ignored
         }
+        return totalLoaded;
     }
 
     private List<IPlugin> LoadPluginsFromAssemblyFile(string dllPath)
@@ -157,10 +185,13 @@ public class MyRot13Plugin : IPlugin
                 {
                     if (Activator.CreateInstance(type) is IPlugin plugin)
                     {
-                        if (!_plugins.Any(p => string.Equals(p.Id, plugin.Id, StringComparison.OrdinalIgnoreCase)))
+                        lock (_plugins)
                         {
-                            _plugins.Add(plugin);
-                            loaded.Add(plugin);
+                            if (!_plugins.Any(p => string.Equals(p.Id, plugin.Id, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                _plugins.Add(plugin);
+                                loaded.Add(plugin);
+                            }
                         }
                     }
                 }

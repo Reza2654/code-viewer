@@ -54,6 +54,7 @@ public partial class App : Application
 
                 dialogService.Initialize(mainWindow);
                 desktop.MainWindow = mainWindow;
+                mainWindow.Show();
                 desktop.Exit += (_, _) => SingleInstanceService.Stop();
 
                 // 5. Run async initialization (recent files, command-line arguments)
