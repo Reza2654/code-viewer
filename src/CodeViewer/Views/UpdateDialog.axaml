@@ -1,0 +1,123 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:CodeViewer.ViewModels"
+        x:Class="CodeViewer.Views.UpdateDialog"
+        x:DataType="vm:UpdateViewModel"
+        Title="Code Viewer Update"
+        Width="540" Height="480"
+        WindowStartupLocation="CenterOwner"
+        CanResize="false"
+        Background="#1E1E1E"
+        ShowInTaskbar="false">
+
+  <Grid Margin="24" RowDefinitions="Auto,*,Auto">
+    <!-- Header Section -->
+    <StackPanel Grid.Row="0" Spacing="8">
+      <StackPanel Orientation="Horizontal" Spacing="12">
+        <Border Width="40" Height="40" CornerRadius="8" Background="#007ACC" VerticalAlignment="Center">
+          <TextBlock Text="🚀" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </Border>
+        <StackPanel VerticalAlignment="Center" Spacing="2">
+          <TextBlock Text="A new update is available!"
+                     FontSize="17"
+                     FontWeight="Bold"
+                     Foreground="#FFFFFF"/>
+          <TextBlock Text="{Binding ReleaseTitle}"
+                     FontSize="12"
+                     Foreground="#AAAAAA"/>
+        </StackPanel>
+      </StackPanel>
+
+      <!-- Version Badges -->
+      <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+        <Border Background="#252526" BorderBrush="#333333" BorderThickness="1" CornerRadius="4" Padding="8,4">
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <TextBlock Text="Installed:" FontSize="11" Foreground="#888888"/>
+            <TextBlock Text="{Binding CurrentVersion}" FontSize="11" FontWeight="SemiBold" Foreground="#CCCCCC"/>
+          </StackPanel>
+        </Border>
+
+        <TextBlock Text="➜" FontSize="12" Foreground="#888888" VerticalAlignment="Center"/>
+
+        <Border Background="#1F4B2C" BorderBrush="#2EA043" BorderThickness="1" CornerRadius="4" Padding="8,4">
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <TextBlock Text="Latest:" FontSize="11" Foreground="#85E89D"/>
+            <TextBlock Text="{Binding LatestVersion}" FontSize="11" FontWeight="Bold" Foreground="#FFFFFF"/>
+          </StackPanel>
+        </Border>
+
+        <Border Background="#252526" BorderBrush="#333333" BorderThickness="1" CornerRadius="4" Padding="8,4"
+                IsVisible="{Binding SizeFormatted, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+          <TextBlock Text="{Binding SizeFormatted}" FontSize="11" Foreground="#AAAAAA"/>
+        </Border>
+      </StackPanel>
+    </StackPanel>
+
+    <!-- Release Notes ScrollArea -->
+    <Border Grid.Row="1"
+            Margin="0,16"
+            Background="#252526"
+            BorderBrush="#333333"
+            BorderThickness="1"
+            CornerRadius="6"
+            Padding="14">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <TextBlock Text="{Binding ReleaseNotes}"
+                   Foreground="#DDDDDD"
+                   FontSize="12"
+                   TextWrapping="Wrap"
+                   FontFamily="Segoe UI, -apple-system, sans-serif"/>
+      </ScrollViewer>
+    </Border>
+
+    <!-- Footer Controls -->
+    <StackPanel Grid.Row="2" Spacing="10">
+      <!-- Download Progress Bar -->
+      <StackPanel Spacing="4" IsVisible="{Binding IsDownloading}">
+        <ProgressBar Minimum="0" Maximum="100" Value="{Binding DownloadProgress}" Height="6" CornerRadius="3" Foreground="#007ACC" Background="#333333"/>
+        <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="#888888" HorizontalAlignment="Right"/>
+      </StackPanel>
+
+      <!-- Error indicator -->
+      <TextBlock Text="{Binding ErrorMessage}"
+                 Foreground="#F85149"
+                 FontSize="11"
+                 TextWrapping="Wrap"
+                 IsVisible="{Binding HasError}"/>
+
+      <!-- Buttons -->
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <Button Grid.Column="0"
+                Content="View on GitHub"
+                Command="{Binding OpenReleasePageCommand}"
+                Background="Transparent"
+                Foreground="#58A6FF"
+                BorderThickness="0"
+                HorizontalAlignment="Left"
+                Cursor="Hand"
+                Padding="0"/>
+
+        <Button Grid.Column="1"
+                Content="Later"
+                Command="{Binding CancelCommand}"
+                Width="80"
+                Margin="0,0,8,0"
+                HorizontalContentAlignment="Center"
+                Background="#2D2D2D"
+                Foreground="#CCCCCC"
+                CornerRadius="4"/>
+
+        <Button Grid.Column="2"
+                Content="Update Now"
+                Command="{Binding DownloadAndInstallCommand}"
+                IsEnabled="{Binding !IsDownloading}"
+                MinWidth="110"
+                HorizontalContentAlignment="Center"
+                Background="#007ACC"
+                Foreground="#FFFFFF"
+                FontWeight="SemiBold"
+                CornerRadius="4"/>
+      </Grid>
+    </StackPanel>
+  </Grid>
+</Window>

@@ -67,6 +67,7 @@
     <KeyBinding Gesture="Ctrl+Shift+M" Command="{Binding ToggleMarkdownPreviewCommand}"/>
     <KeyBinding Gesture="Ctrl+Shift+D" Command="{Binding ShowDiffCommand}"/>
     <KeyBinding Gesture="Ctrl+Alt+R" Command="{Binding ToggleRtlCommand}"/>
+    <KeyBinding Gesture="Ctrl+Alt+F" Command="{Binding ToggleCodingFontCommand}"/>
 
     <!-- View & Zoom Shortcuts -->
     <KeyBinding Gesture="Ctrl+OemPlus" Command="{Binding ZoomInCommand}"/>
@@ -169,6 +170,20 @@
           </MenuItem.Icon>
         </MenuItem>
         <MenuItem Header="Toggle _Line Numbers" Command="{Binding ToggleLineNumbersCommand}"/>
+        <Separator/>
+        <MenuItem Header="Toggle Coding _Font (Google Sans Code ⇄ Roboto Mono)" Command="{Binding ToggleCodingFontCommand}" HotKey="Ctrl+Alt+F" InputGesture="Ctrl+Alt+F"/>
+        <MenuItem Header="Coding _Font">
+          <MenuItem Header="Google Sans Code" Command="{Binding SetCodingFontCommand}" CommandParameter="Google Sans Code">
+            <MenuItem.Icon>
+              <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding IsGoogleSansCodeActive}"/>
+            </MenuItem.Icon>
+          </MenuItem>
+          <MenuItem Header="Roboto Mono" Command="{Binding SetCodingFontCommand}" CommandParameter="Roboto Mono">
+            <MenuItem.Icon>
+              <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding IsRobotoMonoActive}"/>
+            </MenuItem.Icon>
+          </MenuItem>
+        </MenuItem>
       </MenuItem>
 
       <!-- Theme Switcher & Importer Menu -->
@@ -222,8 +237,10 @@
       </MenuItem>
 
       <MenuItem Header="_Help">
-        <MenuItem Header="_About Code Viewer" Click="OnAboutClick"/>
+        <MenuItem Header="Check for _Updates..." Command="{Binding CheckForUpdatesCommand}"/>
         <MenuItem Header="Check Language &amp; Integration _Updates..." Command="{Binding CheckIntegrationsUpdateCommand}"/>
+        <Separator/>
+        <MenuItem Header="_About Code Viewer" Click="OnAboutClick"/>
         <MenuItem Header="_GitHub Repository" Click="OnGitHubRepoClick"/>
       </MenuItem>
     </Menu>
@@ -1012,6 +1029,19 @@
               <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.FontSize, StringFormat='{}{0:0} pt', FallbackValue='14 pt'}"/>
             </Button>
 
+            <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
+            <Button Command="{Binding ToggleCodingFontCommand}"
+                    ToolTip.Tip="Coding Font: Click or press Ctrl+Alt+F to toggle (Google Sans Code ⇄ Roboto Mono)"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="4,1"
+                    CornerRadius="3"
+                    Cursor="Hand">
+              <StackPanel Orientation="Horizontal" Spacing="3" VerticalAlignment="Center">
+                <TextBlock Text="🔤" FontSize="10" VerticalAlignment="Center"/>
+                <TextBlock Classes="statusitem" Text="{Binding CurrentFontFamily}" MaxWidth="120" TextTrimming="CharacterEllipsis"/>
+              </StackPanel>
+            </Button>
             <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
             <Button Command="{Binding ShowSettingsCommand}"
                     ToolTip.Tip="Settings (Ctrl+,)"

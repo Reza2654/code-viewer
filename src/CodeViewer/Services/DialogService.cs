@@ -420,5 +420,14 @@ public class DialogService : IDialogService
         await dialog.ShowDialog(_ownerWindow);
         return await tcs.Task;
     }
+
+    public async Task ShowUpdateDialogAsync(AppUpdateInfo updateInfo, IAppUpdateService updateService)
+    {
+        if (_ownerWindow == null) return;
+
+        var vm = new ViewModels.UpdateViewModel(updateInfo, updateService);
+        var dialog = new Views.UpdateDialog(vm);
+        await dialog.ShowDialog(_ownerWindow);
+    }
 }
 

@@ -11,7 +11,10 @@ public class AppSettings
     [JsonPropertyName("themeId")]
     public string ThemeId { get; set; } = "dark-plus";
 
-    private string _fontFamily = "Google Sans Code";
+    public const string GoogleSansCode = "Google Sans Code";
+    public const string RobotoMono = "Roboto Mono";
+
+    private string _fontFamily = GoogleSansCode;
 
     [JsonPropertyName("fontFamily")]
     public string FontFamily
@@ -24,12 +27,22 @@ public class AppSettings
     {
         if (string.IsNullOrWhiteSpace(font))
         {
-            return "Google Sans Code";
+            return GoogleSansCode;
         }
 
         var primary = font.Contains(',') ? font.Split(',')[0] : font;
         primary = primary.Trim().Trim('"', '\'');
-        return string.IsNullOrWhiteSpace(primary) ? "Google Sans Code" : primary;
+
+        if (string.Equals(primary, RobotoMono, StringComparison.OrdinalIgnoreCase))
+        {
+            return RobotoMono;
+        }
+        if (string.Equals(primary, GoogleSansCode, StringComparison.OrdinalIgnoreCase))
+        {
+            return GoogleSansCode;
+        }
+
+        return string.IsNullOrWhiteSpace(primary) ? GoogleSansCode : primary;
     }
 
     [JsonPropertyName("fontSize")]
@@ -86,6 +99,15 @@ public class AppSettings
     [JsonPropertyName("smoothScrolling")]
     public bool SmoothScrolling { get; set; } = true;
 
+    [JsonPropertyName("autoCheckForUpdates")]
+    public bool AutoCheckForUpdates { get; set; } = true;
+
+    [JsonPropertyName("runInBackgroundOnStartup")]
+    public bool RunInBackgroundOnStartup { get; set; } = false;
+
+    [JsonPropertyName("minimizeToTrayOnClose")]
+    public bool MinimizeToTrayOnClose { get; set; } = false;
+
     public AppSettings Clone()
     {
         return new AppSettings
@@ -109,7 +131,10 @@ public class AppSettings
             MaxRecentFiles = MaxRecentFiles,
             RestorePreviousSession = RestorePreviousSession,
             HighlightWordOccurrences = HighlightWordOccurrences,
-            SmoothScrolling = SmoothScrolling
+            SmoothScrolling = SmoothScrolling,
+            AutoCheckForUpdates = AutoCheckForUpdates,
+            RunInBackgroundOnStartup = RunInBackgroundOnStartup,
+            MinimizeToTrayOnClose = MinimizeToTrayOnClose
         };
     }
 }

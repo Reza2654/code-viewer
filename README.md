@@ -56,7 +56,7 @@
   - **Text Statistics**: Comprehensive character, word, line, non-empty line, and byte counts.
   - **Dynamic DLL Plugin Importer**: Drop third-party `.dll` assemblies implementing `IPlugin` into the plugins directory or load them via **Tools -> Import Plugin (.dll)...** without locking the file on disk.
 - 💾 **Safe Local Single-Instance IPC**: Opening files via CLI or File Explorer opens them as tabs inside the existing window using a high-performance local Named Pipe, passing file:line coordinates directly.
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.10-Setup.exe`) and portable standalone `.zip` archive.
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.11-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---
@@ -75,6 +75,7 @@
 | `Ctrl + K` | Clear Console Output |
 | `Ctrl + Shift + M` | Toggle Markdown Live Preview |
 | `Ctrl + Alt + R` | Toggle RTL / LTR Text Direction (Persian/Arabic) |
+| `Ctrl + Alt + F` | Toggle Coding Font (Google Sans Code ⇄ Roboto Mono) |
 | `Ctrl + Shift + D` | Compare / Diff Files |
 | `Ctrl + P` | Quick Open (Search tabs & recent files) |
 | `Ctrl + G` | Go to Line (e.g. `42` or `42:10`) |
@@ -106,14 +107,15 @@
 ## Installation & Packaging
 
 ### Option 1: Installer (Recommended)
-Download and run `CodeViewer-v1.2.0-beta.9-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
+Download and run `CodeViewer-v1.2.0-beta.11-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
 - Installs Code Viewer to your system.
 - Creates Start Menu and Desktop shortcuts.
-- Optionally installs and registers Google Sans Code font system-wide.
+- Optionally installs and registers Google Sans Code & Roboto Mono fonts system-wide.
+- Optionally enables background pre-warm on Windows startup for instant 0ms cold launches.
 - Automatically registers the modern Windows 11 right-click context menu.
 
 ### Option 2: Portable ZIP
-Download `CodeViewer-v1.2.0-beta.9-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
+Download `CodeViewer-v1.2.0-beta.11-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
 
 To enable the modern Windows 11 context menu for portable use, right-click `scripts\register-windows11-context-menu.ps1` and select **Run with PowerShell**.
 
@@ -161,8 +163,8 @@ To generate both the portable ZIP and the Inno Setup executable installer:
 powershell -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
 ```
 Output artifacts are saved in `dist/`:
-- `CodeViewer-v1.2.0-beta.10-Setup.exe`
-- `CodeViewer-v1.2.0-beta.10-win-x64-portable.zip`
+- `CodeViewer-v1.2.0-beta.11-Setup.exe`
+- `CodeViewer-v1.2.0-beta.11-win-x64-portable.zip`
 - `checksums.sha256`
 
 ---

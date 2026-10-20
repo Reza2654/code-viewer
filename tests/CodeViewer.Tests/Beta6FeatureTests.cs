@@ -370,6 +370,7 @@ public class Beta6FeatureTests
         public Task<bool> ShowConfirmationAsync(string title, string message, string confirmText = "Yes", string cancelText = "No") => Task.FromResult(ConfirmationResponse);
         public Task ShowMessageAsync(string title, string message) => Task.CompletedTask;
         public Task<string?> ShowPromptAsync(string title, string message, string defaultValue = "", string watermark = "") => Task.FromResult(PromptResponse);
+        public Task ShowUpdateDialogAsync(AppUpdateInfo updateInfo, IAppUpdateService updateService) => Task.CompletedTask;
     }
 }
 

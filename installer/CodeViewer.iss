@@ -2,7 +2,7 @@
 ; Builds a professional Windows 64-bit installer with Windows 11 Context Menu integration.
 
 #define MyAppName "Code Viewer"
-#define MyAppVersion "1.2.0-beta.10"
+#define MyAppVersion "1.2.0-beta.11"
 #define MyAppPublisher "Code Viewer Open Source Community"
 
 #define MyAppURL "https://github.com/Reza2654/code-viewer"
@@ -38,12 +38,16 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "win11contextmenu"; Description: "Integrate with Windows 11 right-click context menu"; GroupDescription: "Explorer Integration:"; Flags: checkedonce
 Name: "installfont"; Description: "Install Google Sans Code font"; GroupDescription: "Additional Tasks:"; Flags: checkedonce
+Name: "installrobotomono"; Description: "Install Roboto Mono font"; GroupDescription: "Additional Tasks:"; Flags: checkedonce
+Name: "startwithwindows"; Description: "Pre-warm in background on Windows startup (Instant 0ms launch)"; GroupDescription: "Additional Tasks:"; Flags: unchecked
 
 [Files]
 ; Primary application executable - explicitly installed to ensure it is always present
 Source: "..\dist\CodeViewer.exe"; DestDir: "{app}"; Flags: ignoreversion
 ; Google Sans Code font files
 Source: "..\fonts\GoogleSansCode*.ttf"; DestDir: "{autofonts}"; FontInstall: "Google Sans Code"; Flags: onlyifdoesntexist uninsneveruninstall; Tasks: installfont
+; Roboto Mono font files
+Source: "..\fonts\RobotoMono*.ttf"; DestDir: "{autofonts}"; FontInstall: "Roboto Mono"; Flags: onlyifdoesntexist uninsneveruninstall; Tasks: installrobotomono
 ; All supporting self-contained runtime assemblies, libraries, and assets
 Source: "..\dist\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "CodeViewer.exe,*Setup*.exe,*.zip,*.iss,checksums.sha256"
 
@@ -62,6 +66,9 @@ Root: HKCU; Subkey: "Software\Classes\*\shell\OpenWithCodeViewer\command"; Value
 Root: HKCU; Subkey: "Software\Classes\CLSID\{{A47366B9-1784-4E4C-971B-38A99C74E231}"; ValueType: string; ValueData: "Code Viewer Shell Extension"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\CLSID\{{A47366B9-1784-4E4C-971B-38A99C74E231}\InprocServer32"; ValueType: string; ValueData: "{app}\CodeViewer.ShellExtension.comhost.dll"
 Root: HKCU; Subkey: "Software\Classes\CLSID\{{A47366B9-1784-4E4C-971B-38A99C74E231}\InprocServer32"; ValueName: "ThreadingModel"; ValueType: string; ValueData: "Apartment"
+
+; Windows Startup Background Pre-warm
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "CodeViewerBackground"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" --background"; Flags: uninsdeletevalue; Tasks: startwithwindows
 
 [Run]
 ; Run Windows 11 Sparse Package registration if task selected

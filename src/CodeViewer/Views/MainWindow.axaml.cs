@@ -160,7 +160,7 @@ public partial class MainWindow : Window
             };
             vm.RequestOpenSettings = async () =>
             {
-                var dialog = new SettingsDialog(new SettingsViewModel(vm.SettingsService, vm.ThemeService));
+                var dialog = new SettingsDialog(new SettingsViewModel(vm.SettingsService, vm.ThemeService, vm.AppUpdateService, vm.DialogService));
                 await dialog.ShowDialog(this);
             };
 
@@ -1491,6 +1491,14 @@ public partial class MainWindow : Window
 
     #region Window Closing Verification
 
+    private bool _isExplicitExit;
+
+    public void ExplicitExit()
+    {
+        _isExplicitExit = true;
+        Close();
+    }
+
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
         if (DataContext is not MainViewModel vm) return;
@@ -1508,6 +1516,15 @@ public partial class MainWindow : Window
             {
                 return;
             }
+        }
+
+        var settings = vm.SettingsService.CurrentSettings;
+        if (settings.MinimizeToTrayOnClose && !_isExplicitExit)
+        {
+            e.Cancel = true;
+            _ = vm.SaveCurrentSessionAsync();
+            Hide();
+            return;
         }
 
         Closing -= OnWindowClosing;
@@ -1608,7 +1625,7 @@ public partial class MainWindow : Window
         }
 
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.2.0 Beta 10 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Version 1.2.0 Beta 11 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 8, 0, 10) });
 
 

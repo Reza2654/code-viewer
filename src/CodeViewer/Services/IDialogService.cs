@@ -57,6 +57,11 @@ public interface IDialogService
     /// Returns null if cancelled, or the string entered if confirmed.
     /// </summary>
     Task<string?> ShowPromptAsync(string title, string message, string defaultValue = "", string watermark = "");
+
+    /// <summary>
+    /// Displays the application update dialog presenting release notes, version info, and download/install action.
+    /// </summary>
+    Task ShowUpdateDialogAsync(AppUpdateInfo updateInfo, IAppUpdateService updateService);
 }
 
 

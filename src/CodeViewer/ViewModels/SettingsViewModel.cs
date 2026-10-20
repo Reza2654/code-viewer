@@ -15,6 +15,8 @@ public partial class SettingsViewModel : ViewModelBase
 {
     private readonly ISettingsService _settingsService;
     private readonly IThemeService _themeService;
+    private readonly IAppUpdateService? _appUpdateService;
+    private readonly IDialogService? _dialogService;
 
     [ObservableProperty]
     private ColorTheme _selectedTheme;
@@ -97,6 +99,15 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private bool _smoothScrolling;
 
+    [ObservableProperty]
+    private bool _autoCheckForUpdates = true;
+
+    [ObservableProperty]
+    private bool _runInBackgroundOnStartup;
+
+    [ObservableProperty]
+    private bool _minimizeToTrayOnClose;
+
     public IReadOnlyList<ColorTheme> AvailableThemes => _themeService.AvailableThemes;
     public IReadOnlyList<ColorTheme> AvailableLightThemes { get; }
     public IReadOnlyList<ColorTheme> AvailableDarkThemes { get; }
@@ -114,10 +125,16 @@ public partial class SettingsViewModel : ViewModelBase
     public Action? RequestClose { get; set; }
     public bool IsSaved { get; private set; }
 
-    public SettingsViewModel(ISettingsService settingsService, IThemeService themeService)
+    public SettingsViewModel(
+        ISettingsService settingsService,
+        IThemeService themeService,
+        IAppUpdateService? appUpdateService = null,
+        IDialogService? dialogService = null)
     {
         _settingsService = settingsService;
         _themeService = themeService;
+        _appUpdateService = appUpdateService;
+        _dialogService = dialogService;
 
         var current = _settingsService.CurrentSettings;
         _selectedFont = AppSettings.SanitizeFontFamily(current.FontFamily);
@@ -129,6 +146,9 @@ public partial class SettingsViewModel : ViewModelBase
         _restorePreviousSession = current.RestorePreviousSession;
         _highlightWordOccurrences = current.HighlightWordOccurrences;
         _smoothScrolling = current.SmoothScrolling;
+        _autoCheckForUpdates = current.AutoCheckForUpdates;
+        _runInBackgroundOnStartup = current.RunInBackgroundOnStartup;
+        _minimizeToTrayOnClose = current.MinimizeToTrayOnClose;
 
         _themeMode = !string.IsNullOrWhiteSpace(current.ThemeMode) ? current.ThemeMode : "System";
         _contrastMode = !string.IsNullOrWhiteSpace(current.ContrastMode) ? current.ContrastMode : "Default";
@@ -374,6 +394,7 @@ public partial class SettingsViewModel : ViewModelBase
         var codingFonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "Google Sans Code",
+            "Roboto Mono",
             "Cascadia Code",
             "Cascadia Mono",
             "Consolas",
@@ -390,8 +411,9 @@ public partial class SettingsViewModel : ViewModelBase
 
         var result = new List<string>();
 
-        // Always include Google Sans Code as the built-in primary editor font
+        // Always include Google Sans Code and Roboto Mono as the built-in primary editor fonts
         result.Add("Google Sans Code");
+        result.Add("Roboto Mono");
 
         try
         {
@@ -460,14 +482,47 @@ public partial class SettingsViewModel : ViewModelBase
             MaxRecentFiles = MaxRecentFiles,
             RestorePreviousSession = RestorePreviousSession,
             HighlightWordOccurrences = HighlightWordOccurrences,
-            SmoothScrolling = SmoothScrolling
+            SmoothScrolling = SmoothScrolling,
+            AutoCheckForUpdates = AutoCheckForUpdates,
+            RunInBackgroundOnStartup = RunInBackgroundOnStartup,
+            MinimizeToTrayOnClose = MinimizeToTrayOnClose
         };
+
+        StartupRegistrationService.SetRunOnStartup(RunInBackgroundOnStartup);
 
         await _settingsService.SaveAsync(settings);
         _themeService.ApplyTheme(settings);
 
         IsSaved = true;
         RequestClose?.Invoke();
+    }
+
+    [RelayCommand]
+    public void SelectPrimaryFont(string fontName)
+    {
+        SelectedFont = AppSettings.SanitizeFontFamily(fontName);
+    }
+
+    [RelayCommand]
+    public async Task CheckForUpdatesNowAsync()
+    {
+        if (_appUpdateService == null || _dialogService == null) return;
+        try
+        {
+            var info = await _appUpdateService.CheckForUpdatesAsync(isManualCheck: true);
+            if (info.IsUpdateAvailable)
+            {
+                await _dialogService.ShowUpdateDialogAsync(info, _appUpdateService);
+            }
+            else
+            {
+                await _dialogService.ShowMessageAsync("Check for Updates", $"You are running the latest version of Code Viewer ({info.CurrentVersion}).");
+            }
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowMessageAsync("Update Error", $"Could not check for updates:\n{ex.Message}");
+        }
     }
 
     [RelayCommand]
@@ -490,6 +545,9 @@ public partial class SettingsViewModel : ViewModelBase
         RestorePreviousSession = defaults.RestorePreviousSession;
         HighlightWordOccurrences = defaults.HighlightWordOccurrences;
         SmoothScrolling = defaults.SmoothScrolling;
+        AutoCheckForUpdates = defaults.AutoCheckForUpdates;
+        RunInBackgroundOnStartup = defaults.RunInBackgroundOnStartup;
+        MinimizeToTrayOnClose = defaults.MinimizeToTrayOnClose;
 
         ThemeMode = defaults.ThemeMode;
         ContrastMode = defaults.ContrastMode;

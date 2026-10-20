@@ -34,6 +34,7 @@ public partial class App : Application
                 var themeService = new ThemeService();
                 var pluginService = new PluginService();
                 var integrationsUpdateService = new IntegrationsUpdateService();
+                var appUpdateService = new AppUpdateService();
 
                 // 3. Create Main ViewModel
                 var mainViewModel = new MainViewModel(
@@ -44,9 +45,10 @@ public partial class App : Application
                     config,
                     themeService,
                     pluginService,
-                    integrationsUpdateService: integrationsUpdateService);
+                    integrationsUpdateService: integrationsUpdateService,
+                    appUpdateService: appUpdateService);
 
-                // 4. Create and show MainWindow
+                // 4. Create MainWindow
                 var mainWindow = new MainWindow
                 {
                     DataContext = mainViewModel
@@ -54,8 +56,74 @@ public partial class App : Application
 
                 dialogService.Initialize(mainWindow);
                 desktop.MainWindow = mainWindow;
-                mainWindow.Show();
+
+                // Support startup pre-warming / background mode for instantaneous sub-10ms launching
+                var isBackground = desktop.Args != null && System.Linq.Enumerable.Any(desktop.Args, a => string.Equals(a, "--background", StringComparison.OrdinalIgnoreCase));
+                desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
+
+                if (!isBackground)
+                {
+                    mainWindow.Show();
+                }
+
                 desktop.Exit += (_, _) => SingleInstanceService.Stop();
+
+                // Setup System Tray Icon for fast background management & status
+                try
+                {
+                    var trayIcon = new Avalonia.Controls.TrayIcon
+                    {
+                        ToolTipText = "Code Viewer",
+                        IsVisible = true
+                    };
+
+                    try
+                    {
+                        trayIcon.Icon = new Avalonia.Controls.WindowIcon(Avalonia.Platform.AssetLoader.Open(new Uri("avares://CodeViewer/Assets/icon.ico")));
+                    }
+                    catch
+                    {
+                        // Fallback if icon asset stream cannot be resolved
+                    }
+
+                    var menu = new Avalonia.Controls.NativeMenu();
+
+                    var openItem = new Avalonia.Controls.NativeMenuItem("Open Code Viewer");
+                    openItem.Click += (_, _) => RestoreAndFocusWindow(mainWindow);
+                    menu.Add(openItem);
+
+                    var fontItem = new Avalonia.Controls.NativeMenuItem("Toggle Coding Font");
+                    fontItem.Click += (_, _) => _ = mainViewModel.ToggleCodingFontCommand.ExecuteAsync(null);
+                    menu.Add(fontItem);
+
+                    var updateItem = new Avalonia.Controls.NativeMenuItem("Check for Updates...");
+                    updateItem.Click += (_, _) =>
+                    {
+                        RestoreAndFocusWindow(mainWindow);
+                        _ = mainViewModel.CheckForUpdatesCommand.ExecuteAsync(null);
+                    };
+                    menu.Add(updateItem);
+
+                    menu.Add(new Avalonia.Controls.NativeMenuItemSeparator());
+
+                    var exitItem = new Avalonia.Controls.NativeMenuItem("Exit");
+                    exitItem.Click += (_, _) =>
+                    {
+                        mainWindow.ExplicitExit();
+                        desktop.Shutdown();
+                    };
+                    menu.Add(exitItem);
+
+                    trayIcon.Menu = menu;
+                    trayIcon.Clicked += (_, _) => RestoreAndFocusWindow(mainWindow);
+
+                    var trayIcons = new Avalonia.Controls.TrayIcons { trayIcon };
+                    Avalonia.Controls.TrayIcon.SetIcons(this, trayIcons);
+                }
+                catch
+                {
+                    // Fallback if system tray is unavailable on the platform
+                }
 
                 // 5. Run async initialization (recent files, command-line arguments)
                 await mainViewModel.InitializeAsync(desktop.Args);
@@ -65,6 +133,8 @@ public partial class App : Application
                 {
                     Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
                     {
+                        RestoreAndFocusWindow(mainWindow);
+
                         var validFiles = System.Linq.Enumerable.ToArray(
                             System.Linq.Enumerable.Where(files, f => !string.Equals(f, SingleInstanceService.ActivateToken, StringComparison.Ordinal)));
 
@@ -79,17 +149,6 @@ public partial class App : Application
                                 }
                             }
                         }
-
-                        if (mainWindow.WindowState == Avalonia.Controls.WindowState.Minimized)
-                        {
-                            mainWindow.WindowState = Avalonia.Controls.WindowState.Normal;
-                        }
-
-                        // Bring window to foreground on Windows
-                        mainWindow.Topmost = true;
-                        mainWindow.Topmost = false;
-                        mainWindow.Activate();
-                        mainWindow.Focus();
                     });
                 });
             }
@@ -100,5 +159,21 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static void RestoreAndFocusWindow(MainWindow mainWindow)
+    {
+        if (!mainWindow.IsVisible)
+        {
+            mainWindow.Show();
+        }
+        if (mainWindow.WindowState == Avalonia.Controls.WindowState.Minimized)
+        {
+            mainWindow.WindowState = Avalonia.Controls.WindowState.Normal;
+        }
+        mainWindow.Topmost = true;
+        mainWindow.Topmost = false;
+        mainWindow.Activate();
+        mainWindow.Focus();
     }
 }

@@ -115,6 +115,28 @@
                 <TextBox Text="{Binding SelectedFont}"
                          Watermark="Or type custom font family name..."
                          Margin="0,4,0,0"/>
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+                  <Button Content="Set Google Sans Code"
+                          Command="{Binding SelectPrimaryFontCommand}"
+                          CommandParameter="Google Sans Code"
+                          FontSize="11"
+                          Padding="10,4"
+                          Background="Transparent"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
+                          CornerRadius="4"
+                          Cursor="Hand"/>
+                  <Button Content="Set Roboto Mono"
+                          Command="{Binding SelectPrimaryFontCommand}"
+                          CommandParameter="Roboto Mono"
+                          FontSize="11"
+                          Padding="10,4"
+                          Background="Transparent"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
+                          CornerRadius="4"
+                          Cursor="Hand"/>
+                </StackPanel>
               </StackPanel>
             </Border>
 
@@ -679,6 +701,95 @@
                            Foreground="{Binding SelectedTheme.CodePunctuation}"
                            FontFamily="{Binding SelectedFont}"
                            FontSize="{Binding FontSize}"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <!-- Tab 4: System & Updates -->
+      <TabItem Header="System &amp; Updates">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="16" Margin="4,12,8,12">
+            <!-- Startup & Pre-Warm -->
+            <Border Background="{DynamicResource ThemeTabBarBackground}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="14">
+              <StackPanel Spacing="12">
+                <TextBlock Text="Performance &amp; Fast App Startup"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeWindowForeground}"
+                           FontSize="13"/>
+                <TextBlock Text="Speed up opening files and launching Code Viewer by keeping it ready in memory."
+                           FontSize="11"
+                           Foreground="#888888"/>
+
+                <CheckBox IsChecked="{Binding RunInBackgroundOnStartup}"
+                          Foreground="{DynamicResource ThemeWindowForeground}">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="Start Code Viewer in background at Windows startup (Instant 0ms launch)"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ThemeWindowForeground}"/>
+                    <TextBlock Text="Pre-warms syntax highlighters and plugins in background memory so files open in ~3ms."
+                               FontSize="11"
+                               Foreground="#888888"/>
+                  </StackPanel>
+                </CheckBox>
+
+                <CheckBox IsChecked="{Binding MinimizeToTrayOnClose}"
+                          Foreground="{DynamicResource ThemeWindowForeground}">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="Keep running in background / minimize to tray when closed"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ThemeWindowForeground}"/>
+                    <TextBlock Text="Closing the main window hides it to the tray so subsequent file opens stay instantaneous."
+                               FontSize="11"
+                               Foreground="#888888"/>
+                  </StackPanel>
+                </CheckBox>
+              </StackPanel>
+            </Border>
+
+            <!-- Software Updates -->
+            <Border Background="{DynamicResource ThemeTabBarBackground}"
+                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="14">
+              <StackPanel Spacing="12">
+                <TextBlock Text="Software Updates"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeWindowForeground}"
+                           FontSize="13"/>
+                <TextBlock Text="Keep Code Viewer up-to-date with the latest features, themes, and syntax parsers."
+                           FontSize="11"
+                           Foreground="#888888"/>
+
+                <CheckBox IsChecked="{Binding AutoCheckForUpdates}"
+                          Foreground="{DynamicResource ThemeWindowForeground}">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="Automatically check for updates on startup"
+                               FontWeight="Medium"
+                               Foreground="{DynamicResource ThemeWindowForeground}"/>
+                    <TextBlock Text="Checks GitHub Releases unobtrusively in the background and notifies you when updates are ready."
+                               FontSize="11"
+                               Foreground="#888888"/>
+                  </StackPanel>
+                </CheckBox>
+
+                <Button Content="Check for Updates Now..."
+                        Command="{Binding CheckForUpdatesNowCommand}"
+                        HorizontalAlignment="Left"
+                        Background="{DynamicResource ThemeSelectionBackground}"
+                        Foreground="{DynamicResource ThemeWindowForeground}"
+                        BorderBrush="{DynamicResource ThemeBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Padding="12,6"
+                        Cursor="Hand"
+                        Margin="0,4,0,0"/>
               </StackPanel>
             </Border>
           </StackPanel>

@@ -31,6 +31,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private readonly IFileWatcherService _fileWatcherService;
     private readonly IIntegrationsUpdateService _integrationsUpdateService;
     private readonly IWorkspaceSearchService _workspaceSearchService;
+    private readonly IAppUpdateService _appUpdateService;
     private readonly AppConfig _config;
 
     public record ClosedTabState(string? FilePath, string Title, string Content, int CaretLine, int CaretColumn, string Language);
@@ -158,6 +159,18 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public ISettingsService SettingsService => _settingsService;
     public ISessionService SessionService => _sessionService;
     public IFileWatcherService FileWatcherService => _fileWatcherService;
+    public IDialogService DialogService => _dialogService;
+    public IAppUpdateService AppUpdateService => _appUpdateService;
+
+    public bool IsRobotoMonoActive => (CurrentFontFamily ?? string.Empty).Contains("Roboto Mono", StringComparison.OrdinalIgnoreCase);
+    public bool IsGoogleSansCodeActive => !IsRobotoMonoActive;
+
+    partial void OnCurrentFontFamilyChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsRobotoMonoActive));
+        OnPropertyChanged(nameof(IsGoogleSansCodeActive));
+    }
+
     public IReadOnlyList<string> AvailableLanguages => _languageService.GetSupportedLanguages();
 
     [ObservableProperty]
@@ -226,7 +239,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ISessionService? sessionService = null,
         IFileWatcherService? fileWatcherService = null,
         IIntegrationsUpdateService? integrationsUpdateService = null,
-        IWorkspaceSearchService? workspaceSearchService = null)
+        IWorkspaceSearchService? workspaceSearchService = null,
+        IAppUpdateService? appUpdateService = null)
     {
         _fileService = fileService;
         _languageService = languageService;
@@ -240,6 +254,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _fileWatcherService = fileWatcherService ?? new FileWatcherService();
         _integrationsUpdateService = integrationsUpdateService ?? new IntegrationsUpdateService();
         _workspaceSearchService = workspaceSearchService ?? new WorkspaceSearchService();
+        _appUpdateService = appUpdateService ?? new AppUpdateService();
 
 
         _fileWatcherService.FileChangedOnDisk += OnFileChangedOnDisk;
@@ -358,6 +373,30 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         if (Documents.Count == 0)
         {
             CreateNewDocument();
+        }
+
+        // 6. Check for updates in background if enabled
+        if (settings.AutoCheckForUpdates)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(3000);
+                    var info = await _appUpdateService.CheckForUpdatesAsync(isManualCheck: false);
+                    if (info.IsUpdateAvailable)
+                    {
+                        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            _ = ShowTemporaryStatusAsync($"⚡ Update available: Code Viewer {info.LatestVersion}", 8000);
+                        });
+                    }
+                }
+                catch
+                {
+                    // Silent on auto-check background failure
+                }
+            });
         }
     }
 
@@ -2074,6 +2113,61 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     #endregion
 
+    #region Font Switching & App Updates
+
+    [RelayCommand]
+    public async Task ToggleCodingFontAsync()
+    {
+        var current = CurrentFontFamily ?? string.Empty;
+        var target = current.Contains("Roboto Mono", StringComparison.OrdinalIgnoreCase)
+            ? "Google Sans Code"
+            : "Roboto Mono";
+
+        await SetCodingFontAsync(target);
+    }
+
+    [RelayCommand]
+    public async Task SetCodingFontAsync(string? fontName)
+    {
+        if (string.IsNullOrWhiteSpace(fontName)) return;
+
+        var sanitized = AppSettings.SanitizeFontFamily(fontName);
+        CurrentFontFamily = sanitized;
+
+        var settings = _settingsService.CurrentSettings;
+        settings.FontFamily = sanitized;
+        await _settingsService.SaveAsync(settings);
+
+        _ = ShowTemporaryStatusAsync($"Coding font switched to: {sanitized}");
+    }
+
+    [RelayCommand]
+    public async Task CheckForUpdatesAsync()
+    {
+        _ = ShowTemporaryStatusAsync("Checking for Code Viewer updates...");
+        try
+        {
+            var updateInfo = await _appUpdateService.CheckForUpdatesAsync(isManualCheck: true);
+            if (updateInfo.IsUpdateAvailable)
+            {
+                _ = ShowTemporaryStatusAsync($"Update available: {updateInfo.LatestVersion}");
+                await _dialogService.ShowUpdateDialogAsync(updateInfo, _appUpdateService);
+            }
+            else
+            {
+                _ = ShowTemporaryStatusAsync($"Code Viewer is up to date ({updateInfo.CurrentVersion}).");
+                await _dialogService.ShowMessageAsync("Check for Updates", $"You are running the latest version of Code Viewer ({updateInfo.CurrentVersion}).");
+            }
+        }
+        catch (Exception ex)
+        {
+            _ = ShowTemporaryStatusAsync("Failed to check for updates.");
+            await _dialogService.ShowMessageAsync("Update Check Failed", $"Could not check for updates:\n{ex.Message}");
+        }
+    }
+
+    #endregion
+
     #region Command Palette Operations
 
     [RelayCommand]
@@ -2212,6 +2306,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _allCommands.Add(new CommandPaletteItem("theme.import", "Import Color Theme (.json)...", "Preferences", "", "🎨", () => _ = ImportThemeAsync()));
         _allCommands.Add(new CommandPaletteItem("syntax.import", "Import Syntax Definition (.xshd)...", "Preferences", "", "📜", () => _ = ImportSyntaxAsync()));
         _allCommands.Add(new CommandPaletteItem("settings.open", "Open Settings...", "Preferences", "Ctrl+,", "⚙️", () => ShowSettings()));
+        _allCommands.Add(new CommandPaletteItem("font.toggle", "Toggle Coding Font (Google Sans Code ⇄ Roboto Mono)", "Preferences", "Ctrl+Alt+F", "🔤", () => _ = ToggleCodingFontAsync()));
+        _allCommands.Add(new CommandPaletteItem("font.googleSansCode", "Font: Google Sans Code", "Preferences", "", "🔤", () => _ = SetCodingFontAsync("Google Sans Code")));
+        _allCommands.Add(new CommandPaletteItem("font.robotoMono", "Font: Roboto Mono", "Preferences", "", "🔤", () => _ = SetCodingFontAsync("Roboto Mono")));
+        _allCommands.Add(new CommandPaletteItem("app.update", "Check for Code Viewer App Updates...", "Help", "", "🚀", () => _ = CheckForUpdatesAsync()));
         _allCommands.Add(new CommandPaletteItem("help.updates", "Check Language & Integration Updates...", "Help", "", "🔄", () => _ = CheckIntegrationsUpdateAsync()));
     }
 

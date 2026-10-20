@@ -24,7 +24,7 @@ public static class FontHelper
         var primary = AppSettings.SanitizeFontFamily(fontName);
         return FontCache.GetOrAdd(primary, p =>
         {
-            var composite = $"{p}, Google Sans Code, avares://CodeViewer/Assets/Fonts#Google Sans Code, Cascadia Code, Consolas, Segoe UI, Tahoma, Vazirmatn, Arial, sans-serif, monospace";
+            var composite = $"{p}, Roboto Mono, avares://CodeViewer/Assets/Fonts#Roboto Mono, Google Sans Code, avares://CodeViewer/Assets/Fonts#Google Sans Code, Cascadia Code, Consolas, Segoe UI, Tahoma, Vazirmatn, Arial, sans-serif, monospace";
             return new FontFamily(composite);
         });
     }
