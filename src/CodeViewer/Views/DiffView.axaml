@@ -71,7 +71,7 @@
                 <!-- Old Line Number -->
                 <TextBlock Grid.Column="0"
                            Text="{Binding OldLineNumber}"
-                           FontFamily="Cascadia Code, Consolas, monospace"
+                           FontFamily="{DynamicResource CodeFontFamily}"
                            FontSize="12"
                            TextAlignment="Right"
                            Foreground="{DynamicResource ThemeLineNumbersForeground}"
@@ -81,7 +81,7 @@
                 <!-- New Line Number -->
                 <TextBlock Grid.Column="1"
                            Text="{Binding NewLineNumber}"
-                           FontFamily="Cascadia Code, Consolas, monospace"
+                           FontFamily="{DynamicResource CodeFontFamily}"
                            FontSize="12"
                            TextAlignment="Right"
                            Foreground="{DynamicResource ThemeLineNumbersForeground}"
@@ -91,7 +91,7 @@
                 <!-- Prefix (+ / - / space) -->
                 <TextBlock Grid.Column="2"
                            Text="{Binding Prefix}"
-                           FontFamily="Cascadia Code, Consolas, monospace"
+                           FontFamily="{DynamicResource CodeFontFamily}"
                            FontSize="12"
                            FontWeight="Bold"
                            Foreground="{DynamicResource ThemeWindowForeground}"
@@ -100,7 +100,7 @@
                 <!-- Line Text -->
                 <TextBlock Grid.Column="3"
                            Text="{Binding Text}"
-                           FontFamily="Cascadia Code, Consolas, monospace"
+                           FontFamily="{DynamicResource CodeFontFamily}"
                            FontSize="12"
                            Foreground="{DynamicResource ThemeEditorForeground}"
                            TextWrapping="NoWrap"/>

@@ -22,6 +22,8 @@ public class CurrentLineHighlighter : IBackgroundRenderer
 
     public KnownLayer Layer => KnownLayer.Background;
 
+    public bool IsEnabled { get; set; } = true;
+
     public void UpdateTheme(bool isDark)
     {
         _brush = isDark
@@ -31,7 +33,7 @@ public class CurrentLineHighlighter : IBackgroundRenderer
 
     public void Draw(TextView textView, DrawingContext drawingContext)
     {
-        if (_editor.Document == null || !textView.VisualLinesValid || textView.VisualLines.Count == 0)
+        if (!IsEnabled || _editor.Document == null || !textView.VisualLinesValid || textView.VisualLines.Count == 0)
             return;
 
         var caret = _editor.TextArea?.Caret;

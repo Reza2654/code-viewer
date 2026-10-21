@@ -1,5 +1,6 @@
 using System;
 using System.Text.Json.Serialization;
+using Avalonia.Media;
 
 namespace CodeViewer.Models;
 
@@ -96,6 +97,30 @@ public class ColorTheme
 
     [JsonPropertyName("codePunctuation")]
     public string CodePunctuation { get; set; } = "#D4D4D4";
+
+    [JsonIgnore]
+    public IBrush EditorBackgroundBrush => new SolidColorBrush(Color.TryParse(EditorBackground, out var c) ? c : Colors.Transparent);
+
+    [JsonIgnore]
+    public IBrush AccentBrush => new SolidColorBrush(Color.TryParse(AccentColor, out var c) ? c : Colors.DodgerBlue);
+
+    [JsonIgnore]
+    public IBrush KeywordBrush => new SolidColorBrush(Color.TryParse(CodeKeyword, out var c) ? c : Colors.DodgerBlue);
+
+    [JsonIgnore]
+    public IBrush StringBrush => new SolidColorBrush(Color.TryParse(CodeString, out var c) ? c : Colors.Orange);
+
+    [JsonIgnore]
+    public IBrush CommentBrush => new SolidColorBrush(Color.TryParse(CodeComment, out var c) ? c : Colors.Green);
+
+    [JsonIgnore]
+    public IBrush NumberBrush => new SolidColorBrush(Color.TryParse(CodeNumber, out var c) ? c : Colors.LightGreen);
+
+    [JsonIgnore]
+    public IBrush TypeBrush => new SolidColorBrush(Color.TryParse(CodeType, out var c) ? c : Colors.Teal);
+
+    [JsonIgnore]
+    public IBrush MethodBrush => new SolidColorBrush(Color.TryParse(CodeMethod, out var c) ? c : Colors.Yellow);
 
     public ColorTheme Clone()
     {

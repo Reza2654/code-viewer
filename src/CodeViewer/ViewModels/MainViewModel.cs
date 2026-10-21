@@ -2303,6 +2303,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _allCommands.Add(new CommandPaletteItem("theme.gitHubLight", "Theme: GitHub Light", "Preferences", "", "🎨", () => SelectThemeById("github-light")));
         _allCommands.Add(new CommandPaletteItem("theme.solarizedLight", "Theme: Solarized Light", "Preferences", "", "🎨", () => SelectThemeById("solarized-light")));
         _allCommands.Add(new CommandPaletteItem("theme.catppuccinLatte", "Theme: Catppuccin Latte", "Preferences", "", "🎨", () => SelectThemeById("catppuccin-latte")));
+        _allCommands.Add(new CommandPaletteItem("theme.cyberpunk", "Theme: Synthwave '84 (Cyberpunk)", "Preferences", "", "🎨", () => SelectThemeById("cyberpunk")));
+        _allCommands.Add(new CommandPaletteItem("theme.gruvboxDark", "Theme: Gruvbox Dark", "Preferences", "", "🎨", () => SelectThemeById("gruvbox-dark")));
+        _allCommands.Add(new CommandPaletteItem("theme.monokaiPro", "Theme: Monokai Pro", "Preferences", "", "🎨", () => SelectThemeById("monokai-pro")));
+        _allCommands.Add(new CommandPaletteItem("theme.rosePine", "Theme: Rosé Pine", "Preferences", "", "🎨", () => SelectThemeById("rose-pine")));
+        _allCommands.Add(new CommandPaletteItem("theme.auraDark", "Theme: Aura Dark", "Preferences", "", "🎨", () => SelectThemeById("aura-dark")));
+        _allCommands.Add(new CommandPaletteItem("theme.oneLight", "Theme: One Light", "Preferences", "", "🎨", () => SelectThemeById("one-light")));
         _allCommands.Add(new CommandPaletteItem("theme.import", "Import Color Theme (.json)...", "Preferences", "", "🎨", () => _ = ImportThemeAsync()));
         _allCommands.Add(new CommandPaletteItem("syntax.import", "Import Syntax Definition (.xshd)...", "Preferences", "", "📜", () => _ = ImportSyntaxAsync()));
         _allCommands.Add(new CommandPaletteItem("settings.open", "Open Settings...", "Preferences", "Ctrl+,", "⚙️", () => ShowSettings()));

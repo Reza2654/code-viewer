@@ -108,7 +108,7 @@ public partial class MainWindow : Window
             vm.SearchViewModel.RequestClose += () =>
             {
                 _searchHighlightRenderer.Clear();
-                Editor.TextArea.TextView.InvalidateVisual();
+                Editor.TextArea?.TextView?.InvalidateVisual();
                 Editor.Focus();
             };
 
@@ -174,6 +174,7 @@ public partial class MainWindow : Window
                     UpdateMarkdownPreview();
                 }
                 _wordOccurrenceRenderer.UpdateOccurrences();
+                Editor.TextArea?.TextView?.InvalidateVisual();
             };
 
             // Keep word wrap, bracket matching, search, and palettes updated on property changes
@@ -190,8 +191,9 @@ public partial class MainWindow : Window
                         _smoothScrollController?.SyncCurrentOffset();
                         _bracketMatchingRenderer.UpdateMatchingBrackets();
                         _wordOccurrenceRenderer.UpdateOccurrences();
+                Editor.TextArea?.TextView?.InvalidateVisual();
                         UpdateSearchMatches();
-                        Editor.TextArea.TextView.InvalidateVisual();
+                        Editor.TextArea?.TextView?.InvalidateVisual();
                     }
                     if (vm.IsMarkdownPreviewActive)
                     {
@@ -312,6 +314,28 @@ public partial class MainWindow : Window
                 Editor.ShowLineNumbers = settings.ShowLineNumbers;
                 Editor.Options.IndentationSize = settings.TabSize;
 
+                if (Editor.Options != null)
+                {
+                    Editor.Options.ShowSpaces = settings.ShowWhitespace;
+                    Editor.Options.ShowTabs = settings.ShowWhitespace;
+                }
+
+                if (_currentLineHighlighter != null)
+                {
+                    _currentLineHighlighter.IsEnabled = settings.HighlightCurrentLine;
+                }
+
+                if (_bracketMatchingRenderer != null)
+                {
+                    _bracketMatchingRenderer.IsEnabled = settings.EnableBracketMatching;
+                    _bracketMatchingRenderer.UpdateMatchingBrackets();
+                }
+
+                if (_caretBlinkController != null)
+                {
+                    _caretBlinkController.IsEnabled = settings.SmoothCursorBlink;
+                }
+
                 if (RunnerOutputTextBox != null)
                 {
                     RunnerOutputTextBox.FontFamily = FontHelper.GetFontFamily(settings.FontFamily);
@@ -319,6 +343,7 @@ public partial class MainWindow : Window
 
                 _wordOccurrenceRenderer.IsEnabled = settings.HighlightWordOccurrences;
                 _wordOccurrenceRenderer.UpdateOccurrences();
+                Editor.TextArea?.TextView?.InvalidateVisual();
 
                 if (_smoothScrollController != null)
                 {
@@ -702,7 +727,7 @@ public partial class MainWindow : Window
             vm.ActiveDocument.UpdateCaretPosition(caret.Line, caret.Column, selectionLength, selectedLineCount);
             _bracketMatchingRenderer.UpdateMatchingBrackets();
             _wordOccurrenceRenderer.UpdateOccurrences();
-            Editor.TextArea.TextView.InvalidateVisual();
+            Editor.TextArea?.TextView?.InvalidateVisual();
         }
     }
 
@@ -723,7 +748,7 @@ public partial class MainWindow : Window
             _bracketMatchingRenderer.UpdateMatchingBrackets();
             _wordOccurrenceRenderer.UpdateOccurrences();
             UpdateSearchMatches();
-            Editor.TextArea.TextView.InvalidateVisual();
+            Editor.TextArea?.TextView?.InvalidateVisual();
             Editor.Focus();
         }
     }
@@ -854,7 +879,7 @@ public partial class MainWindow : Window
         if (string.IsNullOrEmpty(query) || !vm.SearchViewModel.IsOpen)
         {
             _searchHighlightRenderer.Clear();
-            Editor.TextArea.TextView.InvalidateVisual();
+            Editor.TextArea?.TextView?.InvalidateVisual();
             vm.SearchViewModel.StatusText = string.Empty;
             vm.SearchViewModel.TotalMatches = 0;
             vm.SearchViewModel.CurrentMatchIndex = 0;
@@ -865,7 +890,7 @@ public partial class MainWindow : Window
         if (text.Length == 0)
         {
             _searchHighlightRenderer.Clear();
-            Editor.TextArea.TextView.InvalidateVisual();
+            Editor.TextArea?.TextView?.InvalidateVisual();
             vm.SearchViewModel.StatusText = "No results";
             vm.SearchViewModel.TotalMatches = 0;
             vm.SearchViewModel.CurrentMatchIndex = 0;
@@ -905,7 +930,7 @@ public partial class MainWindow : Window
             _searchHighlightRenderer.SetMatches(_searchMatchOffsets, query.Length, activeOffset);
         }
 
-        Editor.TextArea.TextView.InvalidateVisual();
+        Editor.TextArea?.TextView?.InvalidateVisual();
     }
 
     private void OnFindNext()
@@ -957,7 +982,7 @@ public partial class MainWindow : Window
         vm.SearchViewModel.StatusText = $"{matchIndex + 1} of {_searchMatchOffsets.Count}";
 
         _searchHighlightRenderer.SetActiveMatch(offset);
-        Editor.TextArea.TextView.InvalidateVisual();
+        Editor.TextArea?.TextView?.InvalidateVisual();
     }
 
     private void OnReplace()
@@ -1625,7 +1650,7 @@ public partial class MainWindow : Window
         }
 
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.2.0 Beta 11 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Version 1.2.0 Beta 12 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 8, 0, 10) });
 
 

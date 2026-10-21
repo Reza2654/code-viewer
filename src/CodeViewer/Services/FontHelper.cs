@@ -24,13 +24,30 @@ public static class FontHelper
         var primary = AppSettings.SanitizeFontFamily(fontName);
         return FontCache.GetOrAdd(primary, p =>
         {
-            var composite = $"{p}, Roboto Mono, avares://CodeViewer/Assets/Fonts#Roboto Mono, Google Sans Code, avares://CodeViewer/Assets/Fonts#Google Sans Code, Cascadia Code, Consolas, Segoe UI, Tahoma, Vazirmatn, Arial, sans-serif, monospace";
+            string composite;
+            if (string.Equals(p, AppSettings.RobotoMono, StringComparison.OrdinalIgnoreCase))
+            {
+                // When Roboto Mono is active: system font first, embedded font asset fallback, then general monospace fallbacks
+                composite = "Roboto Mono, avares://CodeViewer/Assets/Fonts#Roboto Mono, Cascadia Code, Consolas, Segoe UI, Tahoma, Vazirmatn, Arial, sans-serif, monospace";
+            }
+            else if (string.Equals(p, AppSettings.GoogleSansCode, StringComparison.OrdinalIgnoreCase))
+            {
+                // When Google Sans Code is active: system font first, embedded font asset fallback, then general monospace fallbacks
+                composite = "Google Sans Code, avares://CodeViewer/Assets/Fonts#Google Sans Code, Cascadia Code, Consolas, Segoe UI, Tahoma, Vazirmatn, Arial, sans-serif, monospace";
+            }
+            else
+            {
+                // Custom font: chosen font first, then embedded Google Sans Code & Roboto Mono, then general monospace fallbacks
+                composite = $"{p}, Google Sans Code, avares://CodeViewer/Assets/Fonts#Google Sans Code, Roboto Mono, avares://CodeViewer/Assets/Fonts#Roboto Mono, Cascadia Code, Consolas, Segoe UI, Tahoma, Vazirmatn, Arial, sans-serif, monospace";
+            }
+
             return new FontFamily(composite);
         });
     }
 
     /// <summary>
     /// Applies font family and font size to an AvaloniaEdit TextEditor and all of its inner controls (TextArea and TextView).
+    /// Also keeps Application.Current.Resources["CodeFontFamily"] synchronized for all XAML dynamic bindings.
     /// </summary>
     public static void ApplyToEditor(TextEditor? editor, string? fontName, double fontSize)
     {
@@ -50,10 +67,14 @@ public static class FontHelper
 
                 if (editor.TextArea.TextView != null)
                 {
-                    editor.TextArea.TextView.SetValue(Avalonia.Controls.Primitives.TemplatedControl.FontFamilyProperty, ff);
-                    editor.TextArea.TextView.SetValue(Avalonia.Controls.Primitives.TemplatedControl.FontSizeProperty, fontSize);
                     editor.TextArea.TextView.Redraw();
+                    editor.TextArea.TextView.InvalidateVisual();
                 }
+            }
+
+            if (Avalonia.Application.Current != null)
+            {
+                Avalonia.Application.Current.Resources["CodeFontFamily"] = ff;
             }
         }
         catch

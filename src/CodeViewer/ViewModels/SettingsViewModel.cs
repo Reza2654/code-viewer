@@ -74,9 +74,24 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private bool _highlightWordOccurrences = true;
 
+    // Editor Preferences
+    [ObservableProperty]
+    private bool _smoothCursorBlink = true;
+
+    [ObservableProperty]
+    private bool _showWhitespace = false;
+
+    [ObservableProperty]
+    private bool _highlightCurrentLine = true;
+
+    [ObservableProperty]
+    private bool _enableBracketMatching = true;
+
     // Fonts & Editor
     [ObservableProperty]
     private string _selectedFont;
+
+    public FontFamily SelectedFontFamily => FontHelper.GetFontFamily(SelectedFont);
 
     [ObservableProperty]
     private double _fontSize;
@@ -108,12 +123,71 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private bool _minimizeToTrayOnClose;
 
+    // Syntax Highlighting Customizer Overrides
+    [ObservableProperty]
+    private string? _customCodeKeyword;
+
+    [ObservableProperty]
+    private string? _customCodeComment;
+
+    [ObservableProperty]
+    private string? _customCodeString;
+
+    [ObservableProperty]
+    private string? _customCodeNumber;
+
+    [ObservableProperty]
+    private string? _customCodeType;
+
+    [ObservableProperty]
+    private string? _customCodeMethod;
+
+    [ObservableProperty]
+    private string? _customCodePreprocessor;
+
+    [ObservableProperty]
+    private string? _customCodePunctuation;
+
+    [ObservableProperty]
+    private IBrush _keywordBrush = new SolidColorBrush(Colors.DodgerBlue);
+
+    [ObservableProperty]
+    private IBrush _commentBrush = new SolidColorBrush(Colors.Green);
+
+    [ObservableProperty]
+    private IBrush _stringBrush = new SolidColorBrush(Colors.Orange);
+
+    [ObservableProperty]
+    private IBrush _numberBrush = new SolidColorBrush(Colors.LightGreen);
+
+    [ObservableProperty]
+    private IBrush _typeBrush = new SolidColorBrush(Colors.Teal);
+
+    [ObservableProperty]
+    private IBrush _methodBrush = new SolidColorBrush(Colors.Yellow);
+
+    [ObservableProperty]
+    private IBrush _preprocessorBrush = new SolidColorBrush(Colors.Magenta);
+
+    [ObservableProperty]
+    private IBrush _punctuationBrush = new SolidColorBrush(Colors.White);
+
+    // Theme Gallery
+    [ObservableProperty]
+    private string _themeFilterMode = "All";
+
+    public ObservableCollection<ColorTheme> FilteredThemes { get; } = [];
+
     public IReadOnlyList<ColorTheme> AvailableThemes => _themeService.AvailableThemes;
     public IReadOnlyList<ColorTheme> AvailableLightThemes { get; }
     public IReadOnlyList<ColorTheme> AvailableDarkThemes { get; }
 
     public ObservableCollection<string> AvailableFonts { get; } = [];
     public ObservableCollection<int> AvailableTabSizes { get; } = [2, 4, 8];
+
+    public bool IsAllThemeFilter => string.Equals(ThemeFilterMode, "All", StringComparison.OrdinalIgnoreCase);
+    public bool IsDarkThemeFilter => string.Equals(ThemeFilterMode, "Dark", StringComparison.OrdinalIgnoreCase);
+    public bool IsLightThemeFilter => string.Equals(ThemeFilterMode, "Light", StringComparison.OrdinalIgnoreCase);
 
     public bool IsSystemTheme => string.Equals(ThemeMode, "System", StringComparison.OrdinalIgnoreCase);
     public bool IsLightTheme => string.Equals(ThemeMode, "Light", StringComparison.OrdinalIgnoreCase);
@@ -146,9 +220,22 @@ public partial class SettingsViewModel : ViewModelBase
         _restorePreviousSession = current.RestorePreviousSession;
         _highlightWordOccurrences = current.HighlightWordOccurrences;
         _smoothScrolling = current.SmoothScrolling;
+        _smoothCursorBlink = current.SmoothCursorBlink;
+        _showWhitespace = current.ShowWhitespace;
+        _highlightCurrentLine = current.HighlightCurrentLine;
+        _enableBracketMatching = current.EnableBracketMatching;
         _autoCheckForUpdates = current.AutoCheckForUpdates;
         _runInBackgroundOnStartup = current.RunInBackgroundOnStartup;
         _minimizeToTrayOnClose = current.MinimizeToTrayOnClose;
+
+        _customCodeKeyword = current.CustomCodeKeyword;
+        _customCodeComment = current.CustomCodeComment;
+        _customCodeString = current.CustomCodeString;
+        _customCodeNumber = current.CustomCodeNumber;
+        _customCodeType = current.CustomCodeType;
+        _customCodeMethod = current.CustomCodeMethod;
+        _customCodePreprocessor = current.CustomCodePreprocessor;
+        _customCodePunctuation = current.CustomCodePunctuation;
 
         _themeMode = !string.IsNullOrWhiteSpace(current.ThemeMode) ? current.ThemeMode : "System";
         _contrastMode = !string.IsNullOrWhiteSpace(current.ContrastMode) ? current.ContrastMode : "Default";
@@ -196,6 +283,8 @@ public partial class SettingsViewModel : ViewModelBase
             AvailableFonts.Insert(0, _selectedFont);
         }
 
+        UpdateFilteredThemes();
+        UpdateSyntaxBrushes();
         UpdateEffectivePreviewTheme();
     }
 
@@ -255,8 +344,17 @@ public partial class SettingsViewModel : ViewModelBase
                 DarkBackgroundHex = NormalizeHex(DarkBackgroundHex, "#101010"),
                 DarkForegroundHex = NormalizeHex(DarkForegroundHex, "#CCCCCC"),
                 DarkAccentHex = NormalizeHex(DarkAccentHex, "#007ACC"),
+                CustomCodeKeyword = CustomCodeKeyword,
+                CustomCodeComment = CustomCodeComment,
+                CustomCodeString = CustomCodeString,
+                CustomCodeNumber = CustomCodeNumber,
+                CustomCodeType = CustomCodeType,
+                CustomCodeMethod = CustomCodeMethod,
+                CustomCodePreprocessor = CustomCodePreprocessor,
+                CustomCodePunctuation = CustomCodePunctuation,
             };
             SelectedTheme = _themeService.ResolveEffectiveTheme(temp);
+            UpdateSyntaxBrushes();
         }
         catch
         {
@@ -339,6 +437,173 @@ public partial class SettingsViewModel : ViewModelBase
     {
         DarkAccentBrush = TryParseBrush(value, "#007ACC");
         UpdateEffectivePreviewTheme();
+    }
+
+    partial void OnSelectedFontChanged(string value)
+    {
+        OnPropertyChanged(nameof(SelectedFontFamily));
+    }
+
+    partial void OnThemeFilterModeChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsAllThemeFilter));
+        OnPropertyChanged(nameof(IsDarkThemeFilter));
+        OnPropertyChanged(nameof(IsLightThemeFilter));
+        UpdateFilteredThemes();
+    }
+
+    partial void OnCustomCodeKeywordChanged(string? value) { UpdateSyntaxBrushes(); UpdateEffectivePreviewTheme(); }
+    partial void OnCustomCodeCommentChanged(string? value) { UpdateSyntaxBrushes(); UpdateEffectivePreviewTheme(); }
+    partial void OnCustomCodeStringChanged(string? value) { UpdateSyntaxBrushes(); UpdateEffectivePreviewTheme(); }
+    partial void OnCustomCodeNumberChanged(string? value) { UpdateSyntaxBrushes(); UpdateEffectivePreviewTheme(); }
+    partial void OnCustomCodeTypeChanged(string? value) { UpdateSyntaxBrushes(); UpdateEffectivePreviewTheme(); }
+    partial void OnCustomCodeMethodChanged(string? value) { UpdateSyntaxBrushes(); UpdateEffectivePreviewTheme(); }
+    partial void OnCustomCodePreprocessorChanged(string? value) { UpdateSyntaxBrushes(); UpdateEffectivePreviewTheme(); }
+    partial void OnCustomCodePunctuationChanged(string? value) { UpdateSyntaxBrushes(); UpdateEffectivePreviewTheme(); }
+
+    private void UpdateSyntaxBrushes()
+    {
+        var theme = SelectedTheme ?? _themeService.CurrentTheme;
+        KeywordBrush = TryParseBrush(CustomCodeKeyword, theme?.CodeKeyword ?? "#569CD6");
+        CommentBrush = TryParseBrush(CustomCodeComment, theme?.CodeComment ?? "#6A9955");
+        StringBrush = TryParseBrush(CustomCodeString, theme?.CodeString ?? "#CE9178");
+        NumberBrush = TryParseBrush(CustomCodeNumber, theme?.CodeNumber ?? "#B5CEA8");
+        TypeBrush = TryParseBrush(CustomCodeType, theme?.CodeType ?? "#4EC9B0");
+        MethodBrush = TryParseBrush(CustomCodeMethod, theme?.CodeMethod ?? "#DCDCAA");
+        PreprocessorBrush = TryParseBrush(CustomCodePreprocessor, theme?.CodePreprocessor ?? "#9B9B9B");
+        PunctuationBrush = TryParseBrush(CustomCodePunctuation, theme?.CodePunctuation ?? "#D4D4D4");
+    }
+
+    private void UpdateFilteredThemes()
+    {
+        FilteredThemes.Clear();
+        var all = _themeService.AvailableThemes;
+        IEnumerable<ColorTheme> query = all;
+        if (string.Equals(ThemeFilterMode, "Dark", StringComparison.OrdinalIgnoreCase))
+        {
+            query = all.Where(t => t.IsDark);
+        }
+        else if (string.Equals(ThemeFilterMode, "Light", StringComparison.OrdinalIgnoreCase))
+        {
+            query = all.Where(t => !t.IsDark);
+        }
+
+        foreach (var t in query)
+        {
+            FilteredThemes.Add(t);
+        }
+    }
+
+    [RelayCommand]
+    public void SetThemeFilter(string filter)
+    {
+        ThemeFilterMode = filter;
+    }
+
+    [RelayCommand]
+    public void SelectThemeFromGallery(ColorTheme theme)
+    {
+        if (theme == null) return;
+        SelectedTheme = theme;
+        if (theme.IsDark)
+        {
+            ThemeMode = "Dark";
+            var match = AvailableDarkThemes.FirstOrDefault(t => t.Id == theme.Id);
+            if (match != null) SelectedDarkPreset = match;
+            DarkBackgroundHex = theme.WindowBackground;
+            DarkForegroundHex = theme.Foreground;
+            DarkAccentHex = theme.AccentColor;
+        }
+        else
+        {
+            ThemeMode = "Light";
+            var match = AvailableLightThemes.FirstOrDefault(t => t.Id == theme.Id);
+            if (match != null) SelectedLightPreset = match;
+            LightBackgroundHex = theme.WindowBackground;
+            LightForegroundHex = theme.Foreground;
+            LightAccentHex = theme.AccentColor;
+        }
+        UpdateSyntaxBrushes();
+        UpdateEffectivePreviewTheme();
+    }
+
+    [RelayCommand]
+    public void ResetSyntaxColors()
+    {
+        CustomCodeKeyword = null;
+        CustomCodeComment = null;
+        CustomCodeString = null;
+        CustomCodeNumber = null;
+        CustomCodeType = null;
+        CustomCodeMethod = null;
+        CustomCodePreprocessor = null;
+        CustomCodePunctuation = null;
+        UpdateSyntaxBrushes();
+        UpdateEffectivePreviewTheme();
+    }
+
+    [RelayCommand]
+    public async Task ImportThemeAsync()
+    {
+        if (_dialogService == null) return;
+        try
+        {
+            var file = await _dialogService.ShowOpenSpecificFileDialogAsync("Import Color Theme", "JSON Theme (*.json)", new[] { "*.json" });
+            if (!string.IsNullOrEmpty(file))
+            {
+                var imported = await _themeService.ImportThemeFromJsonAsync(file);
+                UpdateFilteredThemes();
+                SelectThemeFromGallery(imported);
+                await _dialogService.ShowMessageAsync("Theme Imported", $"Theme '{imported.Name}' was successfully imported and activated!");
+            }
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowMessageAsync("Import Error", $"Could not import theme: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public void OpenThemesFolder()
+    {
+        try
+        {
+            var dir = _themeService.GetThemesDirectory();
+            if (!System.IO.Directory.Exists(dir))
+            {
+                System.IO.Directory.CreateDirectory(dir);
+            }
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = dir,
+                UseShellExecute = true
+            });
+        }
+        catch { }
+    }
+
+    [RelayCommand]
+    public void SetFontSize(double size)
+    {
+        FontSize = size;
+    }
+
+    [RelayCommand]
+    public void IncreaseFontSize()
+    {
+        if (FontSize < 36) FontSize += 1;
+    }
+
+    [RelayCommand]
+    public void DecreaseFontSize()
+    {
+        if (FontSize > 8) FontSize -= 1;
+    }
+
+    [RelayCommand]
+    public void SetTabSize(int size)
+    {
+        TabSize = size;
     }
 
     [RelayCommand]
@@ -483,6 +748,18 @@ public partial class SettingsViewModel : ViewModelBase
             RestorePreviousSession = RestorePreviousSession,
             HighlightWordOccurrences = HighlightWordOccurrences,
             SmoothScrolling = SmoothScrolling,
+            SmoothCursorBlink = SmoothCursorBlink,
+            ShowWhitespace = ShowWhitespace,
+            HighlightCurrentLine = HighlightCurrentLine,
+            EnableBracketMatching = EnableBracketMatching,
+            CustomCodeKeyword = CustomCodeKeyword,
+            CustomCodeComment = CustomCodeComment,
+            CustomCodeString = CustomCodeString,
+            CustomCodeNumber = CustomCodeNumber,
+            CustomCodeType = CustomCodeType,
+            CustomCodeMethod = CustomCodeMethod,
+            CustomCodePreprocessor = CustomCodePreprocessor,
+            CustomCodePunctuation = CustomCodePunctuation,
             AutoCheckForUpdates = AutoCheckForUpdates,
             RunInBackgroundOnStartup = RunInBackgroundOnStartup,
             MinimizeToTrayOnClose = MinimizeToTrayOnClose
@@ -545,6 +822,18 @@ public partial class SettingsViewModel : ViewModelBase
         RestorePreviousSession = defaults.RestorePreviousSession;
         HighlightWordOccurrences = defaults.HighlightWordOccurrences;
         SmoothScrolling = defaults.SmoothScrolling;
+        SmoothCursorBlink = defaults.SmoothCursorBlink;
+        ShowWhitespace = defaults.ShowWhitespace;
+        HighlightCurrentLine = defaults.HighlightCurrentLine;
+        EnableBracketMatching = defaults.EnableBracketMatching;
+        CustomCodeKeyword = defaults.CustomCodeKeyword;
+        CustomCodeComment = defaults.CustomCodeComment;
+        CustomCodeString = defaults.CustomCodeString;
+        CustomCodeNumber = defaults.CustomCodeNumber;
+        CustomCodeType = defaults.CustomCodeType;
+        CustomCodeMethod = defaults.CustomCodeMethod;
+        CustomCodePreprocessor = defaults.CustomCodePreprocessor;
+        CustomCodePunctuation = defaults.CustomCodePunctuation;
         AutoCheckForUpdates = defaults.AutoCheckForUpdates;
         RunInBackgroundOnStartup = defaults.RunInBackgroundOnStartup;
         MinimizeToTrayOnClose = defaults.MinimizeToTrayOnClose;

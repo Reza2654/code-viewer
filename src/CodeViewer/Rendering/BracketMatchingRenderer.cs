@@ -27,6 +27,8 @@ public class BracketMatchingRenderer : IBackgroundRenderer
 
     public KnownLayer Layer => KnownLayer.Selection;
 
+    public bool IsEnabled { get; set; } = true;
+
     public void UpdateTheme(ColorTheme theme)
     {
         try
@@ -46,6 +48,12 @@ public class BracketMatchingRenderer : IBackgroundRenderer
 
     public void UpdateMatchingBrackets()
     {
+        if (!IsEnabled)
+        {
+            Clear();
+            return;
+        }
+
         var doc = _editor.Document;
         if (doc == null || doc.TextLength == 0)
         {
@@ -169,7 +177,7 @@ public class BracketMatchingRenderer : IBackgroundRenderer
 
     public void Draw(TextView textView, DrawingContext drawingContext)
     {
-        if (_firstOffset < 0 || _secondOffset < 0 || _editor.Document == null)
+        if (!IsEnabled || _firstOffset < 0 || _secondOffset < 0 || _editor.Document == null)
             return;
 
         DrawBracketHighlight(textView, drawingContext, _firstOffset);

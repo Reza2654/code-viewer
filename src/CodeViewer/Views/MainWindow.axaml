@@ -192,8 +192,20 @@
         <MenuItem Header="One Dark Pro" Click="OnSelectThemeMenuClick" Tag="one-dark"/>
         <MenuItem Header="Monokai" Click="OnSelectThemeMenuClick" Tag="monokai"/>
         <MenuItem Header="Dracula" Click="OnSelectThemeMenuClick" Tag="dracula"/>
-        <MenuItem Header="Solarized Dark" Click="OnSelectThemeMenuClick" Tag="solarized-dark"/>
+        <MenuItem Header="Tokyo Night" Click="OnSelectThemeMenuClick" Tag="tokyo-night"/>
+        <MenuItem Header="Nord" Click="OnSelectThemeMenuClick" Tag="nord"/>
+        <MenuItem Header="Catppuccin Mocha" Click="OnSelectThemeMenuClick" Tag="catppuccin-mocha"/>
+        <MenuItem Header="GitHub Dark" Click="OnSelectThemeMenuClick" Tag="github-dark"/>
+        <MenuItem Header="Synthwave '84 (Cyberpunk)" Click="OnSelectThemeMenuClick" Tag="cyberpunk"/>
+        <MenuItem Header="Gruvbox Dark" Click="OnSelectThemeMenuClick" Tag="gruvbox-dark"/>
+        <MenuItem Header="Monokai Pro" Click="OnSelectThemeMenuClick" Tag="monokai-pro"/>
+        <MenuItem Header="Rosé Pine" Click="OnSelectThemeMenuClick" Tag="rose-pine"/>
+        <MenuItem Header="Aura Dark" Click="OnSelectThemeMenuClick" Tag="aura-dark"/>
+        <Separator/>
         <MenuItem Header="GitHub Light" Click="OnSelectThemeMenuClick" Tag="github-light"/>
+        <MenuItem Header="Solarized Light" Click="OnSelectThemeMenuClick" Tag="solarized-light"/>
+        <MenuItem Header="Catppuccin Latte" Click="OnSelectThemeMenuClick" Tag="catppuccin-latte"/>
+        <MenuItem Header="One Light" Click="OnSelectThemeMenuClick" Tag="one-light"/>
         <Separator/>
         <MenuItem Header="Import _Color Theme (.json)..." Command="{Binding ImportThemeCommand}"/>
         <MenuItem Header="Import _Syntax Definition (.xshd)..." Command="{Binding ImportSyntaxCommand}"/>

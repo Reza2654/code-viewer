@@ -95,6 +95,41 @@ public class ThemeService : IThemeService
                     return theme;
                 }
             }
+
+            // Fallback scan: if filename does not strictly equal themeId, check all json files in _themesDirectory
+            if (Directory.Exists(_themesDirectory))
+            {
+                foreach (var file in Directory.GetFiles(_themesDirectory, "*.json"))
+                {
+                    try
+                    {
+                        var json = File.ReadAllText(file);
+                        var theme = JsonSerializer.Deserialize<ColorTheme>(json);
+                        if (theme != null)
+                        {
+                            var autoId = string.IsNullOrWhiteSpace(theme.Id)
+                                ? Path.GetFileNameWithoutExtension(file).ToLowerInvariant().Replace(' ', '-')
+                                : theme.Id;
+                            var autoName = string.IsNullOrWhiteSpace(theme.Name)
+                                ? Path.GetFileNameWithoutExtension(file)
+                                : theme.Name;
+
+                            if (string.Equals(autoId, themeId, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(autoName, themeId, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(Path.GetFileNameWithoutExtension(file), themeId, StringComparison.OrdinalIgnoreCase))
+                            {
+                                theme.Id = autoId;
+                                theme.Name = autoName;
+                                return theme;
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // continue scanning
+                    }
+                }
+            }
         }
         catch
         {
@@ -552,6 +587,198 @@ public class ThemeService : IThemeService
             CodePreprocessor = "#EA76CB",
             CodePunctuation = "#5C5F77"
         });
+
+        _themes.Add(new ColorTheme
+        {
+            Id = "cyberpunk",
+            Name = "Synthwave '84 (Cyberpunk)",
+            IsDark = true,
+            WindowBackground = "#262335",
+            Foreground = "#ECEFF4",
+            MenuBackground = "#1F1D2B",
+            MenuForeground = "#FE4450",
+            TabBarBackground = "#1F1D2B",
+            TabItemActiveBackground = "#262335",
+            TabItemInactiveBackground = "#2A2139",
+            TabItemActiveForeground = "#FF7EDB",
+            TabItemInactiveForeground = "#727086",
+            EditorBackground = "#262335",
+            EditorForeground = "#ECEFF4",
+            LineNumbersForeground = "#49455B",
+            SelectionBackground = "#3D2C5A",
+            StatusBarBackground = "#FE4450",
+            StatusBarForeground = "#FFFFFF",
+            AccentColor = "#FF7EDB",
+            BorderColor = "#1A1824",
+            CodeKeyword = "#FF7EDB",
+            CodeComment = "#614D85",
+            CodeString = "#FFD400",
+            CodeNumber = "#F97E72",
+            CodeType = "#36F9F6",
+            CodeMethod = "#72F1B8",
+            CodePreprocessor = "#FE4450",
+            CodePunctuation = "#FE4450"
+        });
+
+        _themes.Add(new ColorTheme
+        {
+            Id = "gruvbox-dark",
+            Name = "Gruvbox Dark",
+            IsDark = true,
+            WindowBackground = "#282828",
+            Foreground = "#EBDBB2",
+            MenuBackground = "#1D2021",
+            MenuForeground = "#D5C4A1",
+            TabBarBackground = "#1D2021",
+            TabItemActiveBackground = "#282828",
+            TabItemInactiveBackground = "#3C3836",
+            TabItemActiveForeground = "#FABD2F",
+            TabItemInactiveForeground = "#7C6F64",
+            EditorBackground = "#282828",
+            EditorForeground = "#EBDBB2",
+            LineNumbersForeground = "#665C54",
+            SelectionBackground = "#504945",
+            StatusBarBackground = "#D79921",
+            StatusBarForeground = "#282828",
+            AccentColor = "#FABD2F",
+            BorderColor = "#1D2021",
+            CodeKeyword = "#FB4934",
+            CodeComment = "#928374",
+            CodeString = "#B8BB26",
+            CodeNumber = "#D3869B",
+            CodeType = "#FABD2F",
+            CodeMethod = "#8EC07C",
+            CodePreprocessor = "#FE8019",
+            CodePunctuation = "#EBDBB2"
+        });
+
+        _themes.Add(new ColorTheme
+        {
+            Id = "monokai-pro",
+            Name = "Monokai Pro",
+            IsDark = true,
+            WindowBackground = "#2D2A2E",
+            Foreground = "#FCFCFA",
+            MenuBackground = "#221F22",
+            MenuForeground = "#C1C0C0",
+            TabBarBackground = "#221F22",
+            TabItemActiveBackground = "#2D2A2E",
+            TabItemInactiveBackground = "#3A3539",
+            TabItemActiveForeground = "#FFD866",
+            TabItemInactiveForeground = "#727072",
+            EditorBackground = "#2D2A2E",
+            EditorForeground = "#FCFCFA",
+            LineNumbersForeground = "#5B595C",
+            SelectionBackground = "#403E41",
+            StatusBarBackground = "#FFD866",
+            StatusBarForeground = "#2D2A2E",
+            AccentColor = "#FF6188",
+            BorderColor = "#19181A",
+            CodeKeyword = "#FF6188",
+            CodeComment = "#727072",
+            CodeString = "#FFD866",
+            CodeNumber = "#AB9DF2",
+            CodeType = "#78DCE8",
+            CodeMethod = "#A9DC76",
+            CodePreprocessor = "#FC9867",
+            CodePunctuation = "#FCFCFA"
+        });
+
+        _themes.Add(new ColorTheme
+        {
+            Id = "rose-pine",
+            Name = "Rosé Pine",
+            IsDark = true,
+            WindowBackground = "#191724",
+            Foreground = "#E0DEF4",
+            MenuBackground = "#12101F",
+            MenuForeground = "#E0DEF4",
+            TabBarBackground = "#12101F",
+            TabItemActiveBackground = "#191724",
+            TabItemInactiveBackground = "#211F35",
+            TabItemActiveForeground = "#C4A7E7",
+            TabItemInactiveForeground = "#6E6A86",
+            EditorBackground = "#191724",
+            EditorForeground = "#E0DEF4",
+            LineNumbersForeground = "#524F67",
+            SelectionBackground = "#2A283E",
+            StatusBarBackground = "#EB6F92",
+            StatusBarForeground = "#191724",
+            AccentColor = "#C4A7E7",
+            BorderColor = "#0E0C15",
+            CodeKeyword = "#31748F",
+            CodeComment = "#6E6A86",
+            CodeString = "#F6C177",
+            CodeNumber = "#EBBCBA",
+            CodeType = "#9CCFD8",
+            CodeMethod = "#C4A7E7",
+            CodePreprocessor = "#EB6F92",
+            CodePunctuation = "#E0DEF4"
+        });
+
+        _themes.Add(new ColorTheme
+        {
+            Id = "aura-dark",
+            Name = "Aura Dark",
+            IsDark = true,
+            WindowBackground = "#15141B",
+            Foreground = "#EDECEE",
+            MenuBackground = "#111015",
+            MenuForeground = "#EDECEE",
+            TabBarBackground = "#111015",
+            TabItemActiveBackground = "#15141B",
+            TabItemInactiveBackground = "#21202E",
+            TabItemActiveForeground = "#A277FF",
+            TabItemInactiveForeground = "#6D6D6D",
+            EditorBackground = "#15141B",
+            EditorForeground = "#EDECEE",
+            LineNumbersForeground = "#4D4D4D",
+            SelectionBackground = "#2D2B3D",
+            StatusBarBackground = "#A277FF",
+            StatusBarForeground = "#15141B",
+            AccentColor = "#61FFCA",
+            BorderColor = "#0E0D12",
+            CodeKeyword = "#A277FF",
+            CodeComment = "#6D6D6D",
+            CodeString = "#61FFCA",
+            CodeNumber = "#FFCA85",
+            CodeType = "#82E2FF",
+            CodeMethod = "#FF6767",
+            CodePreprocessor = "#ED8274",
+            CodePunctuation = "#EDECEE"
+        });
+
+        _themes.Add(new ColorTheme
+        {
+            Id = "one-light",
+            Name = "One Light",
+            IsDark = false,
+            WindowBackground = "#FAFAFA",
+            Foreground = "#383A42",
+            MenuBackground = "#F0F0F0",
+            MenuForeground = "#383A42",
+            TabBarBackground = "#F0F0F0",
+            TabItemActiveBackground = "#FAFAFA",
+            TabItemInactiveBackground = "#E5E5E6",
+            TabItemActiveForeground = "#4078F2",
+            TabItemInactiveForeground = "#A0A1A7",
+            EditorBackground = "#FAFAFA",
+            EditorForeground = "#383A42",
+            LineNumbersForeground = "#9D9D9F",
+            SelectionBackground = "#E5E5E6",
+            StatusBarBackground = "#4078F2",
+            StatusBarForeground = "#FFFFFF",
+            AccentColor = "#50A14F",
+            BorderColor = "#DBDBDC",
+            CodeKeyword = "#A626A4",
+            CodeComment = "#A0A1A7",
+            CodeString = "#50A14F",
+            CodeNumber = "#986801",
+            CodeType = "#C18401",
+            CodeMethod = "#4078F2",
+            CodePreprocessor = "#E45649",
+            CodePunctuation = "#383A42"
+        });
     }
 
     private void EnsureDirectoriesAndSamples()
@@ -877,6 +1104,24 @@ public class ThemeService : IThemeService
                 effective.SelectionBackground = "#1B4F8B";
             }
         }
+
+        // Apply Custom Code Syntax Highlighting Color Overrides if specified
+        if (IsValidHexColor(settings.CustomCodeKeyword))
+            effective.CodeKeyword = NormalizeHex(settings.CustomCodeKeyword!);
+        if (IsValidHexColor(settings.CustomCodeComment))
+            effective.CodeComment = NormalizeHex(settings.CustomCodeComment!);
+        if (IsValidHexColor(settings.CustomCodeString))
+            effective.CodeString = NormalizeHex(settings.CustomCodeString!);
+        if (IsValidHexColor(settings.CustomCodeNumber))
+            effective.CodeNumber = NormalizeHex(settings.CustomCodeNumber!);
+        if (IsValidHexColor(settings.CustomCodeType))
+            effective.CodeType = NormalizeHex(settings.CustomCodeType!);
+        if (IsValidHexColor(settings.CustomCodeMethod))
+            effective.CodeMethod = NormalizeHex(settings.CustomCodeMethod!);
+        if (IsValidHexColor(settings.CustomCodePreprocessor))
+            effective.CodePreprocessor = NormalizeHex(settings.CustomCodePreprocessor!);
+        if (IsValidHexColor(settings.CustomCodePunctuation))
+            effective.CodePunctuation = NormalizeHex(settings.CustomCodePunctuation!);
 
         return effective;
     }

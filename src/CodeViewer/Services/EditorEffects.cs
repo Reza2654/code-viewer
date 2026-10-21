@@ -20,6 +20,30 @@ public sealed class SmoothCaretBlinkController : IDisposable
     private double _phase;
     private DateTime _lastActivityTime = DateTime.UtcNow;
     private bool _isDisposed;
+    private bool _isEnabled = true;
+
+    public bool IsEnabled
+    {
+        get => _isEnabled;
+        set
+        {
+            if (_isEnabled == value) return;
+            _isEnabled = value;
+            if (!_isEnabled)
+            {
+                _blinkTimer?.Stop();
+                if (_caretLayer != null)
+                {
+                    _caretLayer.Opacity = 1.0;
+                }
+            }
+            else
+            {
+                ResetSolid();
+                _blinkTimer?.Start();
+            }
+        }
+    }
 
     public SmoothCaretBlinkController(TextEditor editor)
     {
@@ -84,7 +108,7 @@ public sealed class SmoothCaretBlinkController : IDisposable
 
     private void OnBlinkTick(object? sender, EventArgs e)
     {
-        if (_isDisposed || _caretLayer == null) return;
+        if (_isDisposed || _caretLayer == null || !_isEnabled) return;
 
         if (!_editor.IsFocused && !_editor.TextArea.IsFocused)
         {

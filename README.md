@@ -41,13 +41,16 @@
   - Middle-click any tab to close instantly.
 - 🔦 **Word Occurrence Highlighting**: Automatically highlights all matching occurrences of the word or identifier under the caret or active selection across the document, with theme-tailored background styling, zero lag, and Settings toggle.
 - 📊 **Enhanced Status Bar & Redesigned Code Mode**: Real-time line and column tracking with selection length and selected line count, live encoding, line ending indicators, interactive zoom indicator with one-click reset, and a redesigned Language Mode flyout with instant search, checkmark indicators, in-app update checking, and syntax highlighting for **AgentLang** (`.agent`), **PS2** (`.ps2`, `.ps2bundle`), and 25+ languages.
-- 🎨 **Modern Theme & Appearance System**:
+- 🎨 **Modern Theme & Appearance System (20 Built-In Themes & Theme Gallery)**:
   - **Appearance Mode**: Seamless switching between **System/OS (💻)**, **Light (☀️)**, and **Dark (🌙)** modes.
   - **Contrast Controls**: One-click toggling between **Default** and accessible **Strong** contrast.
-  - **Light Theme Presets & Color Customizer**: Default Light, GitHub Light, with customizable Background (`#F9F9F9`), Foreground (`#101010`), and Accent (`#007ACC`) hex codes and live color swatches.
-  - **Dark Theme Presets & Color Customizer**: Default Dark, Dark+ (VS Code), One Dark Pro, Monokai, Dracula, Solarized Dark, with customizable Background (`#101010`), Foreground (`#CCCCCC`), and Accent (`#007ACC`) hex codes and live color swatches.
-  - **Dynamic Real-Time Re-Theming**: Instant live application styling without restarts, with fixed theme persistence, real-time live preview synchronization, and automatic AvaloniaEdit line transformer re-brushing.
-  - **Theme Importer**: Easily import custom UI themes (`.json`) or custom syntax highlighting definitions (`.xshd`).
+  - **20 Popular Developer Themes**: Dark+ (VS Code), One Dark Pro, Monokai, Dracula, Solarized Dark, Tokyo Night, Nord, Catppuccin Mocha, GitHub Dark, Synthwave '84 (Cyberpunk), Gruvbox Dark, Monokai Pro, Rosé Pine, Aura Dark, GitHub Light, Solarized Light, Catppuccin Latte, One Light, Default Dark, and Default Light.
+  - **Interactive Theme Gallery in Settings**: Visual theme cards displaying name, dark/light tag, active selection state, and 4 colored circles (background, accent, keyword, string) with real-time one-click activation.
+  - **Syntax Token Color Customizer**: Full live hex customizer for 8 syntax tokens (Keywords, Comments, Strings, Numbers, Types, Methods, Preprocessors, Punctuation) with interactive live code preview and reset button.
+  - **Reliable Theme Persistence**: Guaranteed preservation of imported themes on app restart with fallback folder scanning.
+  - **Theme Importer & Folder**: Easily import custom UI themes (`.json`) or custom syntax highlighting definitions (`.xshd`), with direct "Open Themes Folder" shortcuts.
+- 🔤 **Fixed Coding Font Engine**: Resolved embedded font fallback order in `FontHelper` ensuring Google Sans Code and Roboto Mono switch cleanly without fallback collision, paired with a live font and text preview in Settings.
+- ⚙️ **Overhauled Settings & Preferences UI**: Redesigned modern dialog with dedicated cards for Editor & Fonts (with font size quick buttons and editor toggles: smooth cursor blink, show whitespace, highlight current line, matching bracket pairs), Theme Gallery, Code Colors, and System & Updates.
 - 🧩 **Extensible Plugin & Tool System**:
   - **JSON Tools**: Format with 2 spaces, minify, and validate JSON.
   - **Encodings**: Base64 Encode & Decode, URL Encode & Decode.
@@ -56,7 +59,7 @@
   - **Text Statistics**: Comprehensive character, word, line, non-empty line, and byte counts.
   - **Dynamic DLL Plugin Importer**: Drop third-party `.dll` assemblies implementing `IPlugin` into the plugins directory or load them via **Tools -> Import Plugin (.dll)...** without locking the file on disk.
 - 💾 **Safe Local Single-Instance IPC**: Opening files via CLI or File Explorer opens them as tabs inside the existing window using a high-performance local Named Pipe, passing file:line coordinates directly.
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.11-Setup.exe`) and portable standalone `.zip` archive.
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.12-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---

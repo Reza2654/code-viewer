@@ -99,6 +99,43 @@ public class AppSettings
     [JsonPropertyName("smoothScrolling")]
     public bool SmoothScrolling { get; set; } = true;
 
+    [JsonPropertyName("smoothCursorBlink")]
+    public bool SmoothCursorBlink { get; set; } = true;
+
+    [JsonPropertyName("showWhitespace")]
+    public bool ShowWhitespace { get; set; } = false;
+
+    [JsonPropertyName("highlightCurrentLine")]
+    public bool HighlightCurrentLine { get; set; } = true;
+
+    [JsonPropertyName("enableBracketMatching")]
+    public bool EnableBracketMatching { get; set; } = true;
+
+    // Custom Syntax Highlighting Color Overrides (hex format: #RRGGBB, empty or null means use theme default)
+    [JsonPropertyName("customCodeKeyword")]
+    public string? CustomCodeKeyword { get; set; }
+
+    [JsonPropertyName("customCodeComment")]
+    public string? CustomCodeComment { get; set; }
+
+    [JsonPropertyName("customCodeString")]
+    public string? CustomCodeString { get; set; }
+
+    [JsonPropertyName("customCodeNumber")]
+    public string? CustomCodeNumber { get; set; }
+
+    [JsonPropertyName("customCodeType")]
+    public string? CustomCodeType { get; set; }
+
+    [JsonPropertyName("customCodeMethod")]
+    public string? CustomCodeMethod { get; set; }
+
+    [JsonPropertyName("customCodePreprocessor")]
+    public string? CustomCodePreprocessor { get; set; }
+
+    [JsonPropertyName("customCodePunctuation")]
+    public string? CustomCodePunctuation { get; set; }
+
     [JsonPropertyName("autoCheckForUpdates")]
     public bool AutoCheckForUpdates { get; set; } = true;
 
@@ -132,6 +169,18 @@ public class AppSettings
             RestorePreviousSession = RestorePreviousSession,
             HighlightWordOccurrences = HighlightWordOccurrences,
             SmoothScrolling = SmoothScrolling,
+            SmoothCursorBlink = SmoothCursorBlink,
+            ShowWhitespace = ShowWhitespace,
+            HighlightCurrentLine = HighlightCurrentLine,
+            EnableBracketMatching = EnableBracketMatching,
+            CustomCodeKeyword = CustomCodeKeyword,
+            CustomCodeComment = CustomCodeComment,
+            CustomCodeString = CustomCodeString,
+            CustomCodeNumber = CustomCodeNumber,
+            CustomCodeType = CustomCodeType,
+            CustomCodeMethod = CustomCodeMethod,
+            CustomCodePreprocessor = CustomCodePreprocessor,
+            CustomCodePunctuation = CustomCodePunctuation,
             AutoCheckForUpdates = AutoCheckForUpdates,
             RunInBackgroundOnStartup = RunInBackgroundOnStartup,
             MinimizeToTrayOnClose = MinimizeToTrayOnClose
