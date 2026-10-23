@@ -59,7 +59,16 @@
   - **Text Statistics**: Comprehensive character, word, line, non-empty line, and byte counts.
   - **Dynamic DLL Plugin Importer**: Drop third-party `.dll` assemblies implementing `IPlugin` into the plugins directory or load them via **Tools -> Import Plugin (.dll)...** without locking the file on disk.
 - 💾 **Safe Local Single-Instance IPC**: Opening files via CLI or File Explorer opens them as tabs inside the existing window using a high-performance local Named Pipe, passing file:line coordinates directly.
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.12-Setup.exe`) and portable standalone `.zip` archive.
+- ⚡ **Empty State / Welcome Dashboard**: When all tabs are closed, displays a clean, modern dashboard featuring Quick Start buttons (New File `Ctrl+N`, Open File `Ctrl+O`, Open Workspace `Ctrl+Shift+O`), Recent Workspaces list with one-click access and clear history, and a Helpful Shortcuts cheat sheet.
+- 📁 **Recent Workspaces Management**: Automatically tracks and persists opened folders in `%LocalAppData%/CodeViewer/recent_workspaces.json`. Access via **File -> Open Recent Workspace**, Command Palette, or the Welcome Dashboard.
+- 🧭 **Smart Breadcrumbs Path Bar**: Displays the directory and file hierarchy (`📁 Workspace › 📁 Subfolder › 📄 File.cs`) directly above the editor. Click folder to reveal in workspace sidebar, click file to copy path to clipboard. Toggleable via View menu, Command Palette, or Settings.
+- 🌈 **Rainbow Bracket Colorizer**: Colorizes nested bracket pairs `()`, `[]`, `{}` with 6 distinct harmonious depth-based colors (Gold, Orchid, Sky Cyan, Dark Orange, Bright Green, Pink). Toggleable via View menu, Command Palette, or Settings.
+- ✍️ **Smart Auto-Closing Brackets & Quotes**: Automatically completes `()`, `[]`, `{}`, `""`, `''`, ```` ````, handles overtyping of closing characters, wraps active selections with bracket/quote pairs, and removes empty pairs on Backspace. Toggleable in Settings.
+- 🔄 **Interactive Status Bar Quick Selectors**:
+  - **File Encoding**: One-click flyout with instant conversion (`UTF-8`, `UTF-8 with BOM`, `UTF-16 LE`, `UTF-16 BE`, `ASCII`, `Windows-1252 / ANSI`).
+  - **Line Endings**: One-click flyout / toggle (`CRLF ⇄ LF`) normalizing all document newlines.
+  - **Indentation / Tab Size**: One-click flyout (`Spaces: 2`, `Spaces: 4`, `Spaces: 8`).
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.13-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---

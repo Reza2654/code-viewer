@@ -102,7 +102,18 @@
             </Style>
           </MenuItem.Styles>
         </MenuItem>
-        <MenuItem Header="Clear Recent History" Command="{Binding ClearRecentFilesCommand}" IsEnabled="{Binding HasRecentFiles}"/>
+        <MenuItem Header="Open Recent _Workspace" ItemsSource="{Binding RecentWorkspaces}" IsEnabled="{Binding HasRecentWorkspaces}">
+          <MenuItem.Styles>
+            <Style Selector="MenuItem > MenuItem" x:DataType="models:RecentWorkspaceItem">
+              <Setter Property="Header" Value="{Binding FolderName}"/>
+              <Setter Property="ToolTip.Tip" Value="{Binding FolderPath}"/>
+              <Setter Property="Command" Value="{Binding OpenCommand}"/>
+              <Setter Property="CommandParameter" Value="{Binding FolderPath}"/>
+            </Style>
+          </MenuItem.Styles>
+        </MenuItem>
+        <MenuItem Header="Clear Recent Files" Command="{Binding ClearRecentFilesCommand}" IsEnabled="{Binding HasRecentFiles}"/>
+        <MenuItem Header="Clear Recent Workspaces" Command="{Binding ClearRecentWorkspacesCommand}" IsEnabled="{Binding HasRecentWorkspaces}"/>
         <Separator/>
         <MenuItem Header="_Save" Command="{Binding SaveCommand}" HotKey="Ctrl+S" InputGesture="Ctrl+S"/>
         <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" HotKey="Ctrl+Shift+S" InputGesture="Ctrl+Shift+S"/>
@@ -170,6 +181,16 @@
           </MenuItem.Icon>
         </MenuItem>
         <MenuItem Header="Toggle _Line Numbers" Command="{Binding ToggleLineNumbersCommand}"/>
+        <MenuItem Header="Toggle _Breadcrumbs Bar" Command="{Binding ToggleBreadcrumbsCommand}">
+          <MenuItem.Icon>
+            <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding ShowBreadcrumbs}"/>
+          </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="Toggle _Rainbow Brackets" Command="{Binding ToggleRainbowBracketsCommand}">
+          <MenuItem.Icon>
+            <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding RainbowBracketsEnabled}"/>
+          </MenuItem.Icon>
+        </MenuItem>
         <Separator/>
         <MenuItem Header="Toggle Coding _Font (Google Sans Code ⇄ Roboto Mono)" Command="{Binding ToggleCodingFontCommand}" HotKey="Ctrl+Alt+F" InputGesture="Ctrl+Alt+F"/>
         <MenuItem Header="Coding _Font">
@@ -511,20 +532,250 @@
 
               <!-- Primary Editor Viewport -->
               <Grid Grid.Column="0">
-                <ae:TextEditor x:Name="Editor"
-                               Document="{Binding ActiveDocument.TextDocument}"
-                               SyntaxHighlighting="{Binding ActiveDocument.HighlightingDefinition}"
-                               FontSize="{Binding ActiveDocument.FontSize, FallbackValue=14.0}"
-                               WordWrap="{Binding ActiveDocument.WordWrap, FallbackValue=False}"
-                               ShowLineNumbers="{Binding ActiveDocument.ShowLineNumbers, FallbackValue=True}"
-                               FlowDirection="LeftToRight"
-                               FontFamily="{DynamicResource CodeFontFamily}"
-                               Background="{DynamicResource ThemeEditorBackground}"
-                               Foreground="{DynamicResource ThemeEditorForeground}"
-                               HorizontalScrollBarVisibility="Auto"
-                               VerticalScrollBarVisibility="Visible"
-                               LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"
-                               DragDrop.AllowDrop="True"/>
+                <!-- Editor & Breadcrumbs (Visible when HasDocuments) -->
+                <Grid RowDefinitions="Auto,*" IsVisible="{Binding HasDocuments}">
+                  <!-- Breadcrumbs Bar -->
+                  <Border Grid.Row="0"
+                          IsVisible="{Binding ShowBreadcrumbs}"
+                          Background="{DynamicResource ThemeTabBarBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="0,0,0,1"
+                          Padding="8,3"
+                          MinHeight="26">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                      <ItemsControl ItemsSource="{Binding Breadcrumbs}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center"/>
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate DataType="models:BreadcrumbItem">
+                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                              <Button Command="{Binding ClickCommand}"
+                                      Background="Transparent"
+                                      BorderThickness="0"
+                                      Padding="4,2"
+                                      CornerRadius="3"
+                                      Cursor="Hand"
+                                      ToolTip.Tip="{Binding FullPath}">
+                                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                  <TextBlock Text="📁" IsVisible="{Binding IsFolder}" FontSize="11" VerticalAlignment="Center"/>
+                                  <TextBlock Text="📄" IsVisible="{Binding !IsFolder}" FontSize="11" VerticalAlignment="Center"/>
+                                  <TextBlock Text="{Binding Name}" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                                </StackPanel>
+                              </Button>
+                              <TextBlock Text="›" FontSize="11" Opacity="0.5" VerticalAlignment="Center" Foreground="{DynamicResource ThemeWindowForeground}" IsVisible="{Binding !IsLast}"/>
+                            </StackPanel>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </ScrollViewer>
+                  </Border>
+
+                  <ae:TextEditor Grid.Row="1"
+                                 x:Name="Editor"
+                                 Document="{Binding ActiveDocument.TextDocument}"
+                                 SyntaxHighlighting="{Binding ActiveDocument.HighlightingDefinition}"
+                                 FontSize="{Binding ActiveDocument.FontSize, FallbackValue=14.0}"
+                                 WordWrap="{Binding ActiveDocument.WordWrap, FallbackValue=False}"
+                                 ShowLineNumbers="{Binding ActiveDocument.ShowLineNumbers, FallbackValue=True}"
+                                 FlowDirection="LeftToRight"
+                                 FontFamily="{DynamicResource CodeFontFamily}"
+                                 Background="{DynamicResource ThemeEditorBackground}"
+                                 Foreground="{DynamicResource ThemeEditorForeground}"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 VerticalScrollBarVisibility="Visible"
+                                 LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"
+                                 DragDrop.AllowDrop="True"/>
+                </Grid>
+
+                <!-- Welcome Screen / Empty State (Visible when HasNoDocuments) -->
+                <ScrollViewer IsVisible="{Binding HasNoDocuments}"
+                              HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto"
+                              Background="{DynamicResource ThemeEditorBackground}">
+                  <Border Padding="32,24" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="720">
+                    <StackPanel Spacing="24">
+                      <!-- Welcome Header -->
+                      <StackPanel Spacing="6" HorizontalAlignment="Center">
+                        <TextBlock Text="⚡ Code Viewer"
+                                   FontSize="28"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource ThemeWindowForeground}"/>
+                        <TextBlock Text="Fast, lightweight modern code viewer &amp; editor — v1.2.0-beta.13"
+                                   FontSize="13"
+                                   Opacity="0.75"
+                                   HorizontalAlignment="Center"
+                                   Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                      </StackPanel>
+
+                      <!-- Quick Start Actions Grid -->
+                      <Border Background="{DynamicResource ThemeTabBarBackground}"
+                              BorderBrush="{DynamicResource ThemeBorderBrush}"
+                              BorderThickness="1"
+                              CornerRadius="8"
+                              Padding="16,12">
+                        <StackPanel Spacing="10">
+                          <TextBlock Text="Start"
+                                     FontWeight="SemiBold"
+                                     FontSize="14"
+                                     Foreground="{DynamicResource ThemeAccentBrush}"/>
+                          <Grid ColumnDefinitions="*,*,*">
+                            <Button Grid.Column="0"
+                                    Command="{Binding CreateNewDocumentCommand}"
+                                    Background="{DynamicResource ThemeEditorBackground}"
+                                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Cursor="Hand"
+                                    Margin="0,0,6,0"
+                                    Padding="12,10"
+                                    HorizontalAlignment="Stretch">
+                              <StackPanel Spacing="4">
+                                <TextBlock Text="📄 New File" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                                <TextBlock Text="Ctrl+N" FontSize="10" Opacity="0.6" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                              </StackPanel>
+                            </Button>
+                            <Button Grid.Column="1"
+                                    Command="{Binding OpenFileCommand}"
+                                    Background="{DynamicResource ThemeEditorBackground}"
+                                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Cursor="Hand"
+                                    Margin="3,0,3,0"
+                                    Padding="12,10"
+                                    HorizontalAlignment="Stretch">
+                              <StackPanel Spacing="4">
+                                <TextBlock Text="📂 Open File..." FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                                <TextBlock Text="Ctrl+O" FontSize="10" Opacity="0.6" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                              </StackPanel>
+                            </Button>
+                            <Button Grid.Column="2"
+                                    Command="{Binding OpenFolderCommand}"
+                                    Background="{DynamicResource ThemeEditorBackground}"
+                                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Cursor="Hand"
+                                    Margin="6,0,0,0"
+                                    Padding="12,10"
+                                    HorizontalAlignment="Stretch">
+                              <StackPanel Spacing="4">
+                                <TextBlock Text="📁 Open Workspace..." FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                                <TextBlock Text="Ctrl+Shift+O" FontSize="10" Opacity="0.6" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                              </StackPanel>
+                            </Button>
+                          </Grid>
+                        </StackPanel>
+                      </Border>
+
+                      <!-- Two-column sections: Recent Workspaces & Shortcuts -->
+                      <Grid ColumnDefinitions="*,16,*">
+                        <!-- Recent Workspaces Column -->
+                        <Border Grid.Column="0"
+                                Background="{DynamicResource ThemeTabBarBackground}"
+                                BorderBrush="{DynamicResource ThemeBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16,12">
+                          <StackPanel Spacing="10">
+                            <Grid ColumnDefinitions="*,Auto">
+                              <TextBlock Grid.Column="0"
+                                         Text="Recent Workspaces"
+                                         FontWeight="SemiBold"
+                                         FontSize="13"
+                                         Foreground="{DynamicResource ThemeWindowForeground}"/>
+                              <Button Grid.Column="1"
+                                      Content="Clear"
+                                      Command="{Binding ClearRecentWorkspacesCommand}"
+                                      IsVisible="{Binding HasRecentWorkspaces}"
+                                      FontSize="10"
+                                      Padding="6,2"
+                                      Background="Transparent"
+                                      BorderThickness="0"
+                                      Foreground="{DynamicResource ThemeAccentBrush}"
+                                      Cursor="Hand"/>
+                            </Grid>
+
+                            <TextBlock Text="No recent workspaces opened yet."
+                                       FontSize="11"
+                                       Opacity="0.6"
+                                       Foreground="{DynamicResource ThemeStatusBarForeground}"
+                                       IsVisible="{Binding !HasRecentWorkspaces}"/>
+
+                            <ItemsControl ItemsSource="{Binding RecentWorkspaces}"
+                                          IsVisible="{Binding HasRecentWorkspaces}"
+                                          MaxHeight="160">
+                              <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="models:RecentWorkspaceItem">
+                                  <Button Command="{Binding OpenCommand}"
+                                          CommandParameter="{Binding FolderPath}"
+                                          HorizontalAlignment="Stretch"
+                                          HorizontalContentAlignment="Left"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          Padding="6,4"
+                                          Margin="0,1"
+                                          CornerRadius="4"
+                                          Cursor="Hand">
+                                    <Grid ColumnDefinitions="16,*,Auto">
+                                      <TextBlock Grid.Column="0" Text="📁" FontSize="11" VerticalAlignment="Center"/>
+                                      <TextBlock Grid.Column="1" Text="{Binding FolderName}" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource ThemeWindowForeground}" TextTrimming="CharacterEllipsis"/>
+                                    </Grid>
+                                  </Button>
+                                </DataTemplate>
+                              </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                          </StackPanel>
+                        </Border>
+
+                        <!-- Keyboard Shortcuts Card Column -->
+                        <Border Grid.Column="2"
+                                Background="{DynamicResource ThemeTabBarBackground}"
+                                BorderBrush="{DynamicResource ThemeBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="16,12">
+                          <StackPanel Spacing="8">
+                            <TextBlock Text="Helpful Shortcuts"
+                                       FontWeight="SemiBold"
+                                       FontSize="13"
+                                       Foreground="{DynamicResource ThemeWindowForeground}"/>
+                            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" Margin="0,2">
+                              <TextBlock Grid.Row="0" Grid.Column="0" Text="Command Palette" FontSize="11" Opacity="0.8" Margin="0,3" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                              <Border Grid.Row="0" Grid.Column="1" Background="{DynamicResource ThemeSelectionBackground}" CornerRadius="3" Padding="6,2" Margin="0,1">
+                                <TextBlock Text="Ctrl+Shift+P" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                              </Border>
+
+                              <TextBlock Grid.Row="1" Grid.Column="0" Text="Quick Open File" FontSize="11" Opacity="0.8" Margin="0,3" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                              <Border Grid.Row="1" Grid.Column="1" Background="{DynamicResource ThemeSelectionBackground}" CornerRadius="3" Padding="6,2" Margin="0,1">
+                                <TextBlock Text="Ctrl+P" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                              </Border>
+
+                              <TextBlock Grid.Row="2" Grid.Column="0" Text="Toggle Folder Sidebar" FontSize="11" Opacity="0.8" Margin="0,3" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                              <Border Grid.Row="2" Grid.Column="1" Background="{DynamicResource ThemeSelectionBackground}" CornerRadius="3" Padding="6,2" Margin="0,1">
+                                <TextBlock Text="Ctrl+B" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                              </Border>
+
+                              <TextBlock Grid.Row="3" Grid.Column="0" Text="Find in Files" FontSize="11" Opacity="0.8" Margin="0,3" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                              <Border Grid.Row="3" Grid.Column="1" Background="{DynamicResource ThemeSelectionBackground}" CornerRadius="3" Padding="6,2" Margin="0,1">
+                                <TextBlock Text="Ctrl+Shift+F" FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                              </Border>
+
+                              <TextBlock Grid.Row="4" Grid.Column="0" Text="Settings Dialog" FontSize="11" Opacity="0.8" Margin="0,3" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                              <Border Grid.Row="4" Grid.Column="1" Background="{DynamicResource ThemeSelectionBackground}" CornerRadius="3" Padding="6,2" Margin="0,1">
+                                <TextBlock Text="Ctrl+," FontSize="10" FontWeight="SemiBold" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                              </Border>
+                            </Grid>
+                          </StackPanel>
+                        </Border>
+                      </Grid>
+                    </StackPanel>
+                  </Border>
+                </ScrollViewer>
               </Grid>
 
               <!-- Splitter between Primary and Secondary -->
@@ -1013,9 +1264,40 @@
               </StackPanel>
             </Button>
             <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
-            <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.EncodingName, FallbackValue='UTF-8'}"/>
+            <Button ToolTip.Tip="File Encoding (Click to change)"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="4,1"
+                    CornerRadius="3"
+                    Cursor="Hand">
+              <Button.Flyout>
+                <MenuFlyout Placement="TopEdgeAlignedLeft">
+                  <MenuItem Header="UTF-8" Command="{Binding ChangeEncodingCommand}" CommandParameter="UTF-8"/>
+                  <MenuItem Header="UTF-8 with BOM" Command="{Binding ChangeEncodingCommand}" CommandParameter="UTF-8 with BOM"/>
+                  <MenuItem Header="UTF-16 LE" Command="{Binding ChangeEncodingCommand}" CommandParameter="UTF-16 LE"/>
+                  <MenuItem Header="UTF-16 BE" Command="{Binding ChangeEncodingCommand}" CommandParameter="UTF-16 BE"/>
+                  <MenuItem Header="ASCII" Command="{Binding ChangeEncodingCommand}" CommandParameter="ASCII"/>
+                  <MenuItem Header="Windows-1252 / ANSI" Command="{Binding ChangeEncodingCommand}" CommandParameter="Windows-1252"/>
+                </MenuFlyout>
+              </Button.Flyout>
+              <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.EncodingName, FallbackValue='UTF-8'}"/>
+            </Button>
+
             <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
-            <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.LineEndingDisplay, FallbackValue='LF'}"/>
+            <Button ToolTip.Tip="Line Endings: Click to change (CRLF ⇄ LF)"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="4,1"
+                    CornerRadius="3"
+                    Cursor="Hand">
+              <Button.Flyout>
+                <MenuFlyout Placement="TopEdgeAlignedLeft">
+                  <MenuItem Header="CRLF (\r\n) - Windows" Command="{Binding ChangeLineEndingCommand}" CommandParameter="CRLF"/>
+                  <MenuItem Header="LF (\n) - Unix/macOS" Command="{Binding ChangeLineEndingCommand}" CommandParameter="LF"/>
+                </MenuFlyout>
+              </Button.Flyout>
+              <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.LineEndingDisplay, FallbackValue='LF'}"/>
+            </Button>
           </StackPanel>
 
           <!-- Center Notification / Temporary Status Message -->
@@ -1030,6 +1312,22 @@
           <!-- Right Info: Caret Position, Font Size, and Settings Button -->
           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">
             <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.CaretDisplay, FallbackValue='Ln 1, Col 1'}"/>
+            <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
+            <Button ToolTip.Tip="Indentation: Click to change spaces"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="4,1"
+                    CornerRadius="3"
+                    Cursor="Hand">
+              <Button.Flyout>
+                <MenuFlyout Placement="TopEdgeAlignedRight">
+                  <MenuItem Header="Spaces: 2" Command="{Binding SetTabSizeCommand}" CommandParameter="2"/>
+                  <MenuItem Header="Spaces: 4" Command="{Binding SetTabSizeCommand}" CommandParameter="4"/>
+                  <MenuItem Header="Spaces: 8" Command="{Binding SetTabSizeCommand}" CommandParameter="8"/>
+                </MenuFlyout>
+              </Button.Flyout>
+              <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.TabSizeDisplay, FallbackValue='Spaces: 4'}"/>
+            </Button>
             <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
             <Button Command="{Binding ResetZoomCommand}"
                     ToolTip.Tip="Zoom Level (Click or Ctrl+0 to reset zoom)"

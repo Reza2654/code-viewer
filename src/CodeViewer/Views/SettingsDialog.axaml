@@ -91,7 +91,7 @@
               CornerRadius="6"
               Padding="10,4"
               VerticalAlignment="Center">
-        <TextBlock Text="v1.2.0-beta.12"
+        <TextBlock Text="v1.2.0-beta.13"
                    FontSize="11"
                    FontWeight="SemiBold"
                    Foreground="{DynamicResource ThemeAccentBrush}"/>
@@ -295,7 +295,7 @@
                            Foreground="{DynamicResource ThemeWindowForeground}"
                            FontSize="14"/>
 
-                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
                   <CheckBox Grid.Row="0" Grid.Column="0"
                             IsChecked="{Binding SmoothCursorBlink}"
                             Content="Smooth cursor breathing (~60fps)"
@@ -337,6 +337,23 @@
                   <CheckBox Grid.Row="3" Grid.Column="1"
                             IsChecked="{Binding WordWrap}"
                             Content="Enable soft word wrap"
+                            Foreground="{DynamicResource ThemeWindowForeground}"
+                            Margin="0,4"/>
+
+                  <CheckBox Grid.Row="4" Grid.Column="0"
+                            IsChecked="{Binding AutoCloseBrackets}"
+                            Content="Auto-close brackets &amp; quotes () [] {} &quot;&quot; ''"
+                            Foreground="{DynamicResource ThemeWindowForeground}"
+                            Margin="0,4"/>
+                  <CheckBox Grid.Row="4" Grid.Column="1"
+                            IsChecked="{Binding EnableRainbowBrackets}"
+                            Content="Rainbow bracket pair colorization"
+                            Foreground="{DynamicResource ThemeWindowForeground}"
+                            Margin="0,4"/>
+
+                  <CheckBox Grid.Row="5" Grid.Column="0"
+                            IsChecked="{Binding ShowBreadcrumbs}"
+                            Content="Show breadcrumbs bar above editor"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Margin="0,4"/>
                 </Grid>

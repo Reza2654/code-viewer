@@ -59,6 +59,16 @@ public partial class DocumentViewModel : ViewModelBase
     private bool _showLineNumbers = true;
 
     [ObservableProperty]
+    private int _tabSize = 4;
+
+    public string TabSizeDisplay => $"Spaces: {TabSize}";
+
+    partial void OnTabSizeChanged(int value)
+    {
+        OnPropertyChanged(nameof(TabSizeDisplay));
+    }
+
+    [ObservableProperty]
     private bool _isRtl;
 
     [ObservableProperty]
@@ -156,6 +166,50 @@ public partial class DocumentViewModel : ViewModelBase
         {
             IsRtl = true;
         }
+    }
+
+    public void SetLineEnding(LineEndingType newEnding)
+    {
+        var currentText = TextDocument.Text;
+        if (string.IsNullOrEmpty(currentText))
+        {
+            _model.LineEnding = newEnding;
+            LineEndingDisplay = newEnding.ToDisplayString();
+            return;
+        }
+
+        string normalized;
+        if (newEnding == LineEndingType.CRLF)
+        {
+            // Normalize any existing \r\n or standalone \r or \n to \r\n
+            normalized = currentText.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", "\r\n");
+        }
+        else
+        {
+            // Normalize to \n (LF)
+            normalized = currentText.Replace("\r\n", "\n").Replace("\r", "\n");
+        }
+
+        if (!string.Equals(currentText, normalized, StringComparison.Ordinal))
+        {
+            TextDocument.Text = normalized;
+            IsModified = true;
+            _model.IsModified = true;
+            OnPropertyChanged(nameof(DisplayName));
+        }
+
+        _model.LineEnding = newEnding;
+        LineEndingDisplay = newEnding.ToDisplayString();
+    }
+
+    public void SetEncoding(FileEncodingInfo newEncoding)
+    {
+        ArgumentNullException.ThrowIfNull(newEncoding);
+        _model.EncodingInfo = newEncoding;
+        EncodingName = newEncoding.DisplayName;
+        IsModified = true;
+        _model.IsModified = true;
+        OnPropertyChanged(nameof(DisplayName));
     }
 
     public void SyncToModel()

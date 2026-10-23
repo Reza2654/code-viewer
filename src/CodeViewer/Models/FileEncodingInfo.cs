@@ -11,6 +11,14 @@ public class FileEncodingInfo
     public bool HasBom { get; set; }
     public string DisplayName => HasBom ? $"{Encoding.WebName.ToUpperInvariant()} with BOM" : Encoding.WebName.ToUpperInvariant();
 
+    public FileEncodingInfo() { }
+
+    public FileEncodingInfo(Encoding encoding, bool hasBom = false)
+    {
+        Encoding = encoding;
+        HasBom = hasBom;
+    }
+
     public static FileEncodingInfo Utf8NoBom => new()
     {
         Encoding = new UTF8Encoding(false),

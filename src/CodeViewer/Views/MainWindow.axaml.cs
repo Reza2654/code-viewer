@@ -21,6 +21,7 @@ public partial class MainWindow : Window
     private readonly BracketMatchingRenderer _bracketMatchingRenderer;
     private readonly WordOccurrenceRenderer _wordOccurrenceRenderer;
     private readonly SearchHighlightRenderer _searchHighlightRenderer;
+    private readonly RainbowBracketColorizer _rainbowBracketColorizer;
     private readonly SmoothCaretBlinkController _caretBlinkController;
     private readonly SmoothScrollController _smoothScrollController;
     private readonly List<int> _searchMatchOffsets = new();
@@ -34,6 +35,7 @@ public partial class MainWindow : Window
         _bracketMatchingRenderer = new BracketMatchingRenderer(Editor);
         _wordOccurrenceRenderer = new WordOccurrenceRenderer(Editor);
         _searchHighlightRenderer = new SearchHighlightRenderer(Editor);
+        _rainbowBracketColorizer = new RainbowBracketColorizer();
         _caretBlinkController = new SmoothCaretBlinkController(Editor);
         _smoothScrollController = new SmoothScrollController(Editor);
 
@@ -41,6 +43,10 @@ public partial class MainWindow : Window
         Editor.TextArea.TextView.BackgroundRenderers.Add(_bracketMatchingRenderer);
         Editor.TextArea.TextView.BackgroundRenderers.Add(_wordOccurrenceRenderer);
         Editor.TextArea.TextView.BackgroundRenderers.Add(_searchHighlightRenderer);
+        Editor.TextArea.TextView.LineTransformers.Add(_rainbowBracketColorizer);
+
+        Editor.TextArea.TextEntering += OnEditorTextEntering;
+        Editor.AddHandler(KeyDownEvent, OnEditorKeyDown, RoutingStrategies.Tunnel);
 
         DataContextChanged += OnDataContextChanged;
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
@@ -166,6 +172,7 @@ public partial class MainWindow : Window
 
             // Initial responsive layout update
             UpdateEditorLayoutColumns(vm);
+            _rainbowBracketColorizer.IsEnabled = vm.SettingsService.CurrentSettings.EnableRainbowBrackets;
 
             Editor.TextChanged += (s, e) =>
             {
@@ -183,6 +190,7 @@ public partial class MainWindow : Window
                 if (args.PropertyName == nameof(MainViewModel.ActiveDocument))
                 {
                     UpdateEditorLayoutColumns(vm);
+            _rainbowBracketColorizer.IsEnabled = vm.SettingsService.CurrentSettings.EnableRainbowBrackets;
                     if (vm.ActiveDocument != null)
                     {
                         Editor.WordWrap = vm.ActiveDocument.WordWrap;
@@ -254,6 +262,7 @@ public partial class MainWindow : Window
 
                 {
                     UpdateEditorLayoutColumns(vm);
+            _rainbowBracketColorizer.IsEnabled = vm.SettingsService.CurrentSettings.EnableRainbowBrackets;
                     if (vm.IsMarkdownPreviewActive)
                     {
                         UpdateMarkdownPreview();
@@ -329,6 +338,11 @@ public partial class MainWindow : Window
                 {
                     _bracketMatchingRenderer.IsEnabled = settings.EnableBracketMatching;
                     _bracketMatchingRenderer.UpdateMatchingBrackets();
+                }
+
+                if (_rainbowBracketColorizer != null)
+                {
+                    _rainbowBracketColorizer.IsEnabled = settings.EnableRainbowBrackets;
                 }
 
                 if (_caretBlinkController != null)
@@ -413,6 +427,126 @@ public partial class MainWindow : Window
         {
             LanguageButton?.Flyout?.Hide();
             e.Handled = true;
+        }
+    }
+
+    private void OnEditorTextEntering(object? sender, TextInputEventArgs e)
+    {
+        if (string.IsNullOrEmpty(e.Text) || DataContext is not MainViewModel vm) return;
+        if (!vm.SettingsService.CurrentSettings.AutoCloseBrackets) return;
+
+        var text = e.Text;
+        if (text.Length != 1) return;
+
+        char ch = text[0];
+        var selectionLen = Editor.SelectionLength;
+        var caretOffset = Editor.CaretOffset;
+        var doc = Editor.Document;
+        if (doc == null) return;
+
+        // 1. Text Selection Wrapping: wrap selection with pair
+        if (selectionLen > 0)
+        {
+            char? closingChar = ch switch
+            {
+                '(' => ')',
+                '[' => ']',
+                '{' => '}',
+                '"' => '"',
+                '\'' => '\'',
+                '`' => '`',
+                _ => null
+            };
+
+            if (closingChar.HasValue)
+            {
+                var selStart = Editor.SelectionStart;
+                var selectedText = Editor.SelectedText;
+                doc.Replace(selStart, selectionLen, $"{ch}{selectedText}{closingChar.Value}");
+                Editor.Select(selStart + 1, selectionLen);
+                e.Handled = true;
+                return;
+            }
+        }
+
+        // 2. Overtyping existing closing character
+        if (ch is ')' or ']' or '}' or '"' or '\'' or '`')
+        {
+            if (caretOffset < doc.TextLength && doc.GetCharAt(caretOffset) == ch)
+            {
+                Editor.CaretOffset++;
+                e.Handled = true;
+                return;
+            }
+        }
+
+        // 3. Auto-insert matching closing pair for opening characters
+        char? pairClose = ch switch
+        {
+            '(' => ')',
+            '[' => ']',
+            '{' => '}',
+            '"' => '"',
+            '\'' => '\'',
+            '`' => '`',
+            _ => null
+        };
+
+        if (pairClose.HasValue)
+        {
+            // For quotes, don't auto-close if preceded by alphanumeric character (e.g. contractions like don't)
+            if (ch is '\'' or '"' or '`' && caretOffset > 0)
+            {
+                var prevChar = doc.GetCharAt(caretOffset - 1);
+                if (char.IsLetterOrDigit(prevChar))
+                {
+                    return;
+                }
+            }
+
+            // Don't auto-close if followed immediately by alphanumeric (e.g. typing inside a word)
+            if (caretOffset < doc.TextLength && char.IsLetterOrDigit(doc.GetCharAt(caretOffset)))
+            {
+                return;
+            }
+
+            doc.Insert(caretOffset, $"{ch}{pairClose.Value}");
+            Editor.CaretOffset = caretOffset + 1;
+            e.Handled = true;
+        }
+    }
+
+    private void OnEditorKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainViewModel vm) return;
+        if (!vm.SettingsService.CurrentSettings.AutoCloseBrackets) return;
+
+        var doc = Editor.Document;
+        if (doc == null) return;
+
+        // Pair backspace deletion: if caret is between empty pair (), [], {}, "", '', ``
+        if (e.Key == Key.Back && Editor.SelectionLength == 0)
+        {
+            var offset = Editor.CaretOffset;
+            if (offset > 0 && offset < doc.TextLength)
+            {
+                char prev = doc.GetCharAt(offset - 1);
+                char next = doc.GetCharAt(offset);
+
+                bool isPair = (prev == '(' && next == ')') ||
+                              (prev == '[' && next == ']') ||
+                              (prev == '{' && next == '}') ||
+                              (prev == '"' && next == '"') ||
+                              (prev == '\'' && next == '\'') ||
+                              (prev == '`' && next == '`');
+
+                if (isPair)
+                {
+                    doc.Remove(offset - 1, 2);
+                    Editor.CaretOffset = offset - 1;
+                    e.Handled = true;
+                }
+            }
         }
     }
 
@@ -1650,7 +1784,7 @@ public partial class MainWindow : Window
         }
 
         panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Version 1.2.0 Beta 12 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
+        panel.Children.Add(new TextBlock { Text = "Version 1.2.0 Beta 13 (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
         panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 8, 0, 10) });
 
 

@@ -111,6 +111,15 @@ public class AppSettings
     [JsonPropertyName("enableBracketMatching")]
     public bool EnableBracketMatching { get; set; } = true;
 
+    [JsonPropertyName("autoCloseBrackets")]
+    public bool AutoCloseBrackets { get; set; } = true;
+
+    [JsonPropertyName("enableRainbowBrackets")]
+    public bool EnableRainbowBrackets { get; set; } = true;
+
+    [JsonPropertyName("showBreadcrumbs")]
+    public bool ShowBreadcrumbs { get; set; } = true;
+
     // Custom Syntax Highlighting Color Overrides (hex format: #RRGGBB, empty or null means use theme default)
     [JsonPropertyName("customCodeKeyword")]
     public string? CustomCodeKeyword { get; set; }
@@ -173,6 +182,9 @@ public class AppSettings
             ShowWhitespace = ShowWhitespace,
             HighlightCurrentLine = HighlightCurrentLine,
             EnableBracketMatching = EnableBracketMatching,
+            AutoCloseBrackets = AutoCloseBrackets,
+            EnableRainbowBrackets = EnableRainbowBrackets,
+            ShowBreadcrumbs = ShowBreadcrumbs,
             CustomCodeKeyword = CustomCodeKeyword,
             CustomCodeComment = CustomCodeComment,
             CustomCodeString = CustomCodeString,

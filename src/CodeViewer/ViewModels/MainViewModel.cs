@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CodeViewer.Configuration;
@@ -32,6 +33,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private readonly IIntegrationsUpdateService _integrationsUpdateService;
     private readonly IWorkspaceSearchService _workspaceSearchService;
     private readonly IAppUpdateService _appUpdateService;
+    private readonly IRecentWorkspacesService _recentWorkspacesService;
     private readonly AppConfig _config;
 
     public record ClosedTabState(string? FilePath, string Title, string Content, int CaretLine, int CaretColumn, string Language);
@@ -52,6 +54,25 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty]
     private ObservableCollection<RecentFileItem> _recentFiles = [];
+
+    [ObservableProperty]
+    private ObservableCollection<RecentWorkspaceItem> _recentWorkspaces = [];
+
+    [ObservableProperty]
+    private ObservableCollection<BreadcrumbItem> _breadcrumbs = [];
+
+    [ObservableProperty]
+    private bool _showBreadcrumbs = true;
+
+    [ObservableProperty]
+    private bool _rainbowBracketsEnabled = true;
+
+    [ObservableProperty]
+    private bool _autoCloseBrackets = true;
+
+    public bool HasDocuments => Documents.Count > 0;
+    public bool HasNoDocuments => Documents.Count == 0;
+    public bool HasRecentWorkspaces => RecentWorkspaces.Count > 0;
 
     [ObservableProperty]
     private string _currentFontFamily = "Google Sans Code";
@@ -240,7 +261,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         IFileWatcherService? fileWatcherService = null,
         IIntegrationsUpdateService? integrationsUpdateService = null,
         IWorkspaceSearchService? workspaceSearchService = null,
-        IAppUpdateService? appUpdateService = null)
+        IAppUpdateService? appUpdateService = null,
+        IRecentWorkspacesService? recentWorkspacesService = null)
     {
         _fileService = fileService;
         _languageService = languageService;
@@ -255,12 +277,23 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _integrationsUpdateService = integrationsUpdateService ?? new IntegrationsUpdateService();
         _workspaceSearchService = workspaceSearchService ?? new WorkspaceSearchService();
         _appUpdateService = appUpdateService ?? new AppUpdateService();
+        _recentWorkspacesService = recentWorkspacesService ?? new RecentWorkspacesService();
 
 
         _fileWatcherService.FileChangedOnDisk += OnFileChangedOnDisk;
 
         var settings = _settingsService.CurrentSettings;
         _currentFontFamily = settings.FontFamily;
+        _showBreadcrumbs = settings.ShowBreadcrumbs;
+        _rainbowBracketsEnabled = settings.EnableRainbowBrackets;
+        _autoCloseBrackets = settings.AutoCloseBrackets;
+
+        _documents.CollectionChanged += (s, e) =>
+        {
+            OnPropertyChanged(nameof(HasDocuments));
+            OnPropertyChanged(nameof(HasNoDocuments));
+            UpdateBreadcrumbs();
+        };
 
         _themeService.ThemeChanged += theme =>
         {
@@ -283,11 +316,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private void OnSettingsChanged(AppSettings settings)
     {
         CurrentFontFamily = settings.FontFamily;
+        ShowBreadcrumbs = settings.ShowBreadcrumbs;
+        RainbowBracketsEnabled = settings.EnableRainbowBrackets;
+        AutoCloseBrackets = settings.AutoCloseBrackets;
+
         foreach (var doc in Documents)
         {
             doc.FontSize = settings.FontSize;
             doc.WordWrap = settings.WordWrap;
             doc.ShowLineNumbers = settings.ShowLineNumbers;
+            doc.TabSize = settings.TabSize;
         }
         _themeService.ApplyTheme(settings);
         ApplyCodeColorsToAllDocuments(CurrentTheme);
@@ -319,8 +357,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _config.ShowLineNumbers = settings.ShowLineNumbers;
         _themeService.ApplyTheme(settings);
 
-        // 2. Load Recent Files
+        // 2. Load Recent Files and Workspaces
         await LoadRecentFilesAsync();
+        await LoadRecentWorkspacesAsync();
 
         // 3. Handle command-line file or folder arguments if provided
         var openedAny = false;
@@ -422,6 +461,272 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasRecentFiles));
     }
 
+    public async Task LoadRecentWorkspacesAsync()
+    {
+        var items = await _recentWorkspacesService.GetRecentWorkspacesAsync();
+        RecentWorkspaces.Clear();
+        foreach (var item in items)
+        {
+            item.OpenCommand = new AsyncRelayCommand(() => OpenRecentWorkspaceAsync(item.FolderPath));
+            RecentWorkspaces.Add(item);
+        }
+        OnPropertyChanged(nameof(HasRecentWorkspaces));
+    }
+
+    public async Task AddRecentWorkspaceAsync(string folderPath)
+    {
+        await _recentWorkspacesService.AddRecentWorkspaceAsync(folderPath);
+        await LoadRecentWorkspacesAsync();
+    }
+
+    [RelayCommand]
+    public async Task OpenRecentWorkspaceAsync(string? folderPath)
+    {
+        if (string.IsNullOrWhiteSpace(folderPath)) return;
+        if (Directory.Exists(folderPath))
+        {
+            OpenFolder(folderPath);
+        }
+        else
+        {
+            await _dialogService.ShowMessageAsync("Folder Not Found", $"The workspace folder '{folderPath}' no longer exists.");
+            await _recentWorkspacesService.RemoveRecentWorkspaceAsync(folderPath);
+            await LoadRecentWorkspacesAsync();
+        }
+    }
+
+    [RelayCommand]
+    public async Task ClearRecentWorkspacesAsync()
+    {
+        await _recentWorkspacesService.ClearAsync();
+        RecentWorkspaces.Clear();
+        OnPropertyChanged(nameof(HasRecentWorkspaces));
+    }
+
+    public void UpdateBreadcrumbs()
+    {
+        Breadcrumbs.Clear();
+        if (ActiveDocument == null)
+        {
+            if (RootFolder != null)
+            {
+                Breadcrumbs.Add(new BreadcrumbItem
+                {
+                    Name = RootFolder.Name,
+                    FullPath = RootFolder.FullPath,
+                    IsFolder = true,
+                    IsLast = true,
+                    ClickCommand = new RelayCommand(() => IsSidebarOpen = true)
+                });
+            }
+            return;
+        }
+
+        var filePath = ActiveDocument.FilePath;
+        if (string.IsNullOrEmpty(filePath))
+        {
+            Breadcrumbs.Add(new BreadcrumbItem
+            {
+                Name = ActiveDocument.DisplayName,
+                FullPath = string.Empty,
+                IsFolder = false,
+                IsLast = true
+            });
+            return;
+        }
+
+        try
+        {
+            var normalizedFile = Path.GetFullPath(filePath);
+            var items = new List<BreadcrumbItem>();
+
+            if (RootFolder != null && !string.IsNullOrEmpty(RootFolder.FullPath) &&
+                normalizedFile.StartsWith(RootFolder.FullPath, StringComparison.OrdinalIgnoreCase))
+            {
+                // Root workspace item
+                items.Add(new BreadcrumbItem
+                {
+                    Name = RootFolder.Name,
+                    FullPath = RootFolder.FullPath,
+                    IsFolder = true,
+                    IsLast = false,
+                    ClickCommand = new RelayCommand(() => IsSidebarOpen = true)
+                });
+
+                // Relative directory segments
+                var relativePath = Path.GetRelativePath(RootFolder.FullPath, normalizedFile);
+                var parts = relativePath.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+
+                var currentAccumulated = RootFolder.FullPath;
+                for (int i = 0; i < parts.Length - 1; i++)
+                {
+                    currentAccumulated = Path.Combine(currentAccumulated, parts[i]);
+                    items.Add(new BreadcrumbItem
+                    {
+                        Name = parts[i],
+                        FullPath = currentAccumulated,
+                        IsFolder = true,
+                        IsLast = false,
+                        ClickCommand = new RelayCommand(() => IsSidebarOpen = true)
+                    });
+                }
+
+                // File item
+                items.Add(new BreadcrumbItem
+                {
+                    Name = Path.GetFileName(normalizedFile),
+                    FullPath = normalizedFile,
+                    IsFolder = false,
+                    IsLast = true,
+                    ClickCommand = new AsyncRelayCommand(async () =>
+                    {
+                        if (RequestSetClipboardText != null)
+                        {
+                            await RequestSetClipboardText(normalizedFile);
+                            _ = ShowTemporaryStatusAsync($"Copied: {normalizedFile}");
+                        }
+                    })
+                });
+            }
+            else
+            {
+                var dir = Path.GetDirectoryName(normalizedFile);
+                if (!string.IsNullOrEmpty(dir))
+                {
+                    var parentDirName = Path.GetFileName(dir);
+                    if (string.IsNullOrEmpty(parentDirName))
+                    {
+                        parentDirName = dir;
+                    }
+                    items.Add(new BreadcrumbItem
+                    {
+                        Name = parentDirName,
+                        FullPath = dir,
+                        IsFolder = true,
+                        IsLast = false
+                    });
+                }
+
+                items.Add(new BreadcrumbItem
+                {
+                    Name = Path.GetFileName(normalizedFile),
+                    FullPath = normalizedFile,
+                    IsFolder = false,
+                    IsLast = true,
+                    ClickCommand = new AsyncRelayCommand(async () =>
+                    {
+                        if (RequestSetClipboardText != null)
+                        {
+                            await RequestSetClipboardText(normalizedFile);
+                            _ = ShowTemporaryStatusAsync($"Copied: {normalizedFile}");
+                        }
+                    })
+                });
+            }
+
+            foreach (var item in items)
+            {
+                Breadcrumbs.Add(item);
+            }
+        }
+        catch
+        {
+            Breadcrumbs.Add(new BreadcrumbItem
+            {
+                Name = ActiveDocument.DisplayName,
+                FullPath = filePath,
+                IsFolder = false,
+                IsLast = true
+            });
+        }
+    }
+
+    [RelayCommand]
+    public void ChangeEncoding(string? encodingName)
+    {
+        if (ActiveDocument == null || string.IsNullOrWhiteSpace(encodingName)) return;
+
+        FileEncodingInfo? info = encodingName switch
+        {
+            "UTF-8" => FileEncodingInfo.Utf8NoBom,
+            "UTF-8-BOM" or "UTF-8 with BOM" => FileEncodingInfo.Utf8WithBom,
+            "UTF-16 LE" or "UTF-16" => new FileEncodingInfo(Encoding.Unicode, true),
+            "UTF-16 BE" => new FileEncodingInfo(Encoding.BigEndianUnicode, true),
+            "ASCII" => new FileEncodingInfo(Encoding.ASCII, false),
+            "Windows-1252" or "ANSI" => new FileEncodingInfo(Encoding.GetEncoding(1252), false),
+            _ => null
+        };
+
+        if (info != null)
+        {
+            ActiveDocument.SetEncoding(info);
+            _ = ShowTemporaryStatusAsync($"Encoding set to {info.DisplayName}");
+        }
+    }
+
+    [RelayCommand]
+    public void ChangeLineEnding(string? ending)
+    {
+        if (ActiveDocument == null || string.IsNullOrWhiteSpace(ending)) return;
+
+        var targetType = ending.ToUpperInvariant() switch
+        {
+            "CRLF" or "WINDOWS" or "\\R\\N" => LineEndingType.CRLF,
+            "LF" or "UNIX" or "\\N" => LineEndingType.LF,
+            _ => LineEndingType.LF
+        };
+
+        ActiveDocument.SetLineEnding(targetType);
+        _ = ShowTemporaryStatusAsync($"Line endings converted to {targetType.ToDisplayString()}");
+    }
+
+    [RelayCommand]
+    public void ToggleLineEnding()
+    {
+        if (ActiveDocument == null) return;
+        var next = ActiveDocument.Model.LineEnding == LineEndingType.CRLF ? LineEndingType.LF : LineEndingType.CRLF;
+        ActiveDocument.SetLineEnding(next);
+        _ = ShowTemporaryStatusAsync($"Line endings converted to {next.ToDisplayString()}");
+    }
+
+    [RelayCommand]
+    public void SetTabSize(string? sizeStr)
+    {
+        if (ActiveDocument == null || string.IsNullOrWhiteSpace(sizeStr)) return;
+        if (int.TryParse(sizeStr, out var size) && size > 0 && size <= 8)
+        {
+            ActiveDocument.TabSize = size;
+            _ = ShowTemporaryStatusAsync($"Indentation set to {size} spaces");
+        }
+    }
+
+    [RelayCommand]
+    public async Task ToggleBreadcrumbsAsync()
+    {
+        ShowBreadcrumbs = !ShowBreadcrumbs;
+        var settings = _settingsService.CurrentSettings;
+        settings.ShowBreadcrumbs = ShowBreadcrumbs;
+        await _settingsService.SaveAsync(settings);
+    }
+
+    [RelayCommand]
+    public async Task ToggleRainbowBracketsAsync()
+    {
+        RainbowBracketsEnabled = !RainbowBracketsEnabled;
+        var settings = _settingsService.CurrentSettings;
+        settings.EnableRainbowBrackets = RainbowBracketsEnabled;
+        await _settingsService.SaveAsync(settings);
+    }
+
+    [RelayCommand]
+    public async Task ToggleAutoCloseBracketsAsync()
+    {
+        AutoCloseBrackets = !AutoCloseBrackets;
+        var settings = _settingsService.CurrentSettings;
+        settings.AutoCloseBrackets = AutoCloseBrackets;
+        await _settingsService.SaveAsync(settings);
+    }
+
     [RelayCommand]
     public void CreateNewDocument()
     {
@@ -431,7 +736,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         var docVm = new DocumentViewModel(model, _languageService, fontSize)
         {
             WordWrap = settings.WordWrap,
-            ShowLineNumbers = settings.ShowLineNumbers
+            ShowLineNumbers = settings.ShowLineNumbers,
+            TabSize = settings.TabSize
         };
 
         if (docVm.HighlightingDefinition != null)
@@ -532,7 +838,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             var docVm = new DocumentViewModel(model, _languageService, fontSize)
             {
                 WordWrap = settings.WordWrap,
-                ShowLineNumbers = settings.ShowLineNumbers
+                ShowLineNumbers = settings.ShowLineNumbers,
+                TabSize = settings.TabSize
             };
 
             if (docVm.HighlightingDefinition != null)
@@ -709,7 +1016,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
         if (Documents.Count == 0)
         {
-            CreateNewDocument();
+            ActiveDocument = null;
         }
         else
         {
@@ -1529,6 +1836,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             IsMarkdownPreviewActive = false;
         }
+        UpdateBreadcrumbs();
         _ = SaveCurrentSessionAsync();
     }
 
@@ -1552,6 +1860,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         root.IsExpanded = true;
         RootFolder = root;
         IsSidebarOpen = true;
+        _ = AddRecentWorkspaceAsync(fullPath);
+        UpdateBreadcrumbs();
         _ = ShowTemporaryStatusAsync($"Opened workspace: {root.Name}");
     }
 
@@ -1559,6 +1869,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void CloseFolder()
     {
         RootFolder = null;
+        UpdateBreadcrumbs();
     }
 
     [RelayCommand]
@@ -2315,6 +2626,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _allCommands.Add(new CommandPaletteItem("font.toggle", "Toggle Coding Font (Google Sans Code ⇄ Roboto Mono)", "Preferences", "Ctrl+Alt+F", "🔤", () => _ = ToggleCodingFontAsync()));
         _allCommands.Add(new CommandPaletteItem("font.googleSansCode", "Font: Google Sans Code", "Preferences", "", "🔤", () => _ = SetCodingFontAsync("Google Sans Code")));
         _allCommands.Add(new CommandPaletteItem("font.robotoMono", "Font: Roboto Mono", "Preferences", "", "🔤", () => _ = SetCodingFontAsync("Roboto Mono")));
+        _allCommands.Add(new CommandPaletteItem("view.breadcrumbs", "Toggle Breadcrumbs Bar", "View", "", "🧭", () => _ = ToggleBreadcrumbsAsync()));
+        _allCommands.Add(new CommandPaletteItem("view.rainbowBrackets", "Toggle Rainbow Brackets", "View", "", "🌈", () => _ = ToggleRainbowBracketsAsync()));
+        _allCommands.Add(new CommandPaletteItem("editor.autoCloseBrackets", "Toggle Auto-Close Brackets & Quotes", "Editor", "", "()", () => _ = ToggleAutoCloseBracketsAsync()));
+        _allCommands.Add(new CommandPaletteItem("editor.toggleLineEnding", "Toggle Line Endings (CRLF ⇄ LF)", "Editor", "", "↵", () => ToggleLineEnding()));
+        _allCommands.Add(new CommandPaletteItem("editor.encodingUtf8", "Set Encoding: UTF-8", "Editor", "", "🔤", () => ChangeEncoding("UTF-8")));
+        _allCommands.Add(new CommandPaletteItem("editor.encodingUtf8Bom", "Set Encoding: UTF-8 with BOM", "Editor", "", "🔤", () => ChangeEncoding("UTF-8 with BOM")));
+        _allCommands.Add(new CommandPaletteItem("editor.encodingUtf16Le", "Set Encoding: UTF-16 LE", "Editor", "", "🔤", () => ChangeEncoding("UTF-16 LE")));
+        _allCommands.Add(new CommandPaletteItem("workspace.clearRecent", "Clear Recent Workspaces History", "File", "", "🗑️", () => _ = ClearRecentWorkspacesAsync()));
         _allCommands.Add(new CommandPaletteItem("app.update", "Check for Code Viewer App Updates...", "Help", "", "🚀", () => _ = CheckForUpdatesAsync()));
         _allCommands.Add(new CommandPaletteItem("help.updates", "Check Language & Integration Updates...", "Help", "", "🔄", () => _ = CheckIntegrationsUpdateAsync()));
     }

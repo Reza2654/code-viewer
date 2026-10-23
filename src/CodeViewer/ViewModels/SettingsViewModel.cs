@@ -87,6 +87,15 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private bool _enableBracketMatching = true;
 
+    [ObservableProperty]
+    private bool _autoCloseBrackets = true;
+
+    [ObservableProperty]
+    private bool _enableRainbowBrackets = true;
+
+    [ObservableProperty]
+    private bool _showBreadcrumbs = true;
+
     // Fonts & Editor
     [ObservableProperty]
     private string _selectedFont;
@@ -224,6 +233,9 @@ public partial class SettingsViewModel : ViewModelBase
         _showWhitespace = current.ShowWhitespace;
         _highlightCurrentLine = current.HighlightCurrentLine;
         _enableBracketMatching = current.EnableBracketMatching;
+        _autoCloseBrackets = current.AutoCloseBrackets;
+        _enableRainbowBrackets = current.EnableRainbowBrackets;
+        _showBreadcrumbs = current.ShowBreadcrumbs;
         _autoCheckForUpdates = current.AutoCheckForUpdates;
         _runInBackgroundOnStartup = current.RunInBackgroundOnStartup;
         _minimizeToTrayOnClose = current.MinimizeToTrayOnClose;
@@ -752,6 +764,9 @@ public partial class SettingsViewModel : ViewModelBase
             ShowWhitespace = ShowWhitespace,
             HighlightCurrentLine = HighlightCurrentLine,
             EnableBracketMatching = EnableBracketMatching,
+            AutoCloseBrackets = AutoCloseBrackets,
+            EnableRainbowBrackets = EnableRainbowBrackets,
+            ShowBreadcrumbs = ShowBreadcrumbs,
             CustomCodeKeyword = CustomCodeKeyword,
             CustomCodeComment = CustomCodeComment,
             CustomCodeString = CustomCodeString,
@@ -826,6 +841,9 @@ public partial class SettingsViewModel : ViewModelBase
         ShowWhitespace = defaults.ShowWhitespace;
         HighlightCurrentLine = defaults.HighlightCurrentLine;
         EnableBracketMatching = defaults.EnableBracketMatching;
+        AutoCloseBrackets = defaults.AutoCloseBrackets;
+        EnableRainbowBrackets = defaults.EnableRainbowBrackets;
+        ShowBreadcrumbs = defaults.ShowBreadcrumbs;
         CustomCodeKeyword = defaults.CustomCodeKeyword;
         CustomCodeComment = defaults.CustomCodeComment;
         CustomCodeString = defaults.CustomCodeString;
