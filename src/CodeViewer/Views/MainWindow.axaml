@@ -13,6 +13,7 @@
         Width="1120" Height="740"
         MinWidth="640" MinHeight="420"
         WindowStartupLocation="CenterScreen"
+        TransparencyLevelHint="Mica, AcrylicBlur, None"
         Background="{DynamicResource ThemeWindowBackground}"
         DragDrop.AllowDrop="True">
 
@@ -32,6 +33,92 @@
     <Style Selector="Button.active-lang">
       <Setter Property="Background" Value="{DynamicResource ThemeSelectionBackground}"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <!-- Sidebar smooth collapse/expand transition (~60fps) -->
+    <Style Selector="Border.sidebarPanel">
+      <Setter Property="Width" Value="240"/>
+      <Setter Property="Opacity" Value="1.0"/>
+      <Setter Property="ClipToBounds" Value="True"/>
+      <Setter Property="BorderThickness" Value="0,0,1,0"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Width" Duration="0:0:0.2" Easing="CubicEaseOut"/>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut"/>
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.sidebarPanel.collapsed">
+      <Setter Property="Width" Value="0"/>
+      <Setter Property="Opacity" Value="0.0"/>
+      <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <!-- Floating Overlay Entrance Animations (Quick Open, Command Palette, Go to Line, Global Search) -->
+    <Style Selector="Border.overlay-palette[IsVisible=True]">
+      <Style.Animations>
+        <Animation Duration="0:0:0.16" Easing="CubicEaseOut" FillMode="Forward">
+          <KeyFrame Cue="0%">
+            <Setter Property="Opacity" Value="0.0"/>
+            <Setter Property="RenderTransform" Value="translate(0px, -8px) scale(0.98)"/>
+          </KeyFrame>
+          <KeyFrame Cue="100%">
+            <Setter Property="Opacity" Value="1.0"/>
+            <Setter Property="RenderTransform" Value="translate(0px, 0px) scale(1.0)"/>
+          </KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+
+    <!-- Status Bar Message Pill Notification Entrance Animation -->
+    <Style Selector="Border.status-pill[IsVisible=True]">
+      <Style.Animations>
+        <Animation Duration="0:0:0.2" Easing="CubicEaseOut" FillMode="Forward">
+          <KeyFrame Cue="0%">
+            <Setter Property="Opacity" Value="0.0"/>
+            <Setter Property="RenderTransform" Value="translate(0px, 4px) scale(0.96)"/>
+          </KeyFrame>
+          <KeyFrame Cue="100%">
+            <Setter Property="Opacity" Value="1.0"/>
+            <Setter Property="RenderTransform" Value="translate(0px, 0px) scale(1.0)"/>
+          </KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+
+    <!-- Welcome Dashboard Card Micro-Interactions -->
+    <Style Selector="Button.welcome-card-btn">
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+          <BrushTransition Property="Background" Duration="0:0:0.15"/>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15"/>
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.welcome-card-btn:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
+      <Setter Property="RenderTransform" Value="scale(1.025)"/>
+    </Style>
+    <Style Selector="Button.welcome-card-btn:pressed">
+      <Setter Property="RenderTransform" Value="scale(0.98)"/>
+    </Style>
+
+    <!-- Recent Workspace Card Micro-Interactions -->
+    <Style Selector="Button.workspace-card-btn">
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.12"/>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12"/>
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.workspace-card-btn:pointerover">
+      <Setter Property="Background" Value="{DynamicResource ThemeEditorBackground}"/>
+      <Setter Property="RenderTransform" Value="translateX(4px)"/>
+    </Style>
+    <Style Selector="Button.workspace-card-btn:pressed">
+      <Setter Property="RenderTransform" Value="scale(0.98)"/>
     </Style>
   </Window.Styles>
 
@@ -335,11 +422,7 @@
                                  FontSize="12"
                                  VerticalAlignment="Center"/>
                       <Button ToolTip.Tip="Close Tab (Ctrl+W)"
-                              Width="18" Height="18"
-                              Padding="0"
-                              CornerRadius="9"
-                              Background="Transparent"
-                              BorderThickness="0"
+                              Classes="tab-close-btn"
                               Command="{Binding ((vm:MainViewModel)DataContext).CloseTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                               CommandParameter="{Binding}">
                         <TextBlock Text="✕"
@@ -418,13 +501,12 @@
 
       <!-- Main Content Area: Left Folder Sidebar + Center Work Area (Editor/Split/Markdown/Diff) + Runner Console -->
       <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
-        <!-- 📁 Left Folder Sidebar -->
+        <!-- 📁 Left Folder Sidebar (Smooth 60fps collapse/expand transition) -->
         <Border Grid.Column="0"
-                Width="240"
+                Classes="sidebarPanel"
+                Classes.collapsed="{Binding !IsSidebarOpen}"
                 Background="{DynamicResource ThemeTabBarBackground}"
-                BorderBrush="{DynamicResource ThemeBorderBrush}"
-                BorderThickness="0,0,1,0"
-                IsVisible="{Binding IsSidebarOpen}">
+                BorderBrush="{DynamicResource ThemeBorderBrush}">
           <Grid RowDefinitions="Auto,*,Auto">
             <!-- Sidebar Header -->
             <Border Grid.Row="0" Padding="8,6" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="0,0,0,1">
@@ -604,7 +686,7 @@
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center"
                                    Foreground="{DynamicResource ThemeWindowForeground}"/>
-                        <TextBlock Text="Fast, lightweight modern code viewer &amp; editor — v1.2.0-beta.13"
+                        <TextBlock Text="Fast, lightweight modern code viewer &amp; editor — v1.2.0-beta.14"
                                    FontSize="13"
                                    Opacity="0.75"
                                    HorizontalAlignment="Center"
@@ -624,6 +706,7 @@
                                      Foreground="{DynamicResource ThemeAccentBrush}"/>
                           <Grid ColumnDefinitions="*,*,*">
                             <Button Grid.Column="0"
+                                    Classes="welcome-card-btn"
                                     Command="{Binding CreateNewDocumentCommand}"
                                     Background="{DynamicResource ThemeEditorBackground}"
                                     BorderBrush="{DynamicResource ThemeBorderBrush}"
@@ -639,6 +722,7 @@
                               </StackPanel>
                             </Button>
                             <Button Grid.Column="1"
+                                    Classes="welcome-card-btn"
                                     Command="{Binding OpenFileCommand}"
                                     Background="{DynamicResource ThemeEditorBackground}"
                                     BorderBrush="{DynamicResource ThemeBorderBrush}"
@@ -654,6 +738,7 @@
                               </StackPanel>
                             </Button>
                             <Button Grid.Column="2"
+                                    Classes="welcome-card-btn"
                                     Command="{Binding OpenFolderCommand}"
                                     Background="{DynamicResource ThemeEditorBackground}"
                                     BorderBrush="{DynamicResource ThemeBorderBrush}"
@@ -711,7 +796,8 @@
                                           MaxHeight="160">
                               <ItemsControl.ItemTemplate>
                                 <DataTemplate DataType="models:RecentWorkspaceItem">
-                                  <Button Command="{Binding OpenCommand}"
+                                  <Button Classes="workspace-card-btn"
+                                          Command="{Binding OpenCommand}"
                                           CommandParameter="{Binding FolderPath}"
                                           HorizontalAlignment="Stretch"
                                           HorizontalContentAlignment="Left"
@@ -845,7 +931,8 @@
             </Border>
 
             <!-- Quick Open Palette (Ctrl+P) -->
-            <Border IsVisible="{Binding IsQuickOpenOpen}"
+            <Border Classes="overlay-palette"
+                    IsVisible="{Binding IsQuickOpenOpen}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Top"
                     Margin="0,20,0,0"
@@ -896,7 +983,8 @@
             </Border>
 
             <!-- Go to Line Palette (Ctrl+G) -->
-            <Border IsVisible="{Binding IsGoToLineOpen}"
+            <Border Classes="overlay-palette"
+                    IsVisible="{Binding IsGoToLineOpen}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Top"
                     Margin="0,20,0,0"
@@ -925,7 +1013,8 @@
             </Border>
 
             <!-- ⚡ Command Palette (Ctrl+Shift+P / F1) -->
-            <Border IsVisible="{Binding IsCommandPaletteOpen}"
+            <Border Classes="overlay-palette"
+                    IsVisible="{Binding IsCommandPaletteOpen}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Top"
                     Margin="0,20,0,0"
@@ -974,7 +1063,8 @@
             </Border>
 
             <!-- 🔍 Global Workspace Search Palette (Ctrl+Shift+F) -->
-            <Border IsVisible="{Binding IsGlobalSearchOpen}"
+            <Border Classes="overlay-palette"
+                    IsVisible="{Binding IsGlobalSearchOpen}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Top"
                     Margin="0,20,0,0"
@@ -1300,14 +1390,24 @@
             </Button>
           </StackPanel>
 
-          <!-- Center Notification / Temporary Status Message -->
-          <TextBlock Grid.Column="1"
-                     Text="{Binding StatusMessage}"
-                     Foreground="{DynamicResource ThemeStatusBarForeground}"
-                     FontSize="11"
-                     HorizontalAlignment="Center"
-                     VerticalAlignment="Center"
-                     Opacity="0.95"/>
+          <!-- Center Notification / Temporary Status Message Pill (with entrance animation) -->
+          <Border Grid.Column="1"
+                  Classes="status-pill"
+                  IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                  Background="#25000000"
+                  BorderBrush="#33FFFFFF"
+                  BorderThickness="1"
+                  CornerRadius="10"
+                  Padding="10,2"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center">
+            <TextBlock Text="{Binding StatusMessage}"
+                       Foreground="{DynamicResource ThemeStatusBarForeground}"
+                       FontSize="11"
+                       FontWeight="Medium"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+          </Border>
 
           <!-- Right Info: Caret Position, Font Size, and Settings Button -->
           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">

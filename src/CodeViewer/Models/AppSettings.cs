@@ -148,6 +148,9 @@ public class AppSettings
     [JsonPropertyName("autoCheckForUpdates")]
     public bool AutoCheckForUpdates { get; set; } = true;
 
+    [JsonPropertyName("enableAnimations")]
+    public bool EnableAnimations { get; set; } = true;
+
     [JsonPropertyName("runInBackgroundOnStartup")]
     public bool RunInBackgroundOnStartup { get; set; } = false;
 
@@ -194,6 +197,7 @@ public class AppSettings
             CustomCodePreprocessor = CustomCodePreprocessor,
             CustomCodePunctuation = CustomCodePunctuation,
             AutoCheckForUpdates = AutoCheckForUpdates,
+            EnableAnimations = EnableAnimations,
             RunInBackgroundOnStartup = RunInBackgroundOnStartup,
             MinimizeToTrayOnClose = MinimizeToTrayOnClose
         };

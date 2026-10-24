@@ -127,6 +127,9 @@ public partial class SettingsViewModel : ViewModelBase
     private bool _autoCheckForUpdates = true;
 
     [ObservableProperty]
+    private bool _enableAnimations = true;
+
+    [ObservableProperty]
     private bool _runInBackgroundOnStartup;
 
     [ObservableProperty]
@@ -237,6 +240,7 @@ public partial class SettingsViewModel : ViewModelBase
         _enableRainbowBrackets = current.EnableRainbowBrackets;
         _showBreadcrumbs = current.ShowBreadcrumbs;
         _autoCheckForUpdates = current.AutoCheckForUpdates;
+        _enableAnimations = current.EnableAnimations;
         _runInBackgroundOnStartup = current.RunInBackgroundOnStartup;
         _minimizeToTrayOnClose = current.MinimizeToTrayOnClose;
 
@@ -776,6 +780,7 @@ public partial class SettingsViewModel : ViewModelBase
             CustomCodePreprocessor = CustomCodePreprocessor,
             CustomCodePunctuation = CustomCodePunctuation,
             AutoCheckForUpdates = AutoCheckForUpdates,
+            EnableAnimations = EnableAnimations,
             RunInBackgroundOnStartup = RunInBackgroundOnStartup,
             MinimizeToTrayOnClose = MinimizeToTrayOnClose
         };
@@ -853,6 +858,7 @@ public partial class SettingsViewModel : ViewModelBase
         CustomCodePreprocessor = defaults.CustomCodePreprocessor;
         CustomCodePunctuation = defaults.CustomCodePunctuation;
         AutoCheckForUpdates = defaults.AutoCheckForUpdates;
+        EnableAnimations = defaults.EnableAnimations;
         RunInBackgroundOnStartup = defaults.RunInBackgroundOnStartup;
         MinimizeToTrayOnClose = defaults.MinimizeToTrayOnClose;
 

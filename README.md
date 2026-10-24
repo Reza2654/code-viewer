@@ -68,7 +68,15 @@
   - **File Encoding**: One-click flyout with instant conversion (`UTF-8`, `UTF-8 with BOM`, `UTF-16 LE`, `UTF-16 BE`, `ASCII`, `Windows-1252 / ANSI`).
   - **Line Endings**: One-click flyout / toggle (`CRLF ⇄ LF`) normalizing all document newlines.
   - **Indentation / Tab Size**: One-click flyout (`Spaces: 2`, `Spaces: 4`, `Spaces: 8`).
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.13-Setup.exe`) and portable standalone `.zip` archive.
+- 🎨 **Fluid 60fps Micro-Animations & UI Transitions**:
+  - **Animated Tabs**: Smooth `BrushTransition` on tab background and borders, plus responsive tab close buttons with hover scale and click compression.
+  - **Collapsible Sidebar**: Smooth 60fps width and opacity easing transition (`0.2s`, `CubicEaseOut`) when toggling the Explorer sidebar (`Ctrl+B`).
+  - **Floating Overlays**: Elegant slide-down and scale entrance animations for Command Palette (`Ctrl+Shift+P`), Quick Open (`Ctrl+P`), Go to Line (`Ctrl+G`), and Global Search (`Ctrl+Shift+F`).
+  - **Theme-Aware Find & Replace Bar**: Dynamic brush theming matching all 20 dark/light themes with slide entrance and smooth hover micro-transitions.
+  - **Animated Status Message Pill**: Status notifications appear in a centered pill badge with smooth entrance animation and hover states on all status controls.
+  - **Modern Windows 11 Glass Chrome**: Native support for Mica and Acrylic blur window transparency hints.
+  - **Theme Gallery & Interactive Cards**: Fluid hover elevation, scale (`1.03x`), and accent border glow on theme cards, with an `EnableAnimations` preference toggle in Settings.
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.14-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---

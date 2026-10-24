@@ -70,6 +70,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private bool _autoCloseBrackets = true;
 
+    [ObservableProperty]
+    private bool _enableAnimations = true;
+
     public bool HasDocuments => Documents.Count > 0;
     public bool HasNoDocuments => Documents.Count == 0;
     public bool HasRecentWorkspaces => RecentWorkspaces.Count > 0;
@@ -287,6 +290,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _showBreadcrumbs = settings.ShowBreadcrumbs;
         _rainbowBracketsEnabled = settings.EnableRainbowBrackets;
         _autoCloseBrackets = settings.AutoCloseBrackets;
+        _enableAnimations = settings.EnableAnimations;
 
         _documents.CollectionChanged += (s, e) =>
         {
@@ -319,6 +323,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ShowBreadcrumbs = settings.ShowBreadcrumbs;
         RainbowBracketsEnabled = settings.EnableRainbowBrackets;
         AutoCloseBrackets = settings.AutoCloseBrackets;
+        EnableAnimations = settings.EnableAnimations;
 
         foreach (var doc in Documents)
         {

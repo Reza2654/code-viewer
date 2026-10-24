@@ -19,6 +19,12 @@
       <Setter Property="CornerRadius" Value="4"/>
       <Setter Property="Padding" Value="10,5"/>
       <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.12"/>
+          <BrushTransition Property="Foreground" Duration="0:0:0.12"/>
+        </Transitions>
+      </Setter>
     </Style>
     <Style Selector="Button.segmented:pointerover">
       <Setter Property="Background" Value="#2E2E32"/>
@@ -37,6 +43,12 @@
       <Setter Property="Padding" Value="14,5"/>
       <Setter Property="FontSize" Value="12"/>
       <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.12"/>
+          <BrushTransition Property="Foreground" Duration="0:0:0.12"/>
+        </Transitions>
+      </Setter>
     </Style>
     <Style Selector="Button.segmented-text:pointerover">
       <Setter Property="Background" Value="#2E2E32"/>
@@ -64,10 +76,21 @@
       <Setter Property="Padding" Value="12,10"/>
       <Setter Property="Width" Value="220"/>
       <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.15"/>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15"/>
+        </Transitions>
+      </Setter>
     </Style>
     <Style Selector="Button.theme-card-btn:pointerover">
       <Setter Property="Background" Value="#2A2A30"/>
       <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
+      <Setter Property="RenderTransform" Value="scale(1.03)"/>
+    </Style>
+    <Style Selector="Button.theme-card-btn:pressed">
+      <Setter Property="RenderTransform" Value="scale(0.97)"/>
     </Style>
   </Window.Styles>
 
@@ -91,7 +114,7 @@
               CornerRadius="6"
               Padding="10,4"
               VerticalAlignment="Center">
-        <TextBlock Text="v1.2.0-beta.13"
+        <TextBlock Text="v1.2.0-beta.14"
                    FontSize="11"
                    FontWeight="SemiBold"
                    Foreground="{DynamicResource ThemeAccentBrush}"/>
@@ -354,6 +377,11 @@
                   <CheckBox Grid.Row="5" Grid.Column="0"
                             IsChecked="{Binding ShowBreadcrumbs}"
                             Content="Show breadcrumbs bar above editor"
+                            Foreground="{DynamicResource ThemeWindowForeground}"
+                            Margin="0,4"/>
+                  <CheckBox Grid.Row="5" Grid.Column="1"
+                            IsChecked="{Binding EnableAnimations}"
+                            Content="Enable fluid UI transitions &amp; animations (~60fps)"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Margin="0,4"/>
                 </Grid>

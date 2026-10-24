@@ -4,8 +4,43 @@
              x:Class="CodeViewer.Views.SearchOverlayView"
              x:DataType="vm:SearchViewModel">
 
-  <Border Background="#252526"
-          BorderBrush="#454545"
+  <UserControl.Styles>
+    <Style Selector="Border.search-panel[IsVisible=True]">
+      <Style.Animations>
+        <Animation Duration="0:0:0.18" Easing="CubicEaseOut" FillMode="Forward">
+          <KeyFrame Cue="0%">
+            <Setter Property="Opacity" Value="0.0"/>
+            <Setter Property="RenderTransform" Value="translate(0px, -10px) scale(0.97)"/>
+          </KeyFrame>
+          <KeyFrame Cue="100%">
+            <Setter Property="Opacity" Value="1.0"/>
+            <Setter Property="RenderTransform" Value="translate(0px, 0px) scale(1.0)"/>
+          </KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+
+    <Style Selector="Button.search-btn, ToggleButton.search-btn">
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.12"/>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.12"/>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12"/>
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.search-btn:pointerover, ToggleButton.search-btn:pointerover">
+      <Setter Property="Background" Value="{DynamicResource ThemeSelectionBackground}"/>
+      <Setter Property="RenderTransform" Value="scale(1.05)"/>
+    </Style>
+    <Style Selector="Button.search-btn:pressed, ToggleButton.search-btn:pressed">
+      <Setter Property="RenderTransform" Value="scale(0.95)"/>
+    </Style>
+  </UserControl.Styles>
+
+  <Border Classes="search-panel"
+          Background="{DynamicResource ThemeMenuBackground}"
+          BorderBrush="{DynamicResource ThemeBorderBrush}"
           BorderThickness="1"
           CornerRadius="6"
           Padding="8,6"
@@ -15,6 +50,7 @@
       <!-- Find Row -->
       <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
         <ToggleButton IsChecked="{Binding IsReplaceOpen, Mode=TwoWay}"
+                      Classes="search-btn"
                       ToolTip.Tip="Toggle Replace Mode (Ctrl+H)"
                       Width="22" Height="28"
                       Padding="0"
@@ -23,7 +59,7 @@
           <TextBlock Text="{Binding IsReplaceOpen, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue='▶'}"
                      TextAlignment="Center"
                      FontSize="9"
-                     Foreground="#AAAAAA"
+                     Foreground="{DynamicResource ThemeMenuForeground}"
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center"/>
         </ToggleButton>
@@ -34,13 +70,14 @@
                  Width="220"
                  Height="28"
                  FontSize="12"
-                 Background="#3C3C3C"
-                 Foreground="#FFFFFF"
-                 BorderBrush="#555555"
+                 Background="{DynamicResource ThemeEditorBackground}"
+                 Foreground="{DynamicResource ThemeWindowForeground}"
+                 BorderBrush="{DynamicResource ThemeBorderBrush}"
                  CornerRadius="3"
                  VerticalContentAlignment="Center"/>
 
         <ToggleButton IsChecked="{Binding MatchCase, Mode=TwoWay}"
+                      Classes="search-btn"
                       ToolTip.Tip="Match Case (Alt+C)"
                       Width="28" Height="28"
                       Padding="0"
@@ -55,6 +92,7 @@
         </ToggleButton>
 
         <Button Command="{Binding FindPreviousCommand}"
+                Classes="search-btn"
                 ToolTip.Tip="Find Previous (Shift+F3)"
                 Width="28" Height="28"
                 Padding="0"
@@ -62,12 +100,13 @@
                 Background="Transparent">
           <TextBlock Text="▲"
                      FontSize="10"
-                     Foreground="#CCCCCC"
+                     Foreground="{DynamicResource ThemeMenuForeground}"
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center"/>
         </Button>
 
         <Button Command="{Binding FindNextCommand}"
+                Classes="search-btn"
                 ToolTip.Tip="Find Next (F3 / Enter)"
                 Width="28" Height="28"
                 Padding="0"
@@ -75,19 +114,21 @@
                 Background="Transparent">
           <TextBlock Text="▼"
                      FontSize="10"
-                     Foreground="#CCCCCC"
+                     Foreground="{DynamicResource ThemeMenuForeground}"
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center"/>
         </Button>
 
         <TextBlock Text="{Binding StatusText}"
                    FontSize="11"
-                   Foreground="#888888"
+                   Foreground="{DynamicResource ThemeStatusBarForeground}"
+                   Opacity="0.8"
                    VerticalAlignment="Center"
                    Margin="4,0"
                    IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
 
         <Button Command="{Binding CloseCommand}"
+                Classes="search-btn"
                 ToolTip.Tip="Close (Esc)"
                 Width="24" Height="28"
                 Padding="0"
@@ -95,7 +136,7 @@
                 Background="Transparent">
           <TextBlock Text="✕"
                      FontSize="12"
-                     Foreground="#AAAAAA"
+                     Foreground="{DynamicResource ThemeMenuForeground}"
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center"/>
         </Button>
@@ -111,30 +152,36 @@
                  Width="220"
                  Height="28"
                  FontSize="12"
-                 Background="#3C3C3C"
-                 Foreground="#FFFFFF"
-                 BorderBrush="#555555"
+                 Background="{DynamicResource ThemeEditorBackground}"
+                 Foreground="{DynamicResource ThemeWindowForeground}"
+                 BorderBrush="{DynamicResource ThemeBorderBrush}"
                  CornerRadius="3"
                  VerticalContentAlignment="Center"/>
 
         <Button Command="{Binding ReplaceCommand}"
+                Classes="search-btn"
                 ToolTip.Tip="Replace Active Match (Enter in Replace box)"
                 Height="28"
                 Padding="8,4"
                 CornerRadius="3"
-                Background="#3A3D41"
-                Foreground="#FFFFFF"
+                Background="{DynamicResource ThemeSelectionBackground}"
+                Foreground="{DynamicResource ThemeWindowForeground}"
+                BorderBrush="{DynamicResource ThemeBorderBrush}"
+                BorderThickness="1"
                 FontSize="11">
           <TextBlock Text="Replace" VerticalAlignment="Center"/>
         </Button>
 
         <Button Command="{Binding ReplaceAllCommand}"
+                Classes="search-btn"
                 ToolTip.Tip="Replace All Occurrences (Alt+A)"
                 Height="28"
                 Padding="8,4"
                 CornerRadius="3"
-                Background="#3A3D41"
-                Foreground="#FFFFFF"
+                Background="{DynamicResource ThemeSelectionBackground}"
+                Foreground="{DynamicResource ThemeWindowForeground}"
+                BorderBrush="{DynamicResource ThemeBorderBrush}"
+                BorderThickness="1"
                 FontSize="11">
           <TextBlock Text="Replace All" VerticalAlignment="Center"/>
         </Button>
