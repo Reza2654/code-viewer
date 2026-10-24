@@ -61,7 +61,9 @@ public partial class App : Application
 
                 // Support startup pre-warming / background mode for instantaneous sub-10ms launching
                 var isBackground = desktop.Args != null && System.Linq.Enumerable.Any(desktop.Args, a => string.Equals(a, "--background", StringComparison.OrdinalIgnoreCase));
-                desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnExplicitShutdown;
+                desktop.ShutdownMode = isBackground
+                    ? Avalonia.Controls.ShutdownMode.OnExplicitShutdown
+                    : Avalonia.Controls.ShutdownMode.OnMainWindowClose;
 
                 if (!isBackground)
                 {
@@ -157,6 +159,7 @@ public partial class App : Application
             catch (Exception ex)
             {
                 Program.LogCrash(ex);
+                desktop.Shutdown(1);
             }
         }
 

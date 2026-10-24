@@ -83,6 +83,11 @@ public partial class MainWindow : Window
             _caretBlinkController?.Dispose();
             _smoothScrollController?.Dispose();
             (DataContext as IDisposable)?.Dispose();
+
+            if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                desktop.Shutdown();
+            }
         };
 
         // Code Mode Language Flyout autofocus and scroll reset
