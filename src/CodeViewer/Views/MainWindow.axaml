@@ -682,7 +682,7 @@
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center"
                                    Foreground="{DynamicResource ThemeWindowForeground}"/>
-                        <TextBlock Text="Fast, lightweight modern code viewer &amp; editor — v1.2.0-beta.14"
+                        <TextBlock Text="Fast, lightweight modern code viewer &amp; editor — v1.2.0-beta.15"
                                    FontSize="13"
                                    Opacity="0.75"
                                    HorizontalAlignment="Center"

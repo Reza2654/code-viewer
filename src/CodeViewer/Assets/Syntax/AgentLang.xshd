@@ -2,7 +2,7 @@
 <SyntaxDefinition name="AgentLang" extensions=".agent" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
   <Color name="Comment" foreground="#6A9955" exampleText="// comment" />
   <Color name="String" foreground="#CE9178" exampleText="string text" />
-  <Color name="Keywords" foreground="#C586C0" fontWeight="bold" exampleText="agent MyAgent {}" />
+  <Color name="Keywords" foreground="#C586C0" exampleText="agent MyAgent {}" />
   <Color name="ControlKeywords" foreground="#C586C0" exampleText="if (a) return;" />
   <Color name="TypeKeywords" foreground="#4EC9B0" exampleText="string text;" />
   <Color name="MethodCall" foreground="#DCDCAA" exampleText="think()" />

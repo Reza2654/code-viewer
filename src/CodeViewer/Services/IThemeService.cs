@@ -69,4 +69,9 @@ public interface IThemeService
     /// Applies the current theme's code syntax highlighting colors to an AvaloniaEdit highlighting definition.
     /// </summary>
     void ApplyCodeColorsToHighlighting(AvaloniaEdit.Highlighting.IHighlightingDefinition? definition, ColorTheme? theme = null);
+
+    /// <summary>
+    /// Applies theme code syntax highlighting colors to all registered HighlightingDefinitions in HighlightingManager.
+    /// </summary>
+    void ApplyThemeToAllHighlightings(ColorTheme? theme = null);
 }

@@ -2,7 +2,7 @@
 <SyntaxDefinition name="Dart" extensions=".dart" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
   <Color name="Comment" foreground="#6A9955" exampleText="// comment" />
   <Color name="String" foreground="#CE9178" exampleText="string text" />
-  <Color name="Keywords" foreground="#C586C0" fontWeight="bold" exampleText="if (a) {}" />
+  <Color name="Keywords" foreground="#C586C0" exampleText="if (a) {}" />
   <Color name="ControlKeywords" foreground="#C586C0" exampleText="return" />
   <Color name="TypeKeywords" foreground="#4EC9B0" exampleText="int a;" />
   <Color name="Numbers" foreground="#B5CEA8" exampleText="123" />

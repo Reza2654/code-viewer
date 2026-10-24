@@ -2,7 +2,7 @@
 <SyntaxDefinition name="PS2" extensions=".ps2;.ps2bundle" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
   <Color name="Comment" foreground="#6A9955" exampleText="// comment" />
   <Color name="String" foreground="#CE9178" exampleText="&quot;string&quot;" />
-  <Color name="Keywords" foreground="#C586C0" fontWeight="bold" exampleText="let mut x = 1;" />
+  <Color name="Keywords" foreground="#C586C0" exampleText="let mut x = 1;" />
   <Color name="ControlKeywords" foreground="#C586C0" exampleText="if (a) return;" />
   <Color name="TypeKeywords" foreground="#4EC9B0" exampleText="Some(val)" />
   <Color name="Preprocessor" foreground="#569CD6" exampleText="#manifest" />

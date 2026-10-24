@@ -98,6 +98,9 @@ public class ColorTheme
     [JsonPropertyName("codePunctuation")]
     public string CodePunctuation { get; set; } = "#D4D4D4";
 
+    [JsonPropertyName("codeVariable")]
+    public string CodeVariable { get; set; } = "#9CDCFE";
+
     [JsonIgnore]
     public IBrush EditorBackgroundBrush => new SolidColorBrush(Color.TryParse(EditorBackground, out var c) ? c : Colors.Transparent);
 
@@ -121,6 +124,9 @@ public class ColorTheme
 
     [JsonIgnore]
     public IBrush MethodBrush => new SolidColorBrush(Color.TryParse(CodeMethod, out var c) ? c : Colors.Yellow);
+
+    [JsonIgnore]
+    public IBrush VariableBrush => new SolidColorBrush(Color.TryParse(CodeVariable, out var c) ? c : (IsDark ? Color.Parse("#9CDCFE") : Color.Parse("#001080")));
 
     public ColorTheme Clone()
     {
@@ -153,7 +159,8 @@ public class ColorTheme
             CodeType = CodeType,
             CodeMethod = CodeMethod,
             CodePreprocessor = CodePreprocessor,
-            CodePunctuation = CodePunctuation
+            CodePunctuation = CodePunctuation,
+            CodeVariable = CodeVariable
         };
     }
 }

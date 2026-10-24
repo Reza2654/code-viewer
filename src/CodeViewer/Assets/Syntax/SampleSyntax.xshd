@@ -2,7 +2,7 @@
 <SyntaxDefinition name="SampleCustom" extensions=".sample;.demo" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
   <Color name="Comment" foreground="#6A9955" />
   <Color name="String" foreground="#CE9178" />
-  <Color name="Keyword" foreground="#569CD6" fontWeight="bold" />
+  <Color name="Keyword" foreground="#569CD6" />
   <Color name="Number" foreground="#B5CEA8" />
 
   <RuleSet>

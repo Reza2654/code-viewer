@@ -145,6 +145,9 @@ public class AppSettings
     [JsonPropertyName("customCodePunctuation")]
     public string? CustomCodePunctuation { get; set; }
 
+    [JsonPropertyName("customCodeVariable")]
+    public string? CustomCodeVariable { get; set; }
+
     [JsonPropertyName("autoCheckForUpdates")]
     public bool AutoCheckForUpdates { get; set; } = true;
 
@@ -196,6 +199,7 @@ public class AppSettings
             CustomCodeMethod = CustomCodeMethod,
             CustomCodePreprocessor = CustomCodePreprocessor,
             CustomCodePunctuation = CustomCodePunctuation,
+            CustomCodeVariable = CustomCodeVariable,
             AutoCheckForUpdates = AutoCheckForUpdates,
             EnableAnimations = EnableAnimations,
             RunInBackgroundOnStartup = RunInBackgroundOnStartup,

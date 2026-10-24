@@ -949,8 +949,10 @@ public class ThemeService : IThemeService
             SetColorResource("ThemeCodeMethod", theme.CodeMethod);
             SetColorResource("ThemeCodePreprocessor", theme.CodePreprocessor);
             SetColorResource("ThemeCodePunctuation", theme.CodePunctuation);
+            SetColorResource("ThemeCodeVariable", theme.CodeVariable);
         }
 
+        ApplyThemeToAllHighlightings(theme);
         SaveThemeName(theme.Id);
         ThemeChanged?.Invoke(theme);
     }
@@ -1122,6 +1124,8 @@ public class ThemeService : IThemeService
             effective.CodePreprocessor = NormalizeHex(settings.CustomCodePreprocessor!);
         if (IsValidHexColor(settings.CustomCodePunctuation))
             effective.CodePunctuation = NormalizeHex(settings.CustomCodePunctuation!);
+        if (IsValidHexColor(settings.CustomCodeVariable))
+            effective.CodeVariable = NormalizeHex(settings.CustomCodeVariable!);
 
         return effective;
     }
@@ -1158,7 +1162,7 @@ public class ThemeService : IThemeService
     public void ApplyCodeColorsToHighlighting(IHighlightingDefinition? definition, ColorTheme? theme = null)
     {
         if (definition == null) return;
-        var t = theme ?? _currentTheme;
+        var t = theme ?? _currentTheme ?? _themes.FirstOrDefault();
         if (t == null) return;
 
         try
@@ -1172,12 +1176,22 @@ public class ThemeService : IThemeService
             var preprocBrush = new SimpleHighlightingBrush(Color.Parse(t.CodePreprocessor));
             var punctBrush = new SimpleHighlightingBrush(Color.Parse(t.CodePunctuation));
 
-            var varBrush = new SimpleHighlightingBrush(Color.Parse(t.Foreground));
+            var varHex = !string.IsNullOrWhiteSpace(t.CodeVariable)
+                ? t.CodeVariable
+                : (t.IsDark ? "#9CDCFE" : "#001080");
+            var varBrush = new SimpleHighlightingBrush(Color.Parse(varHex));
+
+            var addedBrush = new SimpleHighlightingBrush(Color.Parse(t.IsDark ? "#89D185" : "#22863A"));
+            var removedBrush = new SimpleHighlightingBrush(Color.Parse(t.IsDark ? "#F48771" : "#D73A49"));
 
             foreach (var color in definition.NamedHighlightingColors)
             {
+                // CRITICAL FOR v1.2.0-beta.15: Remove bold/italic weights that cause illegibility and visual harshness
+                color.FontWeight = Avalonia.Media.FontWeight.Normal;
+                color.FontStyle = Avalonia.Media.FontStyle.Normal;
+
                 var name = color.Name?.ToLowerInvariant() ?? string.Empty;
-                if (name.Contains("comment") || (name.Contains("xml") && name.Contains("doc")))
+                if (name.Contains("comment") || (name.Contains("xml") && name.Contains("doc")) || name.Contains("javadoc") || name.Contains("doctags"))
                 {
                     color.Foreground = commentBrush;
                 }
@@ -1189,19 +1203,23 @@ public class ThemeService : IThemeService
                 {
                     color.Foreground = stringBrush;
                 }
-                else if (name.Contains("keyword") || name.Contains("truefalse") || name.Contains("null") || name.Contains("controlflow") || name.Contains("statement") || name.Contains("modifier") || name.Contains("visibility"))
-                {
-                    color.Foreground = kwBrush;
-                }
                 else if (name.Contains("digit") || name.Contains("number") || name.Contains("float") || name.Contains("hex") || name.Contains("integer"))
                 {
                     color.Foreground = numberBrush;
                 }
-                else if (name.Contains("type") || name.Contains("class") || name.Contains("struct") || name.Contains("interface") || name.Contains("enum") || name.Contains("typedef"))
+                else if (name.Contains("method") || name.Contains("function") || name.Contains("call") || name.Contains("invoc") || name.Contains("command") || name.Contains("globalfunctions") || name.Contains("intrinsics"))
+                {
+                    color.Foreground = methodBrush;
+                }
+                else if (name.Contains("type") || name.Contains("class") || name.Contains("struct") || name.Contains("interface") || name.Contains("enum") || name.Contains("typedef") || name.Contains("reference") || name.Contains("void"))
                 {
                     color.Foreground = typeBrush;
                 }
-                else if (name.Contains("tag") || name.Contains("element"))
+                else if (name.Contains("keyword") || name.Contains("statement") || name.Contains("controlflow") || name.Contains("loop") || name.Contains("jump") || name.Contains("exception") || name.Contains("checked") || name.Contains("unsafe") || name.Contains("modifier") || name.Contains("visibility") || name.Contains("access") || name.Contains("this") || name.Contains("base") || name.Contains("package") || name.Contains("namespace") || name.Contains("truefalse") || name.Contains("boolean") || name.Contains("bool") || name.Contains("null") || name.Contains("getsetaddremove") || name.Contains("friend") || name.Contains("compound"))
+                {
+                    color.Foreground = kwBrush;
+                }
+                else if (name.Contains("tag") || name.Contains("element") || name.Contains("slash") || name.Contains("cdata") || name.Contains("doctype") || name.Contains("xmldeclaration"))
                 {
                     color.Foreground = kwBrush;
                 }
@@ -1209,47 +1227,85 @@ public class ThemeService : IThemeService
                 {
                     color.Foreground = methodBrush;
                 }
-                else if (name.Contains("method") || name.Contains("function") || name.Contains("call") || name.Contains("invoc"))
-                {
-                    color.Foreground = methodBrush;
-                }
-                else if (name.Contains("preprocessor") || name.Contains("directive") || name.Contains("include") || name.Contains("define") || name.Contains("macro"))
+                else if (name.Contains("preprocessor") || name.Contains("directive") || name.Contains("include") || name.Contains("define") || name.Contains("macro") || name.Contains("header") || name.Contains("position"))
                 {
                     color.Foreground = preprocBrush;
                 }
-                else if (name.Contains("heading") || name.Contains("header"))
+                else if (name.Contains("added"))
                 {
-                    color.Foreground = kwBrush;
+                    color.Foreground = addedBrush;
                 }
-                else if (name.Contains("bold") || name.Contains("strong"))
+                else if (name.Contains("removed"))
                 {
-                    color.Foreground = varBrush;
-                }
-                else if (name.Contains("italic") || name.Contains("emphasis"))
-                {
-                    color.Foreground = commentBrush;
-                }
-                else if (name.Contains("link") || name.Contains("url"))
-                {
-                    color.Foreground = methodBrush;
+                    color.Foreground = removedBrush;
                 }
                 else if (name.Contains("propertykey") || name.Contains("key"))
                 {
                     color.Foreground = typeBrush;
                 }
-                else if (name.Contains("punctuation") || name.Contains("delimiter") || name.Contains("operator") || name.Contains("parenthes") || name.Contains("bracket") || name.Contains("brace") || name.Contains("colon") || name.Contains("semicolon"))
+                else if (name.Contains("punctuation") || name.Contains("delimiter") || name.Contains("operator") || name.Contains("parenthes") || name.Contains("bracket") || name.Contains("brace") || name.Contains("curly") || name.Contains("colon") || name.Contains("semicolon") || name.Contains("assignment"))
                 {
                     color.Foreground = punctBrush;
                 }
-                else if (name.Contains("variable") || name.Contains("property") || name.Contains("field") || name.Contains("parameter"))
+                else if (name.Contains("variable") || name.Contains("property") || name.Contains("field") || name.Contains("parameter") || name.Contains("selector"))
                 {
                     color.Foreground = varBrush;
+                }
+                else
+                {
+                    // Fallback contrast check for unmapped tokens to prevent invisible text
+                    if (color.Foreground != null)
+                    {
+                        var brush = color.Foreground.GetBrush(null);
+                        if (brush is SolidColorBrush scb)
+                        {
+                            var lum = 0.299 * scb.Color.R + 0.587 * scb.Color.G + 0.114 * scb.Color.B;
+                            if (t.IsDark && lum < 60)
+                            {
+                                color.Foreground = varBrush;
+                            }
+                            else if (!t.IsDark && lum > 220)
+                            {
+                                color.Foreground = punctBrush;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        color.Foreground = punctBrush;
+                    }
                 }
             }
         }
         catch
         {
             // Graceful fallback
+        }
+    }
+
+    public void ApplyThemeToAllHighlightings(ColorTheme? theme = null)
+    {
+        var target = theme ?? _currentTheme ?? _themes.FirstOrDefault();
+        if (target == null) return;
+
+        try
+        {
+            var manager = HighlightingManager.Instance;
+            foreach (var def in manager.HighlightingDefinitions)
+            {
+                try
+                {
+                    ApplyCodeColorsToHighlighting(def, target);
+                }
+                catch
+                {
+                    // Ignore broken delay-loaded highlighters (e.g. AvaloniaEdit TeX)
+                }
+            }
+        }
+        catch
+        {
+            // Defensive
         }
     }
 

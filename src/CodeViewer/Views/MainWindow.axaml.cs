@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private readonly RainbowBracketColorizer _rainbowBracketColorizer;
     private readonly SmoothCaretBlinkController _caretBlinkController;
     private readonly SmoothScrollController _smoothScrollController;
+    private AvaloniaEdit.TextEditor? _splitEditor;
     private readonly List<int> _searchMatchOffsets = new();
     private int _currentSearchMatchIndex = -1;
 
@@ -380,6 +381,7 @@ public partial class MainWindow : Window
     {
         if (sender is AvaloniaEdit.TextEditor splitEditor && DataContext is MainViewModel vm)
         {
+            _splitEditor = splitEditor;
             var settings = vm.SettingsService.CurrentSettings;
             FontHelper.ApplyToEditor(splitEditor, settings.FontFamily, settings.FontSize);
             var theme = vm.CurrentTheme;
@@ -583,6 +585,7 @@ public partial class MainWindow : Window
                 _currentLineHighlighter?.UpdateTheme(theme.IsDark);
                 _bracketMatchingRenderer?.UpdateTheme(theme);
                 _wordOccurrenceRenderer?.UpdateTheme(theme);
+                _rainbowBracketColorizer?.UpdateTheme(theme.IsDark);
 
                 if (DataContext is MainViewModel vm)
                 {
@@ -592,6 +595,14 @@ public partial class MainWindow : Window
                     Editor.SyntaxHighlighting = null;
                     Editor.SyntaxHighlighting = highlight;
                     Editor.TextArea?.TextView?.Redraw();
+
+                    if (_splitEditor != null)
+                    {
+                        var splitHighlight = _splitEditor.SyntaxHighlighting;
+                        _splitEditor.SyntaxHighlighting = null;
+                        _splitEditor.SyntaxHighlighting = splitHighlight;
+                        _splitEditor.TextArea?.TextView?.Redraw();
+                    }
                 }
             }
             catch

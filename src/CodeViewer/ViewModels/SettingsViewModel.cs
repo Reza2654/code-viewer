@@ -161,6 +161,9 @@ public partial class SettingsViewModel : ViewModelBase
     private string? _customCodePunctuation;
 
     [ObservableProperty]
+    private string? _customCodeVariable;
+
+    [ObservableProperty]
     private IBrush _keywordBrush = new SolidColorBrush(Colors.DodgerBlue);
 
     [ObservableProperty]
@@ -183,6 +186,9 @@ public partial class SettingsViewModel : ViewModelBase
 
     [ObservableProperty]
     private IBrush _punctuationBrush = new SolidColorBrush(Colors.White);
+
+    [ObservableProperty]
+    private IBrush _variableBrush = new SolidColorBrush(Colors.LightSkyBlue);
 
     // Theme Gallery
     [ObservableProperty]
@@ -252,6 +258,7 @@ public partial class SettingsViewModel : ViewModelBase
         _customCodeMethod = current.CustomCodeMethod;
         _customCodePreprocessor = current.CustomCodePreprocessor;
         _customCodePunctuation = current.CustomCodePunctuation;
+        _customCodeVariable = current.CustomCodeVariable;
 
         _themeMode = !string.IsNullOrWhiteSpace(current.ThemeMode) ? current.ThemeMode : "System";
         _contrastMode = !string.IsNullOrWhiteSpace(current.ContrastMode) ? current.ContrastMode : "Default";
@@ -476,6 +483,7 @@ public partial class SettingsViewModel : ViewModelBase
     partial void OnCustomCodeMethodChanged(string? value) { UpdateSyntaxBrushes(); UpdateEffectivePreviewTheme(); }
     partial void OnCustomCodePreprocessorChanged(string? value) { UpdateSyntaxBrushes(); UpdateEffectivePreviewTheme(); }
     partial void OnCustomCodePunctuationChanged(string? value) { UpdateSyntaxBrushes(); UpdateEffectivePreviewTheme(); }
+    partial void OnCustomCodeVariableChanged(string? value) { UpdateSyntaxBrushes(); UpdateEffectivePreviewTheme(); }
 
     private void UpdateSyntaxBrushes()
     {
@@ -488,6 +496,7 @@ public partial class SettingsViewModel : ViewModelBase
         MethodBrush = TryParseBrush(CustomCodeMethod, theme?.CodeMethod ?? "#DCDCAA");
         PreprocessorBrush = TryParseBrush(CustomCodePreprocessor, theme?.CodePreprocessor ?? "#9B9B9B");
         PunctuationBrush = TryParseBrush(CustomCodePunctuation, theme?.CodePunctuation ?? "#D4D4D4");
+        VariableBrush = TryParseBrush(CustomCodeVariable, theme?.CodeVariable ?? (theme?.IsDark ?? true ? "#9CDCFE" : "#001080"));
     }
 
     private void UpdateFilteredThemes()
@@ -554,6 +563,7 @@ public partial class SettingsViewModel : ViewModelBase
         CustomCodeMethod = null;
         CustomCodePreprocessor = null;
         CustomCodePunctuation = null;
+        CustomCodeVariable = null;
         UpdateSyntaxBrushes();
         UpdateEffectivePreviewTheme();
     }
@@ -779,6 +789,7 @@ public partial class SettingsViewModel : ViewModelBase
             CustomCodeMethod = CustomCodeMethod,
             CustomCodePreprocessor = CustomCodePreprocessor,
             CustomCodePunctuation = CustomCodePunctuation,
+            CustomCodeVariable = CustomCodeVariable,
             AutoCheckForUpdates = AutoCheckForUpdates,
             EnableAnimations = EnableAnimations,
             RunInBackgroundOnStartup = RunInBackgroundOnStartup,
@@ -857,6 +868,7 @@ public partial class SettingsViewModel : ViewModelBase
         CustomCodeMethod = defaults.CustomCodeMethod;
         CustomCodePreprocessor = defaults.CustomCodePreprocessor;
         CustomCodePunctuation = defaults.CustomCodePunctuation;
+        CustomCodeVariable = defaults.CustomCodeVariable;
         AutoCheckForUpdates = defaults.AutoCheckForUpdates;
         EnableAnimations = defaults.EnableAnimations;
         RunInBackgroundOnStartup = defaults.RunInBackgroundOnStartup;

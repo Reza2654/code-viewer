@@ -339,6 +339,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void ApplyCodeColorsToAllDocuments(ColorTheme? theme = null)
     {
         var target = theme ?? CurrentTheme;
+        _themeService.ApplyThemeToAllHighlightings(target);
         foreach (var doc in Documents)
         {
             if (doc.HighlightingDefinition != null)

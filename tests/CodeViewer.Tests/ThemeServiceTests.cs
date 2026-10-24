@@ -84,4 +84,64 @@ public class ThemeServiceTests
         Assert.AreEqual("custom-test", service.CurrentTheme.Id);
         Assert.IsTrue(service.AvailableThemes.Any(t => t.Id == "custom-test"));
     }
+
+    [TestMethod]
+    public void ApplyCodeColorsToHighlighting_RemovesBoldFontWeights()
+    {
+        var service = new ThemeService();
+        var darkTheme = service.AvailableThemes.First(t => t.Id == "dark-plus");
+        var ps = AvaloniaEdit.Highlighting.HighlightingManager.Instance.GetDefinition("PowerShell");
+        Assert.IsNotNull(ps);
+
+        service.ApplyCodeColorsToHighlighting(ps, darkTheme);
+
+        foreach (var color in ps.NamedHighlightingColors)
+        {
+            Assert.AreEqual(Avalonia.Media.FontWeight.Normal, color.FontWeight,
+                $"Color '{color.Name}' in PowerShell should have Normal font weight (no bold).");
+        }
+    }
+
+    [TestMethod]
+    public void ApplyCodeColorsToHighlighting_MapsCommandToReadableMethodColor()
+    {
+        var service = new ThemeService();
+        var darkTheme = service.AvailableThemes.First(t => t.Id == "dark-plus");
+        var ps = AvaloniaEdit.Highlighting.HighlightingManager.Instance.GetDefinition("PowerShell");
+        Assert.IsNotNull(ps);
+
+        service.ApplyCodeColorsToHighlighting(ps, darkTheme);
+
+        var cmdColor = ps.NamedHighlightingColors.FirstOrDefault(c => c.Name == "Command");
+        Assert.IsNotNull(cmdColor);
+        Assert.IsNotNull(cmdColor.Foreground);
+        var brush = cmdColor.Foreground.GetBrush(null);
+        Assert.IsInstanceOfType(brush, typeof(Avalonia.Media.ISolidColorBrush));
+        var solid = (Avalonia.Media.ISolidColorBrush)brush!;
+        // Dark+ CodeMethod is #DCDCAA
+        Assert.AreEqual(Avalonia.Media.Color.Parse("#DCDCAA"), solid.Color);
+        Assert.AreEqual(Avalonia.Media.FontWeight.Normal, cmdColor.FontWeight);
+    }
+
+    [TestMethod]
+    public void ApplyTheme_UpdatesHighlightingColorsAcrossThemes()
+    {
+        var service = new ThemeService();
+        var darkPlus = service.AvailableThemes.First(t => t.Id == "dark-plus");
+        var githubLight = service.AvailableThemes.First(t => t.Id == "github-light");
+        var ps = AvaloniaEdit.Highlighting.HighlightingManager.Instance.GetDefinition("PowerShell");
+        Assert.IsNotNull(ps);
+
+        // Apply dark theme
+        service.ApplyTheme(darkPlus);
+        var cmdDark = ps.NamedHighlightingColors.First(c => c.Name == "Command");
+        var brushDark = (Avalonia.Media.ISolidColorBrush)cmdDark.Foreground!.GetBrush(null)!;
+        Assert.AreEqual(Avalonia.Media.Color.Parse(darkPlus.CodeMethod), brushDark.Color);
+
+        // Switch to light theme
+        service.ApplyTheme(githubLight);
+        var cmdLight = ps.NamedHighlightingColors.First(c => c.Name == "Command");
+        var brushLight = (Avalonia.Media.ISolidColorBrush)cmdLight.Foreground!.GetBrush(null)!;
+        Assert.AreEqual(Avalonia.Media.Color.Parse(githubLight.CodeMethod), brushLight.Color);
+    }
 }
