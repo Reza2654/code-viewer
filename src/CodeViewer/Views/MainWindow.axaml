@@ -35,6 +35,28 @@
       <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
 
+    <!-- Tab Close Button Micro-Interaction -->
+    <Style Selector="Button.tab-close-btn">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Width" Value="18"/>
+      <Setter Property="Height" Value="18"/>
+      <Setter Property="CornerRadius" Value="9"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Opacity" Value="0.6"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.12"/>
+          <BrushTransition Property="Background" Duration="0:0:0.12"/>
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.tab-close-btn:pointerover">
+      <Setter Property="Background" Value="{DynamicResource ThemeBorderBrush}"/>
+      <Setter Property="Opacity" Value="1.0"/>
+    </Style>
+
     <!-- Sidebar smooth collapse/expand transition (~60fps) -->
     <Style Selector="Border.sidebarPanel">
       <Setter Property="Width" Value="240"/>
@@ -423,7 +445,7 @@
                               CommandParameter="{Binding}">
                         <TextBlock Text="✕"
                                    FontSize="9"
-                                   Foreground="#888888"
+                                   Foreground="{DynamicResource ThemeWindowForeground}"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"/>
                       </Button>
@@ -651,21 +673,44 @@
                     </ScrollViewer>
                   </Border>
 
-                  <ae:TextEditor Grid.Row="1"
-                                 x:Name="Editor"
-                                 Document="{Binding ActiveDocument.TextDocument}"
-                                 SyntaxHighlighting="{Binding ActiveDocument.HighlightingDefinition}"
-                                 FontSize="{Binding ActiveDocument.FontSize, FallbackValue=14.0}"
-                                 WordWrap="{Binding ActiveDocument.WordWrap, FallbackValue=False}"
-                                 ShowLineNumbers="{Binding ActiveDocument.ShowLineNumbers, FallbackValue=True}"
-                                 FlowDirection="LeftToRight"
-                                 FontFamily="{DynamicResource CodeFontFamily}"
-                                 Background="{DynamicResource ThemeEditorBackground}"
-                                 Foreground="{DynamicResource ThemeEditorForeground}"
-                                 HorizontalScrollBarVisibility="Auto"
-                                 VerticalScrollBarVisibility="Visible"
-                                 LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"
-                                 DragDrop.AllowDrop="True"/>
+                  <Panel Grid.Row="1">
+                    <ae:TextEditor x:Name="Editor"
+                                   Document="{Binding ActiveDocument.TextDocument}"
+                                   SyntaxHighlighting="{Binding ActiveDocument.HighlightingDefinition}"
+                                   FontSize="{Binding ActiveDocument.FontSize, FallbackValue=14.0}"
+                                   WordWrap="{Binding ActiveDocument.WordWrap, FallbackValue=False}"
+                                   ShowLineNumbers="{Binding ActiveDocument.ShowLineNumbers, FallbackValue=True}"
+                                   FlowDirection="LeftToRight"
+                                   FontFamily="{DynamicResource CodeFontFamily}"
+                                   Background="{DynamicResource ThemeEditorBackground}"
+                                   Foreground="{DynamicResource ThemeEditorForeground}"
+                                   HorizontalScrollBarVisibility="Auto"
+                                   VerticalScrollBarVisibility="Visible"
+                                   LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"
+                                   DragDrop.AllowDrop="True"/>
+
+                    <!-- Middle Click Auto-Scroll Anchor Indicator -->
+                    <Canvas x:Name="AutoScrollCanvas" IsHitTestVisible="False">
+                      <Border x:Name="AutoScrollAnchor"
+                              Width="32" Height="32"
+                              CornerRadius="16"
+                              Background="{DynamicResource ThemeSurfaceBrush}"
+                              BorderBrush="{DynamicResource ThemeAccentBrush}"
+                              BorderThickness="1.5"
+                              IsVisible="False"
+                              Opacity="0.95">
+                        <Panel HorizontalAlignment="Center" VerticalAlignment="Center">
+                          <!-- Central pivot dot -->
+                          <Ellipse Width="6" Height="6" Fill="{DynamicResource ThemeAccentBrush}"/>
+                          <!-- Directional arrow hints -->
+                          <Path Data="M 0,-10 L 3.5,-6 L -3.5,-6 Z" Fill="{DynamicResource ThemeWindowForeground}"/>
+                          <Path Data="M 0,10 L 3.5,6 L -3.5,6 Z" Fill="{DynamicResource ThemeWindowForeground}"/>
+                          <Path Data="M -10,0 L -6,-3.5 L -6,3.5 Z" Fill="{DynamicResource ThemeWindowForeground}"/>
+                          <Path Data="M 10,0 L 6,-3.5 L 6,3.5 Z" Fill="{DynamicResource ThemeWindowForeground}"/>
+                        </Panel>
+                      </Border>
+                    </Canvas>
+                  </Panel>
                 </Grid>
 
                 <!-- Welcome Screen / Empty State (Visible when HasNoDocuments) -->
@@ -682,7 +727,7 @@
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center"
                                    Foreground="{DynamicResource ThemeWindowForeground}"/>
-                        <TextBlock Text="Fast, lightweight modern code viewer &amp; editor — v1.2.0-beta.15"
+                        <TextBlock Text="Fast, lightweight modern code viewer &amp; editor — v1.2.0-beta.16"
                                    FontSize="13"
                                    Opacity="0.75"
                                    HorizontalAlignment="Center"

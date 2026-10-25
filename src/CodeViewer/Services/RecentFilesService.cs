@@ -153,7 +153,7 @@ public class RecentFilesService : IRecentFilesService
         {
             var json = await File.ReadAllTextAsync(_storagePath).ConfigureAwait(false);
             var list = JsonSerializer.Deserialize<List<RecentFileItem>>(json);
-            _cachedItems = list ?? [];
+            _cachedItems = (list ?? []).Where(i => !string.IsNullOrEmpty(i.FilePath) && File.Exists(i.FilePath)).ToList();
         }
         catch
         {

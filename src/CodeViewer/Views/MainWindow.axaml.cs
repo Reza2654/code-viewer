@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private readonly RainbowBracketColorizer _rainbowBracketColorizer;
     private readonly SmoothCaretBlinkController _caretBlinkController;
     private readonly SmoothScrollController _smoothScrollController;
+    private readonly MiddleClickScrollController _middleClickScrollController;
     private AvaloniaEdit.TextEditor? _splitEditor;
     private readonly List<int> _searchMatchOffsets = new();
     private int _currentSearchMatchIndex = -1;
@@ -39,6 +40,7 @@ public partial class MainWindow : Window
         _rainbowBracketColorizer = new RainbowBracketColorizer();
         _caretBlinkController = new SmoothCaretBlinkController(Editor);
         _smoothScrollController = new SmoothScrollController(Editor);
+        _middleClickScrollController = new MiddleClickScrollController(Editor, AutoScrollAnchor);
 
         Editor.TextArea.TextView.BackgroundRenderers.Add(_currentLineHighlighter);
         Editor.TextArea.TextView.BackgroundRenderers.Add(_bracketMatchingRenderer);
@@ -83,6 +85,7 @@ public partial class MainWindow : Window
         {
             _caretBlinkController?.Dispose();
             _smoothScrollController?.Dispose();
+            _middleClickScrollController?.Dispose();
             (DataContext as IDisposable)?.Dispose();
 
             if (Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
@@ -203,10 +206,17 @@ public partial class MainWindow : Window
                         FontHelper.ApplyToEditor(Editor, vm.CurrentFontFamily, vm.ActiveDocument.FontSize);
                         _caretBlinkController?.ResetSolid();
                         _smoothScrollController?.SyncCurrentOffset();
+                        _middleClickScrollController?.Stop();
                         _bracketMatchingRenderer.UpdateMatchingBrackets();
                         _wordOccurrenceRenderer.UpdateOccurrences();
-                Editor.TextArea?.TextView?.InvalidateVisual();
-                        UpdateSearchMatches();
+                        if (vm.SearchViewModel.IsOpen)
+                        {
+                            UpdateSearchMatches();
+                        }
+                        else
+                        {
+                            _searchHighlightRenderer.Clear();
+                        }
                         Editor.TextArea?.TextView?.InvalidateVisual();
                     }
                     if (vm.IsMarkdownPreviewActive)
