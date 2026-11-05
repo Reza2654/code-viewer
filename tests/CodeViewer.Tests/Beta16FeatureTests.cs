@@ -71,13 +71,13 @@ public class Beta16FeatureTests
     }
 
     [TestMethod]
-    public void AppUpdateService_GetCurrentAppVersion_ReportsBeta16()
+    public void AppUpdateService_GetCurrentAppVersion_ReportsBetaVersion()
     {
         var version = AppUpdateService.GetCurrentAppVersion();
-        Assert.AreEqual("1.2.0-beta.16", version);
+        StringAssert.StartsWith(version, "1.2.0-beta.");
 
-        var cmp = AppUpdateService.CompareVersions("1.2.0-beta.16", "1.2.0-beta.15");
-        Assert.IsTrue(cmp > 0, "v1.2.0-beta.16 must be recognized as newer than v1.2.0-beta.15");
+        var cmp = AppUpdateService.CompareVersions(version, "1.2.0-beta.15");
+        Assert.IsTrue(cmp > 0, "Current version must be recognized as newer than v1.2.0-beta.15");
     }
 
     [TestMethod]

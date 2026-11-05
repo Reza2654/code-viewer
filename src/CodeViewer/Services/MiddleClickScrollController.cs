@@ -10,8 +10,9 @@ namespace CodeViewer.Services;
 
 /// <summary>
 /// Provides silky-smooth middle-mouse-button autoscroll (pan-scrolling) for AvaloniaEdit.
-/// Drops an anchor adorner indicator at the middle-click origin, captures pointer,
-/// dynamically updates directional cursor, and scrolls viewport proportionally to distance.
+/// Drops a directional compass anchor at the middle-click origin, captures pointer,
+/// dynamically updates directional cursors on both Editor and TextArea, and smoothly scrolls
+/// the viewport with gentle, controllable, progressive velocity.
 /// Supports both click-and-drag and click-to-toggle modes, smoothly dismissed on click, wheel, or Escape.
 /// </summary>
 public sealed class MiddleClickScrollController : IDisposable
@@ -21,15 +22,31 @@ public sealed class MiddleClickScrollController : IDisposable
     private readonly DispatcherTimer _timer;
 
     private bool _isAutoScrolling;
-    private bool _isDragGesture;
     private Point _anchorPoint;
     private double _currentDeltaX;
     private double _currentDeltaY;
     private IPointer? _capturedPointer;
     private bool _isDisposed;
+    private bool _isEnabled = true;
+    private DateTime _pressTime;
+    private bool _hasMovedBeyondDeadzone;
 
-    public const double DeadZone = 8.0;
-    public const double DefaultSpeedFactor = 0.28;
+    public const double DeadZone = 10.0;
+    public const double MaxSpeed = 28.0;
+
+    public bool IsEnabled
+    {
+        get => _isEnabled;
+        set
+        {
+            if (_isEnabled == value) return;
+            _isEnabled = value;
+            if (!_isEnabled && _isAutoScrolling)
+            {
+                Stop();
+            }
+        }
+    }
 
     public bool IsAutoScrolling => _isAutoScrolling;
     public Point AnchorPoint => _anchorPoint;
@@ -57,6 +74,8 @@ public sealed class MiddleClickScrollController : IDisposable
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        if (!_isEnabled) return;
+
         var props = e.GetCurrentPoint(_editor).Properties;
 
         if (props.IsMiddleButtonPressed)
@@ -87,7 +106,8 @@ public sealed class MiddleClickScrollController : IDisposable
         _anchorPoint = e.GetPosition(_editor);
         _currentDeltaX = 0;
         _currentDeltaY = 0;
-        _isDragGesture = false;
+        _pressTime = DateTime.UtcNow;
+        _hasMovedBeyondDeadzone = false;
         _isAutoScrolling = true;
 
         if (_anchorIndicator != null)
@@ -123,9 +143,9 @@ public sealed class MiddleClickScrollController : IDisposable
         _currentDeltaY = current.Y - _anchorPoint.Y;
 
         var distSquared = (_currentDeltaX * _currentDeltaX) + (_currentDeltaY * _currentDeltaY);
-        if (distSquared > (DeadZone + 4.0) * (DeadZone + 4.0))
+        if (distSquared > 18.0 * 18.0)
         {
-            _isDragGesture = true;
+            _hasMovedBeyondDeadzone = true;
         }
 
         UpdateCursor(_currentDeltaX, _currentDeltaY);
@@ -135,8 +155,11 @@ public sealed class MiddleClickScrollController : IDisposable
     {
         if (!_isAutoScrolling) return;
 
-        // If user was doing a middle-button drag-and-release beyond the deadzone, end autoscroll
-        if (_isDragGesture && e.InitialPressMouseButton == MouseButton.Middle)
+        var holdDurationMs = (DateTime.UtcNow - _pressTime).TotalMilliseconds;
+
+        // If user held down the middle button for > 300ms AND moved away, stop on button release (Drag gesture).
+        // If it was a quick click (< 300ms), KEEP AUTOSCROLLING! User is in click-to-scroll mode.
+        if (_hasMovedBeyondDeadzone && holdDurationMs > 300 && e.InitialPressMouseButton == MouseButton.Middle)
         {
             Stop();
             e.Handled = true;
@@ -154,7 +177,7 @@ public sealed class MiddleClickScrollController : IDisposable
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (_isAutoScrolling && e.Key == Key.Escape)
+        if (_isAutoScrolling && (e.Key is Key.Escape or Key.Enter or Key.Space))
         {
             Stop();
             e.Handled = true;
@@ -169,20 +192,38 @@ public sealed class MiddleClickScrollController : IDisposable
             return;
         }
 
-        var (vx, vy) = CalculateScrollVelocity(_currentDeltaX, _currentDeltaY, DeadZone, DefaultSpeedFactor);
+        var (vx, vy) = CalculateScrollVelocity(_currentDeltaX, _currentDeltaY, DeadZone, MaxSpeed);
 
         if (Math.Abs(vy) > 0.001)
         {
-            var targetV = _editor.VerticalOffset + vy;
-            var maxV = Math.Max(0.0, _editor.ExtentHeight - _editor.ViewportHeight);
-            _editor.ScrollToVerticalOffset(Math.Clamp(targetV, 0.0, maxV));
+            var currentV = _editor.VerticalOffset;
+            var targetV = currentV + vy;
+            var maxV = _editor.ExtentHeight - _editor.ViewportHeight;
+            if (maxV > 0)
+            {
+                targetV = Math.Clamp(targetV, 0.0, maxV);
+            }
+            else
+            {
+                targetV = Math.Max(0.0, targetV);
+            }
+            _editor.ScrollToVerticalOffset(targetV);
         }
 
         if (Math.Abs(vx) > 0.001)
         {
-            var targetH = _editor.HorizontalOffset + vx;
-            var maxH = Math.Max(0.0, _editor.ExtentWidth - _editor.ViewportWidth);
-            _editor.ScrollToHorizontalOffset(Math.Clamp(targetH, 0.0, maxH));
+            var currentH = _editor.HorizontalOffset;
+            var targetH = currentH + vx;
+            var maxH = _editor.ExtentWidth - _editor.ViewportWidth;
+            if (maxH > 0)
+            {
+                targetH = Math.Clamp(targetH, 0.0, maxH);
+            }
+            else
+            {
+                targetH = Math.Max(0.0, targetH);
+            }
+            _editor.ScrollToHorizontalOffset(targetH);
         }
     }
 
@@ -192,7 +233,7 @@ public sealed class MiddleClickScrollController : IDisposable
 
         _timer.Stop();
         _isAutoScrolling = false;
-        _isDragGesture = false;
+        _hasMovedBeyondDeadzone = false;
         _currentDeltaX = 0;
         _currentDeltaY = 0;
 
@@ -211,34 +252,48 @@ public sealed class MiddleClickScrollController : IDisposable
         _capturedPointer = null;
 
         _editor.Cursor = null;
+        if (_editor.TextArea != null)
+        {
+            _editor.TextArea.Cursor = new Cursor(StandardCursorType.Ibeam);
+        }
     }
 
     private void UpdateCursor(double dx, double dy)
     {
         var cursorType = GetAutoScrollCursor(dx, dy, DeadZone);
-        _editor.Cursor = new Cursor(cursorType);
+        var cursor = new Cursor(cursorType);
+        _editor.Cursor = cursor;
+        if (_editor.TextArea != null)
+        {
+            _editor.TextArea.Cursor = cursor;
+        }
     }
 
-    public static (double vx, double vy) CalculateScrollVelocity(double dx, double dy, double deadZone = DeadZone, double speedFactor = DefaultSpeedFactor)
+    public static (double vx, double vy) CalculateScrollVelocity(double dx, double dy, double deadZone = DeadZone, double maxSpeed = MaxSpeed)
     {
-        double vx = 0;
-        double vy = 0;
-
         var absX = Math.Abs(dx);
-        if (absX > deadZone)
-        {
-            var excessX = absX - deadZone;
-            vx = Math.Sign(dx) * Math.Pow(excessX, 1.15) * speedFactor;
-        }
-
         var absY = Math.Abs(dy);
-        if (absY > deadZone)
+
+        if (absX <= deadZone && absY <= deadZone)
         {
-            var excessY = absY - deadZone;
-            vy = Math.Sign(dy) * Math.Pow(excessY, 1.15) * speedFactor;
+            return (0.0, 0.0);
         }
 
-        return (vx, vy);
+        var dist = Math.Sqrt(dx * dx + dy * dy);
+        if (dist <= deadZone)
+        {
+            return (0.0, 0.0);
+        }
+
+        var excess = dist - deadZone;
+        // Smooth, progressive velocity curve with controllable acceleration
+        var normalized = excess / 60.0;
+        var speed = Math.Min(maxSpeed, (excess * 0.08) + (Math.Pow(normalized, 1.8) * 3.5));
+
+        var unitX = dx / dist;
+        var unitY = dy / dist;
+
+        return (unitX * speed, unitY * speed);
     }
 
     public static StandardCursorType GetAutoScrollCursor(double dx, double dy, double deadZone = DeadZone)

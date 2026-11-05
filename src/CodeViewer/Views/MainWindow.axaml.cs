@@ -379,6 +379,11 @@ public partial class MainWindow : Window
                 {
                     _smoothScrollController.IsEnabled = settings.SmoothScrolling;
                 }
+
+                if (_middleClickScrollController != null)
+                {
+                    _middleClickScrollController.IsEnabled = settings.EnableMiddleClickScroll;
+                }
             }
             catch
             {

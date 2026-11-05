@@ -76,17 +76,14 @@
   - **Animated Status Message Pill**: Status notifications appear in a centered pill badge with smooth entrance animation and hover states on all status controls.
   - **Modern Windows 11 Glass Chrome**: Native support for Mica and Acrylic blur window transparency hints.
   - **Theme Gallery & Interactive Cards**: Fluid hover elevation, scale (`1.03x`), and accent border glow on theme cards, with an `EnableAnimations` preference toggle in Settings.
-- 🖱️ **Middle Mouse Button Auto-Scroll & Fast Open (v1.2.0-beta.16)**:
-  - **Native Pan-Scrolling**: Middle-clicking in the editor drops a floating autoscroll anchor adorner, dynamically transforms cursors (`ScrollAll`, `ScrollNorth`, `ScrollSouth`, `ScrollWest`, `ScrollEast`), and glides smoothly in both axes proportional to distance with progressive acceleration.
-  - **Dual Interaction Modes**: Supports both click-and-drag (drag and release beyond deadzone) and click-to-toggle (drop anchor and move freely), gracefully dismissed on click, wheel, or Escape.
-  - **Instant Fast Open & Tab Switch**: Eliminated redundant visual invalidations and search regex scanning when the find overlay is closed, making file opens and document switching instantaneous.
-  - **UI Micro-Interactions**: Clean theme-adaptive tab close buttons with smooth opacity/background hover transitions, and subtle glowing autoscroll anchor adorner.
-- 🎨 **Theme-Dependent Accessible Syntax Highlighting & Clear Fonts (v1.2.0-beta.15)**:
-  - **Dynamic Theme Adaptation**: Highlighting colors adapt instantly across all 20 dark and light themes, ensuring high-contrast readable tokens across PowerShell, C#, Python, JavaScript, Java, C++, CSS, JSON, XML, Dart, AgentLang, and PS2.
-  - **Zero Bold Weight**: Removed aggressive bold weights on keywords, commands, and methods for clean, crisp, modern code legibility.
-  - **High-Contrast Cmdlets & Variables**: PowerShell cmdlets (`Write-Host`, `ConvertTo-Json`) and variables (`$var`) render with WCAG AA/AAA contrast ratios, eliminating dark unreadable blues on dark backgrounds.
-  - **Theme-Adaptive Rainbow Brackets**: Luminous vibrant colors on dark themes, deep high-contrast colors on light themes.
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.16-Setup.exe`) and portable standalone `.zip` archive.
+- 🖱️ **Polished Middle-Click Auto-Scroll & Fixed Mouse Wheel Scrolling (v1.2.0-beta.17)**:
+  - **Silky-Smooth Controllable Auto-Scroll**: Refactored velocity curve with progressive gentle acceleration capped at 28 px/tick, eliminating runaway scrolling.
+  - **Full Click-to-Scroll & Drag Support**: Click once (<300ms) to drop anchor and move mouse freely without holding the button down, or hold and drag to scroll.
+  - **Dynamic Cursor Visibility**: Properly updates directional scroll cursors (`ScrollAll`, `ScrollNorth`, `ScrollSouth`, etc.) directly on `TextArea`, fixing the text I-beam override.
+  - **Compass Anchor Adorner**: Clean 32x32 circular anchor with properly positioned north/south/east/west arrowheads and center pivot dot.
+  - **Middle Mouse Wheel Fix**: Fixed `SmoothScrollController` clamping bug that previously froze wheel scrolling when extent height wasn't ready; now gracefully delegates to native scrolling.
+  - **User Preference Toggle**: Added `EnableMiddleClickScroll` setting in Settings > Editor with instant live update.
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.17-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---

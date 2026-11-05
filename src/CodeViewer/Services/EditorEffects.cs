@@ -224,6 +224,9 @@ public sealed class SmoothScrollController : IDisposable
             var delta = Math.Abs(e.Delta.X) > 0.01 ? e.Delta.X : e.Delta.Y;
             if (Math.Abs(delta) > 0.01)
             {
+                var maxOffsetH = _editor.ExtentWidth - _editor.ViewportWidth;
+                if (maxOffsetH <= 0.0) return;
+
                 e.Handled = true;
 
                 if (_scrollTimer == null || !_scrollTimer.IsEnabled)
@@ -233,8 +236,6 @@ public sealed class SmoothScrollController : IDisposable
 
                 var lineDelta = delta * 60.0;
                 _targetHorizontalOffset -= lineDelta;
-
-                var maxOffsetH = Math.Max(0.0, _editor.ExtentWidth - _editor.ViewportWidth);
                 _targetHorizontalOffset = Math.Clamp(_targetHorizontalOffset, 0.0, maxOffsetH);
 
                 var currentH = _editor.HorizontalOffset;
@@ -252,6 +253,9 @@ public sealed class SmoothScrollController : IDisposable
         // Dedicated horizontal tilt/pan wheel
         if (Math.Abs(e.Delta.X) > 0.01 && Math.Abs(e.Delta.Y) <= 0.01)
         {
+            var maxOffsetH = _editor.ExtentWidth - _editor.ViewportWidth;
+            if (maxOffsetH <= 0.0) return;
+
             e.Handled = true;
 
             if (_scrollTimer == null || !_scrollTimer.IsEnabled)
@@ -261,8 +265,6 @@ public sealed class SmoothScrollController : IDisposable
 
             var lineDelta = e.Delta.X * 60.0;
             _targetHorizontalOffset -= lineDelta;
-
-            var maxOffsetH = Math.Max(0.0, _editor.ExtentWidth - _editor.ViewportWidth);
             _targetHorizontalOffset = Math.Clamp(_targetHorizontalOffset, 0.0, maxOffsetH);
 
             var currentH = _editor.HorizontalOffset;
@@ -279,6 +281,9 @@ public sealed class SmoothScrollController : IDisposable
         // Vertical scroll
         if (Math.Abs(e.Delta.Y) > 0.01)
         {
+            var maxOffsetV = _editor.ExtentHeight - _editor.ViewportHeight;
+            if (maxOffsetV <= 0.0) return;
+
             e.Handled = true;
 
             if (_scrollTimer == null || !_scrollTimer.IsEnabled)
@@ -288,8 +293,6 @@ public sealed class SmoothScrollController : IDisposable
 
             var lineDelta = e.Delta.Y * 60.0;
             _targetVerticalOffset -= lineDelta;
-
-            var maxOffsetV = Math.Max(0.0, _editor.ExtentHeight - _editor.ViewportHeight);
             _targetVerticalOffset = Math.Clamp(_targetVerticalOffset, 0.0, maxOffsetV);
 
             var currentV = _editor.VerticalOffset;
