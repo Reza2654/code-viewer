@@ -96,9 +96,6 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private bool _showBreadcrumbs = true;
 
-    [ObservableProperty]
-    private bool _enableMiddleClickScroll = true;
-
     // Fonts & Editor
     [ObservableProperty]
     private string _selectedFont;
@@ -248,7 +245,6 @@ public partial class SettingsViewModel : ViewModelBase
         _autoCloseBrackets = current.AutoCloseBrackets;
         _enableRainbowBrackets = current.EnableRainbowBrackets;
         _showBreadcrumbs = current.ShowBreadcrumbs;
-        _enableMiddleClickScroll = current.EnableMiddleClickScroll;
         _autoCheckForUpdates = current.AutoCheckForUpdates;
         _enableAnimations = current.EnableAnimations;
         _runInBackgroundOnStartup = current.RunInBackgroundOnStartup;
@@ -785,7 +781,6 @@ public partial class SettingsViewModel : ViewModelBase
             AutoCloseBrackets = AutoCloseBrackets,
             EnableRainbowBrackets = EnableRainbowBrackets,
             ShowBreadcrumbs = ShowBreadcrumbs,
-            EnableMiddleClickScroll = EnableMiddleClickScroll,
             CustomCodeKeyword = CustomCodeKeyword,
             CustomCodeComment = CustomCodeComment,
             CustomCodeString = CustomCodeString,
@@ -865,7 +860,6 @@ public partial class SettingsViewModel : ViewModelBase
         AutoCloseBrackets = defaults.AutoCloseBrackets;
         EnableRainbowBrackets = defaults.EnableRainbowBrackets;
         ShowBreadcrumbs = defaults.ShowBreadcrumbs;
-        EnableMiddleClickScroll = defaults.EnableMiddleClickScroll;
         CustomCodeKeyword = defaults.CustomCodeKeyword;
         CustomCodeComment = defaults.CustomCodeComment;
         CustomCodeString = defaults.CustomCodeString;

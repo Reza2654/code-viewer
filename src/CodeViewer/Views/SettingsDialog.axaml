@@ -114,7 +114,7 @@
               CornerRadius="6"
               Padding="10,4"
               VerticalAlignment="Center">
-        <TextBlock Text="v1.2.0-beta.17"
+        <TextBlock Text="v1.2.0-beta.18"
                    FontSize="11"
                    FontWeight="SemiBold"
                    Foreground="{DynamicResource ThemeAccentBrush}"/>
@@ -318,15 +318,15 @@
                            Foreground="{DynamicResource ThemeWindowForeground}"
                            FontSize="14"/>
 
-                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
                   <CheckBox Grid.Row="0" Grid.Column="0"
                             IsChecked="{Binding SmoothCursorBlink}"
                             Content="Smooth cursor breathing (~60fps)"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Margin="0,4"/>
                   <CheckBox Grid.Row="0" Grid.Column="1"
-                            IsChecked="{Binding SmoothScrolling}"
-                            Content="Silky-smooth mouse scrolling"
+                            IsChecked="{Binding EnableAnimations}"
+                            Content="Enable fluid UI transitions &amp; animations (~60fps)"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Margin="0,4"/>
 
@@ -374,20 +374,9 @@
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Margin="0,4"/>
 
-                  <CheckBox Grid.Row="5" Grid.Column="0"
+                  <CheckBox Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
                             IsChecked="{Binding ShowBreadcrumbs}"
                             Content="Show breadcrumbs bar above editor"
-                            Foreground="{DynamicResource ThemeWindowForeground}"
-                            Margin="0,4"/>
-                  <CheckBox Grid.Row="5" Grid.Column="1"
-                            IsChecked="{Binding EnableAnimations}"
-                            Content="Enable fluid UI transitions &amp; animations (~60fps)"
-                            Foreground="{DynamicResource ThemeWindowForeground}"
-                            Margin="0,4"/>
-
-                  <CheckBox Grid.Row="6" Grid.Column="0"
-                            IsChecked="{Binding EnableMiddleClickScroll}"
-                            Content="Middle-click auto-scroll (pan scrolling)"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Margin="0,4"/>
                 </Grid>

@@ -673,44 +673,21 @@
                     </ScrollViewer>
                   </Border>
 
-                  <Panel Grid.Row="1">
-                    <ae:TextEditor x:Name="Editor"
-                                   Document="{Binding ActiveDocument.TextDocument}"
-                                   SyntaxHighlighting="{Binding ActiveDocument.HighlightingDefinition}"
-                                   FontSize="{Binding ActiveDocument.FontSize, FallbackValue=14.0}"
-                                   WordWrap="{Binding ActiveDocument.WordWrap, FallbackValue=False}"
-                                   ShowLineNumbers="{Binding ActiveDocument.ShowLineNumbers, FallbackValue=True}"
-                                   FlowDirection="LeftToRight"
-                                   FontFamily="{DynamicResource CodeFontFamily}"
-                                   Background="{DynamicResource ThemeEditorBackground}"
-                                   Foreground="{DynamicResource ThemeEditorForeground}"
-                                   HorizontalScrollBarVisibility="Auto"
-                                   VerticalScrollBarVisibility="Visible"
-                                   LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"
-                                   DragDrop.AllowDrop="True"/>
-
-                    <!-- Middle Click Auto-Scroll Anchor Indicator -->
-                    <Canvas x:Name="AutoScrollCanvas" IsHitTestVisible="False">
-                      <Border x:Name="AutoScrollAnchor"
-                              Width="32" Height="32"
-                              CornerRadius="16"
-                              Background="{DynamicResource ThemeSurfaceBrush}"
-                              BorderBrush="{DynamicResource ThemeAccentBrush}"
-                              BorderThickness="1.5"
-                              IsVisible="False"
-                              Opacity="0.95">
-                        <Canvas Width="32" Height="32">
-                          <!-- Central pivot dot -->
-                          <Ellipse Canvas.Left="13" Canvas.Top="13" Width="6" Height="6" Fill="{DynamicResource ThemeAccentBrush}"/>
-                          <!-- Directional arrow hints -->
-                          <Path Data="M 16,3 L 19.5,7.5 L 12.5,7.5 Z" Fill="{DynamicResource ThemeWindowForeground}"/>
-                          <Path Data="M 16,29 L 19.5,24.5 L 12.5,24.5 Z" Fill="{DynamicResource ThemeWindowForeground}"/>
-                          <Path Data="M 3,16 L 7.5,12.5 L 7.5,19.5 Z" Fill="{DynamicResource ThemeWindowForeground}"/>
-                          <Path Data="M 29,16 L 24.5,12.5 L 24.5,19.5 Z" Fill="{DynamicResource ThemeWindowForeground}"/>
-                        </Canvas>
-                      </Border>
-                    </Canvas>
-                  </Panel>
+                  <ae:TextEditor x:Name="Editor"
+                                 Grid.Row="1"
+                                 Document="{Binding ActiveDocument.TextDocument}"
+                                 SyntaxHighlighting="{Binding ActiveDocument.HighlightingDefinition}"
+                                 FontSize="{Binding ActiveDocument.FontSize, FallbackValue=14.0}"
+                                 WordWrap="{Binding ActiveDocument.WordWrap, FallbackValue=False}"
+                                 ShowLineNumbers="{Binding ActiveDocument.ShowLineNumbers, FallbackValue=True}"
+                                 FlowDirection="LeftToRight"
+                                 FontFamily="{DynamicResource CodeFontFamily}"
+                                 Background="{DynamicResource ThemeEditorBackground}"
+                                 Foreground="{DynamicResource ThemeEditorForeground}"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 VerticalScrollBarVisibility="Visible"
+                                 LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"
+                                 DragDrop.AllowDrop="True"/>
                 </Grid>
 
                 <!-- Welcome Screen / Empty State (Visible when HasNoDocuments) -->
@@ -727,7 +704,7 @@
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center"
                                    Foreground="{DynamicResource ThemeWindowForeground}"/>
-                        <TextBlock Text="Fast, lightweight modern code viewer &amp; editor — v1.2.0-beta.17"
+                        <TextBlock Text="Fast, lightweight modern code viewer &amp; editor — v1.2.0-beta.18"
                                    FontSize="13"
                                    Opacity="0.75"
                                    HorizontalAlignment="Center"

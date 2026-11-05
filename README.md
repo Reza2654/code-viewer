@@ -76,14 +76,12 @@
   - **Animated Status Message Pill**: Status notifications appear in a centered pill badge with smooth entrance animation and hover states on all status controls.
   - **Modern Windows 11 Glass Chrome**: Native support for Mica and Acrylic blur window transparency hints.
   - **Theme Gallery & Interactive Cards**: Fluid hover elevation, scale (`1.03x`), and accent border glow on theme cards, with an `EnableAnimations` preference toggle in Settings.
-- 🖱️ **Polished Middle-Click Auto-Scroll & Fixed Mouse Wheel Scrolling (v1.2.0-beta.17)**:
-  - **Silky-Smooth Controllable Auto-Scroll**: Refactored velocity curve with progressive gentle acceleration capped at 28 px/tick, eliminating runaway scrolling.
-  - **Full Click-to-Scroll & Drag Support**: Click once (<300ms) to drop anchor and move mouse freely without holding the button down, or hold and drag to scroll.
-  - **Dynamic Cursor Visibility**: Properly updates directional scroll cursors (`ScrollAll`, `ScrollNorth`, `ScrollSouth`, etc.) directly on `TextArea`, fixing the text I-beam override.
-  - **Compass Anchor Adorner**: Clean 32x32 circular anchor with properly positioned north/south/east/west arrowheads and center pivot dot.
-  - **Middle Mouse Wheel Fix**: Fixed `SmoothScrollController` clamping bug that previously froze wheel scrolling when extent height wasn't ready; now gracefully delegates to native scrolling.
-  - **User Preference Toggle**: Added `EnableMiddleClickScroll` setting in Settings > Editor with instant live update.
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.17-Setup.exe`) and portable standalone `.zip` archive.
+- 🖱️ **Restored Rock-Solid Native Mouse Scrolling (v1.2.0-beta.18)**:
+  - **Completely Removed Middle-Click Auto-Scroll**: Eliminated problematic pan-scroll compass anchor overlay, pointer capture traps, and unintended scroll states per user feedback.
+  - **Unblocked Standard Native Mouse Wheel Scrolling**: Removed custom pointer wheel tunneling and interception; AvaloniaEdit's high-performance native `ScrollViewer` now handles all mouse wheel operations directly.
+  - **Flawless Multi-Wheel Support**: Standard vertical wheel scrolling, `Shift + Wheel` horizontal panning, tilt wheels, high-precision wheels, and precision touchpad scrolling all function natively and effortlessly.
+  - **Clean & Streamlined Settings UI**: Removed unused scroll toggles and re-aligned Editor Preferences for a cleaner, balanced layout.
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.18-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---
