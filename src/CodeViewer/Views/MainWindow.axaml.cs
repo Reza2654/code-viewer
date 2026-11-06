@@ -15,7 +15,7 @@ using CodeViewer.ViewModels;
 
 namespace CodeViewer.Views;
 
-public partial class MainWindow : Window
+public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTarget
 {
     private readonly CurrentLineHighlighter _currentLineHighlighter;
     private readonly BracketMatchingRenderer _bracketMatchingRenderer;
@@ -23,9 +23,8 @@ public partial class MainWindow : Window
     private readonly SearchHighlightRenderer _searchHighlightRenderer;
     private readonly RainbowBracketColorizer _rainbowBracketColorizer;
     private readonly SmoothCaretBlinkController _caretBlinkController;
+    private readonly EditorSearchCoordinator _searchCoordinator;
     private AvaloniaEdit.TextEditor? _splitEditor;
-    private readonly List<int> _searchMatchOffsets = new();
-    private int _currentSearchMatchIndex = -1;
 
     public MainWindow()
     {
@@ -37,6 +36,7 @@ public partial class MainWindow : Window
         _searchHighlightRenderer = new SearchHighlightRenderer(Editor);
         _rainbowBracketColorizer = new RainbowBracketColorizer();
         _caretBlinkController = new SmoothCaretBlinkController(Editor);
+        _searchCoordinator = new EditorSearchCoordinator(_searchHighlightRenderer);
 
         Editor.TextArea.TextView.BackgroundRenderers.Add(_currentLineHighlighter);
         Editor.TextArea.TextView.BackgroundRenderers.Add(_bracketMatchingRenderer);
@@ -436,121 +436,17 @@ public partial class MainWindow : Window
 
     private void OnEditorTextEntering(object? sender, TextInputEventArgs e)
     {
-        if (string.IsNullOrEmpty(e.Text) || DataContext is not MainViewModel vm) return;
-        if (!vm.SettingsService.CurrentSettings.AutoCloseBrackets) return;
-
-        var text = e.Text;
-        if (text.Length != 1) return;
-
-        char ch = text[0];
-        var selectionLen = Editor.SelectionLength;
-        var caretOffset = Editor.CaretOffset;
-        var doc = Editor.Document;
-        if (doc == null) return;
-
-        // 1. Text Selection Wrapping: wrap selection with pair
-        if (selectionLen > 0)
+        if (DataContext is MainViewModel vm)
         {
-            char? closingChar = ch switch
-            {
-                '(' => ')',
-                '[' => ']',
-                '{' => '}',
-                '"' => '"',
-                '\'' => '\'',
-                '`' => '`',
-                _ => null
-            };
-
-            if (closingChar.HasValue)
-            {
-                var selStart = Editor.SelectionStart;
-                var selectedText = Editor.SelectedText;
-                doc.Replace(selStart, selectionLen, $"{ch}{selectedText}{closingChar.Value}");
-                Editor.Select(selStart + 1, selectionLen);
-                e.Handled = true;
-                return;
-            }
-        }
-
-        // 2. Overtyping existing closing character
-        if (ch is ')' or ']' or '}' or '"' or '\'' or '`')
-        {
-            if (caretOffset < doc.TextLength && doc.GetCharAt(caretOffset) == ch)
-            {
-                Editor.CaretOffset++;
-                e.Handled = true;
-                return;
-            }
-        }
-
-        // 3. Auto-insert matching closing pair for opening characters
-        char? pairClose = ch switch
-        {
-            '(' => ')',
-            '[' => ']',
-            '{' => '}',
-            '"' => '"',
-            '\'' => '\'',
-            '`' => '`',
-            _ => null
-        };
-
-        if (pairClose.HasValue)
-        {
-            // For quotes, don't auto-close if preceded by alphanumeric character (e.g. contractions like don't)
-            if (ch is '\'' or '"' or '`' && caretOffset > 0)
-            {
-                var prevChar = doc.GetCharAt(caretOffset - 1);
-                if (char.IsLetterOrDigit(prevChar))
-                {
-                    return;
-                }
-            }
-
-            // Don't auto-close if followed immediately by alphanumeric (e.g. typing inside a word)
-            if (caretOffset < doc.TextLength && char.IsLetterOrDigit(doc.GetCharAt(caretOffset)))
-            {
-                return;
-            }
-
-            doc.Insert(caretOffset, $"{ch}{pairClose.Value}");
-            Editor.CaretOffset = caretOffset + 1;
-            e.Handled = true;
+            SmartBracketEditHandler.HandleTextEntering(Editor, e, vm.SettingsService.CurrentSettings.AutoCloseBrackets);
         }
     }
 
     private void OnEditorKeyDown(object? sender, KeyEventArgs e)
     {
-        if (DataContext is not MainViewModel vm) return;
-        if (!vm.SettingsService.CurrentSettings.AutoCloseBrackets) return;
-
-        var doc = Editor.Document;
-        if (doc == null) return;
-
-        // Pair backspace deletion: if caret is between empty pair (), [], {}, "", '', ``
-        if (e.Key == Key.Back && Editor.SelectionLength == 0)
+        if (DataContext is MainViewModel vm)
         {
-            var offset = Editor.CaretOffset;
-            if (offset > 0 && offset < doc.TextLength)
-            {
-                char prev = doc.GetCharAt(offset - 1);
-                char next = doc.GetCharAt(offset);
-
-                bool isPair = (prev == '(' && next == ')') ||
-                              (prev == '[' && next == ']') ||
-                              (prev == '{' && next == '}') ||
-                              (prev == '"' && next == '"') ||
-                              (prev == '\'' && next == '\'') ||
-                              (prev == '`' && next == '`');
-
-                if (isPair)
-                {
-                    doc.Remove(offset - 1, 2);
-                    Editor.CaretOffset = offset - 1;
-                    e.Handled = true;
-                }
-            }
+            SmartBracketEditHandler.HandleKeyDown(Editor, e, vm.SettingsService.CurrentSettings.AutoCloseBrackets);
         }
     }
 
@@ -621,239 +517,20 @@ public partial class MainWindow : Window
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        if (DataContext is MainViewModel vm)
+        if (DataContext is MainViewModel vm && WindowKeyboardRouter.HandleKeyDown(e, vm, this))
         {
-            // Escape: Close any open palette/overlay
-            if (e.Key == Key.Escape)
-            {
-                if (vm.IsQuickOpenOpen)
-                {
-                    vm.CloseQuickOpen();
-                    Editor.Focus();
-                    e.Handled = true;
-                    return;
-                }
-                if (vm.IsGlobalSearchOpen)
-                {
-                    vm.CloseGlobalSearch();
-                    Editor.Focus();
-                    e.Handled = true;
-                    return;
-                }
-                if (vm.IsGoToLineOpen)
-                {
-                    vm.CloseGoToLine();
-                    Editor.Focus();
-                    e.Handled = true;
-                    return;
-                }
-                if (vm.SearchViewModel.IsOpen)
-                {
-                    vm.SearchViewModel.Close();
-                    Editor.Focus();
-                    e.Handled = true;
-                    return;
-                }
-            }
-
-            // Ctrl + Shift + F: Find in Files (Workspace Search)
-            if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.F)
-            {
-                vm.OpenGlobalSearch();
-                e.Handled = true;
-                return;
-            }
-
-            // Shift + F5: Stop Script Runner
-            if (e.KeyModifiers == KeyModifiers.Shift && e.Key == Key.F5)
-            {
-                if (vm.RunnerViewModel.IsRunning)
-                {
-                    vm.RunnerViewModel.Cancel();
-                    e.Handled = true;
-                    return;
-                }
-            }
-
-            // Ctrl + P: Quick Open
-
-            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.P)
-            {
-                _ = vm.ShowQuickOpenCommand.ExecuteAsync(null);
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + G: Go to Line
-            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.G)
-            {
-                vm.ShowGoToLine();
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + H: Replace
-            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.H)
-            {
-                vm.ShowReplace();
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + / : Toggle Line Comment
-            if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.OemQuestion || e.Key == Key.Divide))
-            {
-                ToggleComment();
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + D: Duplicate Line or Selection
-            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.D)
-            {
-                DuplicateLineOrSelection();
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + Shift + K: Delete Line
-            if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.K)
-            {
-                DeleteCurrentLine();
-                e.Handled = true;
-                return;
-            }
-
-            // Alt + Up: Move Line Up
-            if (e.KeyModifiers == KeyModifiers.Alt && e.Key == Key.Up)
-            {
-                MoveSelectedLinesUp();
-                e.Handled = true;
-                return;
-            }
-
-            // Alt + Down: Move Line Down
-            if (e.KeyModifiers == KeyModifiers.Alt && e.Key == Key.Down)
-            {
-                MoveSelectedLinesDown();
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + S: Save
-            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.S)
-            {
-                _ = vm.SaveCommand.ExecuteAsync(null);
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + Shift + S: Save As
-            if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.S)
-            {
-                _ = vm.SaveAsCommand.ExecuteAsync(null);
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + N: New File
-            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.N)
-            {
-                vm.CreateNewDocument();
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + O: Open File
-            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.O)
-            {
-                _ = vm.OpenFileCommand.ExecuteAsync(null);
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + W: Close Active Tab
-            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.W)
-            {
-                _ = vm.CloseTabCommand.ExecuteAsync(vm.ActiveDocument);
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + F: Find in File
-            if (e.KeyModifiers == KeyModifiers.Control && e.Key == Key.F)
-            {
-                vm.ShowSearch();
-                e.Handled = true;
-                return;
-            }
-
-            // F3 / Shift + F3: Find Next / Previous
-            if (e.Key == Key.F3)
-            {
-                if (e.KeyModifiers == KeyModifiers.Shift)
-                {
-                    vm.SearchViewModel.FindPrevious();
-                }
-                else if (e.KeyModifiers == KeyModifiers.None)
-                {
-                    vm.SearchViewModel.FindNext();
-                }
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + Plus / Ctrl + = : Zoom In
-            if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.OemPlus || e.Key == Key.Add))
-            {
-                vm.ZoomIn();
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + Minus: Zoom Out
-            if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.OemMinus || e.Key == Key.Subtract))
-            {
-                vm.ZoomOut();
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + 0: Reset Zoom
-            if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.D0 || e.Key == Key.NumPad0))
-            {
-                vm.ResetZoom();
-                e.Handled = true;
-                return;
-            }
-
-            // Alt + Z: Toggle Word Wrap
-            if (e.KeyModifiers == KeyModifiers.Alt && e.Key == Key.Z)
-            {
-                vm.ToggleWordWrap();
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + Shift + T : Reopen Closed Tab
-            if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.T)
-            {
-                _ = vm.ReopenClosedTabCommand.ExecuteAsync(null);
-                e.Handled = true;
-                return;
-            }
-
-            // Ctrl + , : Settings
-            if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.OemComma || e.Key == Key.OemPeriod))
-            {
-                vm.ShowSettings();
-                e.Handled = true;
-                return;
-            }
+            return;
         }
 
         base.OnKeyDown(e);
     }
+
+    void WindowKeyboardRouter.IKeyboardActionTarget.FocusEditor() => Editor.Focus();
+    void WindowKeyboardRouter.IKeyboardActionTarget.ToggleComment() => ToggleComment();
+    void WindowKeyboardRouter.IKeyboardActionTarget.DuplicateLineOrSelection() => DuplicateLineOrSelection();
+    void WindowKeyboardRouter.IKeyboardActionTarget.DeleteCurrentLine() => DeleteCurrentLine();
+    void WindowKeyboardRouter.IKeyboardActionTarget.MoveSelectedLinesUp() => MoveSelectedLinesUp();
+    void WindowKeyboardRouter.IKeyboardActionTarget.MoveSelectedLinesDown() => MoveSelectedLinesDown();
 
     #endregion
 
@@ -910,104 +587,13 @@ public partial class MainWindow : Window
 
     #region Drag & Drop Support
 
-    private void OnDragOver(object? sender, DragEventArgs e)
-    {
-        if (e.Data.Contains(DataFormats.Files) || e.Data.GetFiles() != null || e.Data.Contains(DataFormats.Text))
-        {
-            e.DragEffects = DragDropEffects.Copy;
-            e.Handled = true;
-        }
-        else
-        {
-            e.DragEffects = DragDropEffects.None;
-        }
-    }
+    private void OnDragOver(object? sender, DragEventArgs e) => FileDragDropHandler.HandleDragOver(e);
 
     private async void OnDrop(object? sender, DragEventArgs e)
     {
-        if (DataContext is not MainViewModel vm) return;
-
-        var pathsToOpen = new System.Collections.Generic.List<string>();
-
-        // 1. Check Avalonia IStorageItem files
-        var files = e.Data.GetFiles();
-        if (files != null)
+        if (DataContext is MainViewModel vm)
         {
-            foreach (var item in files)
-            {
-                var path = item.TryGetLocalPath() ?? (item.Path.IsFile ? item.Path.LocalPath : null);
-                if (!string.IsNullOrEmpty(path))
-                {
-                    pathsToOpen.Add(path);
-                }
-            }
-        }
-
-        // 2. Check Windows DataFormats.Files string paths
-        if (pathsToOpen.Count == 0 && e.Data.Contains(DataFormats.Files))
-        {
-            var raw = e.Data.Get(DataFormats.Files);
-            if (raw is System.Collections.Generic.IEnumerable<string> strList)
-            {
-                pathsToOpen.AddRange(strList);
-            }
-            else if (raw is System.Collections.Generic.IEnumerable<IStorageItem> storageList)
-            {
-                foreach (var item in storageList)
-                {
-                    var path = item.TryGetLocalPath() ?? (item.Path.IsFile ? item.Path.LocalPath : null);
-                    if (!string.IsNullOrEmpty(path)) pathsToOpen.Add(path);
-                }
-            }
-        }
-
-        // 3. Check Text URI format
-        if (pathsToOpen.Count == 0 && e.Data.Contains(DataFormats.Text))
-        {
-            var text = e.Data.GetText();
-            if (!string.IsNullOrWhiteSpace(text))
-            {
-                var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                foreach (var line in lines)
-                {
-                    var clean = line.Trim().Trim('"', '\'');
-                    if (clean.StartsWith("file://", StringComparison.OrdinalIgnoreCase) && Uri.TryCreate(clean, UriKind.Absolute, out var uri))
-                    {
-                        clean = uri.LocalPath;
-                    }
-                    if (File.Exists(clean) || Directory.Exists(clean))
-                    {
-                        pathsToOpen.Add(clean);
-                    }
-                }
-            }
-        }
-
-        if (pathsToOpen.Count > 0)
-        {
-            e.Handled = true;
-            foreach (var path in pathsToOpen)
-            {
-                if (File.Exists(path))
-                {
-                    await vm.OpenFileInternalAsync(path);
-                }
-                else if (Directory.Exists(path))
-                {
-                    try
-                    {
-                        var subFiles = Directory.GetFiles(path).Take(10);
-                        foreach (var sub in subFiles)
-                        {
-                            await vm.OpenFileInternalAsync(sub);
-                        }
-                    }
-                    catch
-                    {
-                        // Directory access fallback
-                    }
-                }
-            }
+            await FileDragDropHandler.HandleDropAsync(e, path => vm.OpenFileInternalAsync(path));
         }
     }
 
@@ -1017,374 +603,63 @@ public partial class MainWindow : Window
 
     private void UpdateSearchMatches()
     {
-        if (DataContext is not MainViewModel vm) return;
-
-        var query = vm.SearchViewModel.SearchText;
-        _searchMatchOffsets.Clear();
-        _currentSearchMatchIndex = -1;
-
-        if (string.IsNullOrEmpty(query) || !vm.SearchViewModel.IsOpen)
+        if (DataContext is MainViewModel vm)
         {
-            _searchHighlightRenderer.Clear();
-            Editor.TextArea?.TextView?.InvalidateVisual();
-            vm.SearchViewModel.StatusText = string.Empty;
-            vm.SearchViewModel.TotalMatches = 0;
-            vm.SearchViewModel.CurrentMatchIndex = 0;
-            return;
+            _searchCoordinator.UpdateSearchMatches(Editor, vm.SearchViewModel);
         }
-
-        var text = Editor.Text ?? string.Empty;
-        if (text.Length == 0)
-        {
-            _searchHighlightRenderer.Clear();
-            Editor.TextArea?.TextView?.InvalidateVisual();
-            vm.SearchViewModel.StatusText = "No results";
-            vm.SearchViewModel.TotalMatches = 0;
-            vm.SearchViewModel.CurrentMatchIndex = 0;
-            return;
-        }
-
-        var comparison = vm.SearchViewModel.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-
-        var index = 0;
-        while (index < text.Length)
-        {
-            var found = text.IndexOf(query, index, comparison);
-            if (found == -1) break;
-            _searchMatchOffsets.Add(found);
-            index = found + Math.Max(query.Length, 1);
-        }
-
-        vm.SearchViewModel.TotalMatches = _searchMatchOffsets.Count;
-
-        if (_searchMatchOffsets.Count == 0)
-        {
-            _searchHighlightRenderer.Clear();
-            vm.SearchViewModel.StatusText = "No results";
-            vm.SearchViewModel.CurrentMatchIndex = 0;
-        }
-        else
-        {
-            var caret = Editor.SelectionStart;
-            var closest = _searchMatchOffsets.FindIndex(m => m >= caret);
-            if (closest == -1) closest = 0;
-            _currentSearchMatchIndex = closest;
-
-            vm.SearchViewModel.CurrentMatchIndex = _currentSearchMatchIndex + 1;
-            vm.SearchViewModel.StatusText = $"{_currentSearchMatchIndex + 1} of {_searchMatchOffsets.Count}";
-
-            var activeOffset = _searchMatchOffsets[_currentSearchMatchIndex];
-            _searchHighlightRenderer.SetMatches(_searchMatchOffsets, query.Length, activeOffset);
-        }
-
-        Editor.TextArea?.TextView?.InvalidateVisual();
     }
 
     private void OnFindNext()
     {
-        if (DataContext is not MainViewModel vm || string.IsNullOrEmpty(vm.SearchViewModel.SearchText))
+        if (DataContext is MainViewModel vm)
         {
-            return;
+            _searchCoordinator.FindNext(Editor, vm.SearchViewModel);
         }
-
-        if (_searchMatchOffsets.Count == 0)
-        {
-            UpdateSearchMatches();
-            if (_searchMatchOffsets.Count == 0) return;
-        }
-
-        _currentSearchMatchIndex = (_currentSearchMatchIndex + 1) % _searchMatchOffsets.Count;
-        NavigateToMatch(vm, _currentSearchMatchIndex);
     }
 
     private void OnFindPrevious()
     {
-        if (DataContext is not MainViewModel vm || string.IsNullOrEmpty(vm.SearchViewModel.SearchText))
+        if (DataContext is MainViewModel vm)
         {
-            return;
+            _searchCoordinator.FindPrevious(Editor, vm.SearchViewModel);
         }
-
-        if (_searchMatchOffsets.Count == 0)
-        {
-            UpdateSearchMatches();
-            if (_searchMatchOffsets.Count == 0) return;
-        }
-
-        _currentSearchMatchIndex = (_currentSearchMatchIndex - 1 + _searchMatchOffsets.Count) % _searchMatchOffsets.Count;
-        NavigateToMatch(vm, _currentSearchMatchIndex);
-    }
-
-    private void NavigateToMatch(MainViewModel vm, int matchIndex)
-    {
-        if (matchIndex < 0 || matchIndex >= _searchMatchOffsets.Count) return;
-
-        var offset = _searchMatchOffsets[matchIndex];
-        var query = vm.SearchViewModel.SearchText;
-
-        Editor.Select(offset, query.Length);
-        var loc = Editor.Document.GetLocation(offset);
-        Editor.ScrollTo(loc.Line, loc.Column);
-
-        vm.SearchViewModel.CurrentMatchIndex = matchIndex + 1;
-        vm.SearchViewModel.StatusText = $"{matchIndex + 1} of {_searchMatchOffsets.Count}";
-
-        _searchHighlightRenderer.SetActiveMatch(offset);
-        Editor.TextArea?.TextView?.InvalidateVisual();
     }
 
     private void OnReplace()
     {
-        if (DataContext is not MainViewModel vm || string.IsNullOrEmpty(vm.SearchViewModel.SearchText) || Editor.Document == null) return;
-
-        if (_currentSearchMatchIndex >= 0 && _currentSearchMatchIndex < _searchMatchOffsets.Count)
+        if (DataContext is MainViewModel vm)
         {
-            var offset = _searchMatchOffsets[_currentSearchMatchIndex];
-            var query = vm.SearchViewModel.SearchText;
-            var replacement = vm.SearchViewModel.ReplaceText ?? string.Empty;
-
-            using (Editor.Document.RunUpdate())
-            {
-                Editor.Document.Replace(offset, query.Length, replacement);
-            }
-
-            UpdateSearchMatches();
-        }
-        else
-        {
-            OnFindNext();
+            _searchCoordinator.Replace(Editor, vm.SearchViewModel);
         }
     }
 
     private void OnReplaceAll()
     {
-        if (DataContext is not MainViewModel vm || string.IsNullOrEmpty(vm.SearchViewModel.SearchText) || Editor.Document == null) return;
-
-        var query = vm.SearchViewModel.SearchText;
-        var replacement = vm.SearchViewModel.ReplaceText ?? string.Empty;
-
-        UpdateSearchMatches();
-        if (_searchMatchOffsets.Count == 0) return;
-
-        var count = _searchMatchOffsets.Count;
-
-        using (Editor.Document.RunUpdate())
+        if (DataContext is MainViewModel vm)
         {
-            for (int i = _searchMatchOffsets.Count - 1; i >= 0; i--)
-            {
-                var offset = _searchMatchOffsets[i];
-                Editor.Document.Replace(offset, query.Length, replacement);
-            }
+            _searchCoordinator.ReplaceAll(Editor, vm.SearchViewModel, msg => vm.ShowTemporaryStatusAsync(msg));
         }
-
-        UpdateSearchMatches();
-        _ = vm.ShowTemporaryStatusAsync($"Replaced {count} occurrence(s)");
     }
 
     #endregion
 
     #region Advanced Editor Actions & Palettes
 
-    private void OnGoToLine(int line, int col)
-    {
-        if (Editor.Document == null) return;
-
-        var targetLine = Math.Clamp(line, 1, Editor.Document.LineCount);
-        var docLine = Editor.Document.GetLineByNumber(targetLine);
-        var targetCol = Math.Clamp(col, 1, Math.Max(1, docLine.Length + 1));
-        var targetOffset = docLine.Offset + targetCol - 1;
-
-        Editor.TextArea.Caret.Offset = targetOffset;
-        Editor.ScrollTo(targetLine, targetCol);
-        Editor.Focus();
-    }
+    private void OnGoToLine(int line, int col) => EditorTextManipulator.GoToLine(Editor, line, col);
 
     private void ToggleComment()
     {
-        if (DataContext is not MainViewModel vm || Editor.Document == null || vm.ActiveDocument == null) return;
-
-        var prefix = vm.LanguageService.GetCommentPrefix(vm.ActiveDocument.Language);
-        if (string.IsNullOrEmpty(prefix)) return;
-
-        var prefixTrimmed = prefix.Trim();
-        var startOffset = Editor.SelectionStart;
-        var length = Editor.SelectionLength;
-
-        var startLineNum = Editor.Document.GetLineByOffset(startOffset).LineNumber;
-        var endLineNum = length > 0
-            ? Editor.Document.GetLineByOffset(startOffset + length).LineNumber
-            : startLineNum;
-
-        var allCommented = true;
-        var hasNonEmptyLine = false;
-
-        for (int l = startLineNum; l <= endLineNum; l++)
+        if (DataContext is MainViewModel vm && vm.ActiveDocument != null)
         {
-            var line = Editor.Document.GetLineByNumber(l);
-            var lineText = Editor.Document.GetText(line.Offset, line.Length);
-            var trimmed = lineText.TrimStart();
-            if (trimmed.Length == 0) continue;
-
-            hasNonEmptyLine = true;
-            if (!trimmed.StartsWith(prefixTrimmed, StringComparison.Ordinal))
-            {
-                allCommented = false;
-                break;
-            }
-        }
-
-        if (!hasNonEmptyLine) return;
-
-        using (Editor.Document.RunUpdate())
-        {
-            for (int l = startLineNum; l <= endLineNum; l++)
-            {
-                var line = Editor.Document.GetLineByNumber(l);
-                var lineText = Editor.Document.GetText(line.Offset, line.Length);
-                var leadingSpaces = lineText.Length - lineText.TrimStart().Length;
-
-                if (allCommented)
-                {
-                    var trimmed = lineText.TrimStart();
-                    if (trimmed.StartsWith(prefixTrimmed, StringComparison.Ordinal))
-                    {
-                        var removeLen = prefixTrimmed.Length;
-                        if (trimmed.Length > prefixTrimmed.Length && trimmed[prefixTrimmed.Length] == ' ')
-                        {
-                            removeLen++;
-                        }
-                        Editor.Document.Remove(line.Offset + leadingSpaces, removeLen);
-                    }
-                }
-                else
-                {
-                    if (lineText.Trim().Length > 0)
-                    {
-                        Editor.Document.Insert(line.Offset + leadingSpaces, prefix);
-                    }
-                }
-            }
+            var prefix = vm.LanguageService.GetCommentPrefix(vm.ActiveDocument.Language);
+            EditorTextManipulator.ToggleComment(Editor, prefix);
         }
     }
 
-    private void DuplicateLineOrSelection()
-    {
-        if (Editor.Document == null) return;
-
-        using (Editor.Document.RunUpdate())
-        {
-            if (Editor.SelectionLength > 0)
-            {
-                var selectedText = Editor.SelectedText;
-                var insertPos = Editor.SelectionStart + Editor.SelectionLength;
-                Editor.Document.Insert(insertPos, selectedText);
-                Editor.Select(insertPos, selectedText.Length);
-            }
-            else
-            {
-                var line = Editor.Document.GetLineByOffset(Editor.CaretOffset);
-                var lineText = Editor.Document.GetText(line.Offset, line.Length);
-                var delimiter = Editor.Document.GetText(line.Offset + line.Length, line.DelimiterLength);
-                if (string.IsNullOrEmpty(delimiter)) delimiter = Environment.NewLine;
-
-                var insertOffset = line.EndOffset;
-                var textToInsert = delimiter + lineText;
-                Editor.Document.Insert(insertOffset, textToInsert);
-                Editor.CaretOffset = Math.Min(Editor.Document.TextLength, insertOffset + textToInsert.Length);
-            }
-        }
-    }
-
-    private void DeleteCurrentLine()
-    {
-        if (Editor.Document == null) return;
-
-        using (Editor.Document.RunUpdate())
-        {
-            var startOffset = Editor.SelectionStart;
-            var length = Editor.SelectionLength;
-            var startLine = Editor.Document.GetLineByOffset(startOffset);
-            var endLine = length > 0 ? Editor.Document.GetLineByOffset(startOffset + length) : startLine;
-
-            var removeOffset = startLine.Offset;
-            var removeLength = endLine.TotalLength;
-            if (endLine.LineNumber == Editor.Document.LineCount && startLine.LineNumber > 1)
-            {
-                var prevLine = Editor.Document.GetLineByNumber(startLine.LineNumber - 1);
-                removeOffset = prevLine.EndOffset;
-                removeLength = endLine.EndOffset - prevLine.EndOffset;
-            }
-
-            Editor.Document.Remove(removeOffset, removeLength);
-        }
-    }
-
-    private void MoveSelectedLinesUp()
-    {
-        if (Editor.Document == null) return;
-
-        var startOffset = Editor.SelectionStart;
-        var length = Editor.SelectionLength;
-        var startLine = Editor.Document.GetLineByOffset(startOffset);
-        var endLine = length > 0 ? Editor.Document.GetLineByOffset(startOffset + length) : startLine;
-
-        if (startLine.LineNumber <= 1) return;
-
-        var prevLine = Editor.Document.GetLineByNumber(startLine.LineNumber - 1);
-
-        using (Editor.Document.RunUpdate())
-        {
-            var pStart = prevLine.Offset;
-            var pEnd = prevLine.EndOffset;
-            var blockStart = startLine.Offset;
-            var blockEnd = endLine.EndOffset;
-
-            var pText = Editor.Document.GetText(pStart, pEnd - pStart);
-            var delimiter = Editor.Document.GetText(pEnd, blockStart - pEnd);
-            var blockText = Editor.Document.GetText(blockStart, blockEnd - blockStart);
-
-            var combinedNewText = blockText + delimiter + pText;
-            var totalOldLength = blockEnd - pStart;
-
-            Editor.Document.Replace(pStart, totalOldLength, combinedNewText);
-
-            var shift = blockStart - pStart;
-            Editor.Select(Math.Max(0, startOffset - shift), length);
-        }
-    }
-
-    private void MoveSelectedLinesDown()
-    {
-        if (Editor.Document == null) return;
-
-        var startOffset = Editor.SelectionStart;
-        var length = Editor.SelectionLength;
-        var startLine = Editor.Document.GetLineByOffset(startOffset);
-        var endLine = length > 0 ? Editor.Document.GetLineByOffset(startOffset + length) : startLine;
-
-        if (endLine.LineNumber >= Editor.Document.LineCount) return;
-
-        var nextLine = Editor.Document.GetLineByNumber(endLine.LineNumber + 1);
-
-        using (Editor.Document.RunUpdate())
-        {
-            var blockStart = startLine.Offset;
-            var blockEnd = endLine.EndOffset;
-            var nStart = nextLine.Offset;
-            var nEnd = nextLine.EndOffset;
-
-            var blockText = Editor.Document.GetText(blockStart, blockEnd - blockStart);
-            var delimiter = Editor.Document.GetText(blockEnd, nStart - blockEnd);
-            var nText = Editor.Document.GetText(nStart, nEnd - nStart);
-
-            var combinedNewText = nText + delimiter + blockText;
-            var totalOldLength = nEnd - blockStart;
-
-            Editor.Document.Replace(blockStart, totalOldLength, combinedNewText);
-
-            var shift = nEnd - blockEnd;
-            Editor.Select(startOffset + shift, length);
-        }
-    }
+    private void DuplicateLineOrSelection() => EditorTextManipulator.DuplicateLineOrSelection(Editor);
+    private void DeleteCurrentLine() => EditorTextManipulator.DeleteCurrentLine(Editor);
+    private void MoveSelectedLinesUp() => EditorTextManipulator.MoveSelectedLinesUp(Editor);
+    private void MoveSelectedLinesDown() => EditorTextManipulator.MoveSelectedLinesDown(Editor);
 
     private void OnQuickOpenTextBoxKeyDown(object? sender, KeyEventArgs e)
     {
@@ -1406,28 +681,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == Key.Down && QuickOpenListBox != null)
-        {
-            if (vm.FilteredQuickOpenItems.Count > 0)
-            {
-                var next = Math.Min(QuickOpenListBox.SelectedIndex + 1, vm.FilteredQuickOpenItems.Count - 1);
-                QuickOpenListBox.SelectedIndex = next;
-                vm.SelectedQuickOpenItem = vm.FilteredQuickOpenItems[next];
-                QuickOpenListBox.ScrollIntoView(vm.SelectedQuickOpenItem);
-                e.Handled = true;
-            }
-        }
-        else if (e.Key == Key.Up && QuickOpenListBox != null)
-        {
-            if (vm.FilteredQuickOpenItems.Count > 0)
-            {
-                var prev = Math.Max(QuickOpenListBox.SelectedIndex - 1, 0);
-                QuickOpenListBox.SelectedIndex = prev;
-                vm.SelectedQuickOpenItem = vm.FilteredQuickOpenItems[prev];
-                QuickOpenListBox.ScrollIntoView(vm.SelectedQuickOpenItem);
-                e.Handled = true;
-            }
-        }
+        OverlayKeyNavigationHelper.HandleUpDownNavigation(e, QuickOpenListBox, vm.FilteredQuickOpenItems, item => vm.SelectedQuickOpenItem = item);
     }
 
     private void OnQuickOpenListBoxKeyDown(object? sender, KeyEventArgs e)
@@ -1507,28 +761,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == Key.Down && CommandPaletteListBox != null)
-        {
-            if (vm.FilteredCommands.Count > 0)
-            {
-                var next = Math.Min(CommandPaletteListBox.SelectedIndex + 1, vm.FilteredCommands.Count - 1);
-                CommandPaletteListBox.SelectedIndex = next;
-                vm.SelectedCommandPaletteItem = vm.FilteredCommands[next];
-                CommandPaletteListBox.ScrollIntoView(vm.SelectedCommandPaletteItem);
-                e.Handled = true;
-            }
-        }
-        else if (e.Key == Key.Up && CommandPaletteListBox != null)
-        {
-            if (vm.FilteredCommands.Count > 0)
-            {
-                var prev = Math.Max(CommandPaletteListBox.SelectedIndex - 1, 0);
-                CommandPaletteListBox.SelectedIndex = prev;
-                vm.SelectedCommandPaletteItem = vm.FilteredCommands[prev];
-                CommandPaletteListBox.ScrollIntoView(vm.SelectedCommandPaletteItem);
-                e.Handled = true;
-            }
-        }
+        OverlayKeyNavigationHelper.HandleUpDownNavigation(e, CommandPaletteListBox, vm.FilteredCommands, item => vm.SelectedCommandPaletteItem = item);
     }
 
     private void OnCommandPaletteListBoxKeyDown(object? sender, KeyEventArgs e)
@@ -1578,28 +811,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == Key.Down && GlobalSearchListBox != null)
-        {
-            if (vm.GlobalSearchResults.Count > 0)
-            {
-                var next = Math.Min(GlobalSearchListBox.SelectedIndex + 1, vm.GlobalSearchResults.Count - 1);
-                GlobalSearchListBox.SelectedIndex = next;
-                vm.SelectedGlobalSearchResult = vm.GlobalSearchResults[next];
-                GlobalSearchListBox.ScrollIntoView(vm.SelectedGlobalSearchResult);
-                e.Handled = true;
-            }
-        }
-        else if (e.Key == Key.Up && GlobalSearchListBox != null)
-        {
-            if (vm.GlobalSearchResults.Count > 0)
-            {
-                var prev = Math.Max(GlobalSearchListBox.SelectedIndex - 1, 0);
-                GlobalSearchListBox.SelectedIndex = prev;
-                vm.SelectedGlobalSearchResult = vm.GlobalSearchResults[prev];
-                GlobalSearchListBox.ScrollIntoView(vm.SelectedGlobalSearchResult);
-                e.Handled = true;
-            }
-        }
+        OverlayKeyNavigationHelper.HandleUpDownNavigation(e, GlobalSearchListBox, vm.GlobalSearchResults, item => vm.SelectedGlobalSearchResult = item);
     }
 
     private void OnGlobalSearchListBoxKeyDown(object? sender, KeyEventArgs e)
