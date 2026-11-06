@@ -123,6 +123,9 @@ public class AppSettings
     [JsonPropertyName("showMinimap")]
     public bool ShowMinimap { get; set; } = false;
 
+    [JsonPropertyName("defaultTerminalShell")]
+    public string DefaultTerminalShell { get; set; } = "Auto";
+
     // Custom Syntax Highlighting Color Overrides (hex format: #RRGGBB, empty or null means use theme default)
     [JsonPropertyName("customCodeKeyword")]
     public string? CustomCodeKeyword { get; set; }
@@ -195,6 +198,7 @@ public class AppSettings
             EnableRainbowBrackets = EnableRainbowBrackets,
             ShowBreadcrumbs = ShowBreadcrumbs,
             ShowMinimap = ShowMinimap,
+            DefaultTerminalShell = DefaultTerminalShell,
             CustomCodeKeyword = CustomCodeKeyword,
             CustomCodeComment = CustomCodeComment,
             CustomCodeString = CustomCodeString,

@@ -62,6 +62,14 @@ public static class WindowKeyboardRouter
             return true;
         }
 
+        // F5: Run Active Script
+        if (e.KeyModifiers == KeyModifiers.None && e.Key == Key.F5)
+        {
+            _ = vm.RunActiveScriptCommand.ExecuteAsync(null);
+            e.Handled = true;
+            return true;
+        }
+
         // Shift + F5: Stop Script Runner
         if (e.KeyModifiers == KeyModifiers.Shift && e.Key == Key.F5)
         {
@@ -71,6 +79,14 @@ public static class WindowKeyboardRouter
                 e.Handled = true;
                 return true;
             }
+        }
+
+        // Ctrl + ` (OemTilde/Oem3): Toggle Terminal Console
+        if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.OemTilde || e.Key == Key.Oem3))
+        {
+            vm.ToggleRunnerConsole();
+            e.Handled = true;
+            return true;
         }
 
         // Ctrl + P: Quick Open

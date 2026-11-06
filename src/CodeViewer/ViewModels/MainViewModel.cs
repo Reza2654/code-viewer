@@ -429,6 +429,28 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _autoCloseBrackets = settings.AutoCloseBrackets;
         _enableAnimations = settings.EnableAnimations;
 
+        RunnerViewModel.GetWorkingDirectory = () => WorkspaceCoordinator.RootFolder?.FullPath ?? Path.GetDirectoryName(ActiveDocument?.FilePath) ?? Environment.CurrentDirectory;
+
+        var defaultShell = settings.DefaultTerminalShell;
+        var matchedShell = RunnerViewModel.AvailableShells.FirstOrDefault(s => string.Equals(s.Type.ToString(), defaultShell, StringComparison.OrdinalIgnoreCase));
+        if (matchedShell != null)
+        {
+            RunnerViewModel.SelectedShell = matchedShell;
+        }
+
+        RunnerViewModel.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(RunnerViewModel.SelectedShell))
+            {
+                var current = _settingsService.CurrentSettings;
+                if (current.DefaultTerminalShell != RunnerViewModel.SelectedShell.Type.ToString())
+                {
+                    current.DefaultTerminalShell = RunnerViewModel.SelectedShell.Type.ToString();
+                    _ = _settingsService.SaveAsync(current);
+                }
+            }
+        };
+
         _themeService.ThemeChanged += theme =>
         {
             OnPropertyChanged(nameof(CurrentTheme));
@@ -467,6 +489,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         RainbowBracketsEnabled = settings.EnableRainbowBrackets;
         AutoCloseBrackets = settings.AutoCloseBrackets;
         EnableAnimations = settings.EnableAnimations;
+        if (!string.IsNullOrEmpty(settings.DefaultTerminalShell))
+        {
+            var matched = RunnerViewModel.AvailableShells.FirstOrDefault(s => string.Equals(s.Type.ToString(), settings.DefaultTerminalShell, StringComparison.OrdinalIgnoreCase));
+            if (matched != null && RunnerViewModel.SelectedShell.Type != matched.Type)
+            {
+                RunnerViewModel.SelectedShell = matched;
+            }
+        }
 
         TabManager.ApplySettings(settings);
         _themeService.ApplyTheme(settings);
@@ -1789,12 +1819,18 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
         if (!string.IsNullOrEmpty(ActiveDocument.FilePath) && File.Exists(ActiveDocument.FilePath))
         {
-            await RunnerViewModel.RunScriptAsync(ActiveDocument.FilePath);
+            await RunnerViewModel.RunScriptAsync(ActiveDocument.FilePath, WorkspaceCoordinator.RootFolder?.FullPath);
         }
         else
         {
             _ = ShowTemporaryStatusAsync("Please save the file before running.");
         }
+    }
+
+    [RelayCommand]
+    public void ToggleRunnerConsole()
+    {
+        RunnerViewModel.IsVisible = !RunnerViewModel.IsVisible;
     }
 
     #endregion
@@ -1919,9 +1955,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleLineNumbers", "Toggle Line Numbers", "View", "", "#️⃣", () => ToggleLineNumbers()));
 
         // Run & Developer Tools
-        CommandPalette.RegisterCommand(new CommandPaletteItem("run.activeScript", "Run Active Script (AgentLang, PS2, Python, PowerShell, Dart)", "Run", "F5", "▶", () => _ = RunActiveScriptAsync()));
-        CommandPalette.RegisterCommand(new CommandPaletteItem("run.stopScript", "Stop Running Script", "Run", "", "⏹", () => RunnerViewModel.Cancel()));
-        CommandPalette.RegisterCommand(new CommandPaletteItem("run.clearOutput", "Clear Runner Console Output", "Run", "", "🧹", () => RunnerViewModel.ClearOutput()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("terminal.toggle", "Terminal: Toggle Console", "Terminal", "Ctrl+`", "💻", () => ToggleRunnerConsole()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("run.activeScript", "Terminal: Run Active Script (AgentLang, PS2, Python, PowerShell, Dart)", "Terminal", "F5", "▶", () => _ = RunActiveScriptAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("run.stopScript", "Terminal: Stop Process", "Terminal", "Shift+F5", "⏹", () => RunnerViewModel.Cancel()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("run.clearOutput", "Terminal: Clear Console Output", "Terminal", "Ctrl+K", "🧹", () => RunnerViewModel.ClearOutput()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("diff.compare", "Compare / Diff Active Document with File...", "Diff", "Ctrl+Shift+D", "🔍", () => _ = ShowDiffAsync()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("diff.close", "Close Diff Viewer", "Diff", "", "✕", () => DiffViewModel.CloseDiff()));
 

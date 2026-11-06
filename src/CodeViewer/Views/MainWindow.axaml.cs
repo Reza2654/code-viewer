@@ -850,8 +850,26 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
 
         if (e.Key == Key.Enter)
         {
-            vm.RunnerViewModel.SendInput();
+            _ = vm.RunnerViewModel.SubmitInputAsync();
             e.Handled = true;
+        }
+        else if (e.Key == Key.Up)
+        {
+            if (vm.RunnerViewModel.NavigateHistory(-1, out var prevCmd))
+            {
+                vm.RunnerViewModel.CurrentInput = prevCmd;
+                if (sender is TextBox tb) tb.CaretIndex = tb.Text?.Length ?? 0;
+                e.Handled = true;
+            }
+        }
+        else if (e.Key == Key.Down)
+        {
+            if (vm.RunnerViewModel.NavigateHistory(1, out var nextCmd))
+            {
+                vm.RunnerViewModel.CurrentInput = nextCmd;
+                if (sender is TextBox tb) tb.CaretIndex = tb.Text?.Length ?? 0;
+                e.Handled = true;
+            }
         }
     }
 
