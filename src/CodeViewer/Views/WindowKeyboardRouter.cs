@@ -264,6 +264,22 @@ public static class WindowKeyboardRouter
             return true;
         }
 
+        // Ctrl + Alt + O : Toggle Document Outline
+        if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Alt) && e.Key == Key.O)
+        {
+            vm.ToggleOutline();
+            e.Handled = true;
+            return true;
+        }
+
+        // Ctrl + Shift + E : Focus Explorer Sidebar
+        if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.E)
+        {
+            vm.ShowExplorerSidebar();
+            e.Handled = true;
+            return true;
+        }
+
         // Ctrl + , : Settings
         if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.OemComma || e.Key == Key.OemPeriod))
         {

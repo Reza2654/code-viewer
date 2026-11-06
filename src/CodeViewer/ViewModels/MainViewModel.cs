@@ -196,12 +196,18 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private bool _isMarkdownPreviewActive;
 
-    // ▶ Runner & 🔍 Diff ViewModels
+    // ▶ Runner, 🔍 Diff & 📑 Outline ViewModels
     [ObservableProperty]
     private RunnerViewModel _runnerViewModel = new();
 
     [ObservableProperty]
     private DiffViewModel _diffViewModel = new();
+
+    [ObservableProperty]
+    private OutlineViewModel _outlineViewModel = new();
+
+    [ObservableProperty]
+    private bool _isOutlineActive;
 
     public IReadOnlyList<ColorTheme> AvailableThemes => _themeService.AvailableThemes;
     public ColorTheme CurrentTheme => _themeService.CurrentTheme;
@@ -391,6 +397,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                     IsMarkdownPreviewActive = false;
                 }
                 UpdateBreadcrumbs();
+                OutlineViewModel.AttachDocument(ActiveDocument);
             }
             else if (e.PropertyName == nameof(TabManager.HasDocuments))
                 OnPropertyChanged(nameof(HasDocuments));
@@ -430,6 +437,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _enableAnimations = settings.EnableAnimations;
 
         RunnerViewModel.GetWorkingDirectory = () => WorkspaceCoordinator.RootFolder?.FullPath ?? Path.GetDirectoryName(ActiveDocument?.FilePath) ?? Environment.CurrentDirectory;
+        OutlineViewModel.RequestGoToLine = (line, col) => RequestGoToLine?.Invoke(line, col);
 
         var defaultShell = settings.DefaultTerminalShell;
         var matchedShell = RunnerViewModel.AvailableShells.FirstOrDefault(s => string.Equals(s.Type.ToString(), defaultShell, StringComparison.OrdinalIgnoreCase));
@@ -1523,6 +1531,38 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void ToggleSidebar() => WorkspaceCoordinator.ToggleSidebar();
 
     [RelayCommand]
+    public void ShowExplorerSidebar()
+    {
+        WorkspaceCoordinator.IsSidebarOpen = true;
+        IsOutlineActive = false;
+    }
+
+    [RelayCommand]
+    public void ShowOutlineSidebar()
+    {
+        WorkspaceCoordinator.IsSidebarOpen = true;
+        IsOutlineActive = true;
+    }
+
+    [RelayCommand]
+    public void ToggleOutline()
+    {
+        if (!WorkspaceCoordinator.IsSidebarOpen)
+        {
+            WorkspaceCoordinator.IsSidebarOpen = true;
+            IsOutlineActive = true;
+        }
+        else if (IsOutlineActive)
+        {
+            WorkspaceCoordinator.IsSidebarOpen = false;
+        }
+        else
+        {
+            IsOutlineActive = true;
+        }
+    }
+
+    [RelayCommand]
     public Task SelectFolderItemAsync(FolderItem? item) => WorkspaceCoordinator.SelectFolderItemAsync(item);
 
     [RelayCommand]
@@ -1945,6 +1985,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
         // View operations
         CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleSidebar", "Toggle Folder Sidebar", "View", "Ctrl+B", "📁", () => ToggleSidebar()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleOutline", "Toggle Document Outline", "View", "Ctrl+Alt+O", "📑", () => ToggleOutline()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.focusExplorer", "Focus File Explorer", "View", "Ctrl+Shift+E", "📁", () => ShowExplorerSidebar()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.focusOutline", "Focus Document Outline", "View", "", "📑", () => ShowOutlineSidebar()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleSplit", "Toggle Split View", "View", "Ctrl+\\", "🔀", () => ToggleSplitView()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleMarkdown", "Toggle Markdown Live Preview", "View", "Ctrl+Shift+M", "📝", () => ToggleMarkdownPreview()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleRtl", "Toggle RTL / LTR Direction (Persian/Arabic)", "View", "Ctrl+Alt+R", "⇄", () => ToggleRtl()));

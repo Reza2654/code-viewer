@@ -541,104 +541,222 @@
                 Background="{DynamicResource ThemeTabBarBackground}"
                 BorderBrush="{DynamicResource ThemeBorderBrush}">
           <Grid RowDefinitions="Auto,*,Auto">
-            <!-- Sidebar Header -->
-            <Border Grid.Row="0" Padding="8,6" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="0,0,0,1">
-              <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto">
-                <TextBlock Grid.Column="0" Text="EXPLORER" FontSize="11" FontWeight="Bold" Opacity="0.75" VerticalAlignment="Center" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
-                <Button Grid.Column="1" Command="{Binding CreateFileInFolderCommand}" CommandParameter="{Binding RootFolder}" ToolTip.Tip="New File in Workspace" Background="Transparent" BorderThickness="0" Padding="3,2" Margin="1,0" IsVisible="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNotNull}}">
-                  <TextBlock Text="📄+" FontSize="11"/>
+            <!-- Sidebar Header with Mode Switcher (Files vs Outline) -->
+            <Border Grid.Row="0" Padding="6,5" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="0,0,0,1">
+              <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+                <!-- Mode Switcher Buttons -->
+                <Button Grid.Column="0" Command="{Binding ShowExplorerSidebarCommand}"
+                        Padding="6,3" Margin="0,0,2,0" Background="Transparent" BorderThickness="0" CornerRadius="3"
+                        ToolTip.Tip="File Explorer (Ctrl+Shift+E)">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="📁" FontSize="11"/>
+                    <TextBlock Text="FILES" FontSize="10" FontWeight="Bold"
+                               Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                  </StackPanel>
                 </Button>
-                <Button Grid.Column="2" Command="{Binding CreateFolderInFolderCommand}" CommandParameter="{Binding RootFolder}" ToolTip.Tip="New Folder in Workspace" Background="Transparent" BorderThickness="0" Padding="3,2" Margin="1,0" IsVisible="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNotNull}}">
-                  <TextBlock Text="📁+" FontSize="11"/>
+                <Button Grid.Column="1" Command="{Binding ShowOutlineSidebarCommand}"
+                        Padding="6,3" Margin="2,0" Background="Transparent" BorderThickness="0" CornerRadius="3"
+                        ToolTip.Tip="Document Symbol Outline (Ctrl+Alt+O)">
+                  <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock Text="📑" FontSize="11"/>
+                    <TextBlock Text="OUTLINE" FontSize="10" FontWeight="Bold"
+                               Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                  </StackPanel>
                 </Button>
-                <Button Grid.Column="3" Command="{Binding RefreshFolderItemCommand}" CommandParameter="{Binding RootFolder}" ToolTip.Tip="Refresh Workspace" Background="Transparent" BorderThickness="0" Padding="3,2" Margin="1,0" IsVisible="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNotNull}}">
-                  <TextBlock Text="🔄" FontSize="11"/>
-                </Button>
-                <Button Grid.Column="4" Command="{Binding OpenFolderCommand}" ToolTip.Tip="Open Folder..." Background="Transparent" BorderThickness="0" Padding="3,2" Margin="1,0">
-                  <TextBlock Text="📂" FontSize="12"/>
-                </Button>
-                <Button Grid.Column="5" Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="Hide Sidebar (Ctrl+B)" Background="Transparent" BorderThickness="0" Padding="3,2">
+
+                <!-- Explorer Actions (Visible when in Files mode) -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="1" IsVisible="{Binding !IsOutlineActive}">
+                  <Button Command="{Binding CreateFileInFolderCommand}" CommandParameter="{Binding RootFolder}" ToolTip.Tip="New File in Workspace" Background="Transparent" BorderThickness="0" Padding="3,2" IsVisible="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <TextBlock Text="📄+" FontSize="11"/>
+                  </Button>
+                  <Button Command="{Binding CreateFolderInFolderCommand}" CommandParameter="{Binding RootFolder}" ToolTip.Tip="New Folder in Workspace" Background="Transparent" BorderThickness="0" Padding="3,2" IsVisible="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <TextBlock Text="📁+" FontSize="11"/>
+                  </Button>
+                  <Button Command="{Binding RefreshFolderItemCommand}" CommandParameter="{Binding RootFolder}" ToolTip.Tip="Refresh Workspace" Background="Transparent" BorderThickness="0" Padding="3,2" IsVisible="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <TextBlock Text="🔄" FontSize="11"/>
+                  </Button>
+                  <Button Command="{Binding OpenFolderCommand}" ToolTip.Tip="Open Folder..." Background="Transparent" BorderThickness="0" Padding="3,2">
+                    <TextBlock Text="📂" FontSize="12"/>
+                  </Button>
+                </StackPanel>
+
+                <!-- Outline Actions (Visible when in Outline mode) -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="1" IsVisible="{Binding IsOutlineActive}">
+                  <Button Command="{Binding OutlineViewModel.ClearFilterCommand}" ToolTip.Tip="Clear Outline Filter" Background="Transparent" BorderThickness="0" Padding="3,2">
+                    <TextBlock Text="🧹" FontSize="11"/>
+                  </Button>
+                </StackPanel>
+
+                <!-- Close Sidebar Button -->
+                <Button Grid.Column="4" Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="Hide Sidebar (Ctrl+B)" Background="Transparent" BorderThickness="0" Padding="3,2" Margin="4,0,0,0">
                   <TextBlock Text="✕" FontSize="10" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
                 </Button>
               </Grid>
             </Border>
 
-            <!-- Tree View or Placeholder -->
+            <!-- Tree View or Outline Content -->
             <Panel Grid.Row="1">
-              <!-- When No Folder Opened -->
-              <StackPanel IsVisible="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNull}}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="16">
-                <TextBlock Text="📁" FontSize="36" HorizontalAlignment="Center" Opacity="0.4"/>
-                <TextBlock Text="No Folder Opened" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="{DynamicResource ThemeWindowForeground}"/>
-                <TextBlock Text="Open a folder or project workspace" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" Opacity="0.6" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
-                <Button Content="Open Folder" Command="{Binding OpenFolderCommand}" HorizontalAlignment="Center" Padding="12,5" Margin="0,6,0,0" CornerRadius="4"/>
-              </StackPanel>
+              <!-- 📁 Explorer View -->
+              <Grid IsVisible="{Binding !IsOutlineActive}">
+                <!-- When No Folder Opened -->
+                <StackPanel IsVisible="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNull}}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="16">
+                  <TextBlock Text="📁" FontSize="36" HorizontalAlignment="Center" Opacity="0.4"/>
+                  <TextBlock Text="No Folder Opened" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                  <TextBlock Text="Open a folder or project workspace" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" Opacity="0.6" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                  <Button Content="Open Folder" Command="{Binding OpenFolderCommand}" HorizontalAlignment="Center" Padding="12,5" Margin="0,6,0,0" CornerRadius="4"/>
+                </StackPanel>
 
-              <!-- Folder Tree -->
-              <ScrollViewer IsVisible="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNotNull}}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                <TreeView ItemsSource="{Binding RootFolder.Children}"
-                          SelectedItem="{Binding SelectedFolderItem, Mode=TwoWay}"
-                          Background="Transparent"
-                          BorderThickness="0"
-                          Padding="2,4">
-                  <TreeView.ItemTemplate>
-                    <TreeDataTemplate DataType="models:FolderItem" ItemsSource="{Binding Children}">
-                      <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1" Cursor="Hand" Background="Transparent" DoubleTapped="OnFolderItemDoubleTapped">
-                        <Grid.ContextMenu>
-                          <ContextMenu>
-                            <MenuItem Header="📄 New File..."
-                                      Command="{Binding ((vm:MainViewModel)DataContext).CreateFileInFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                      CommandParameter="{Binding}"/>
-                            <MenuItem Header="📁 New Folder..."
-                                      Command="{Binding ((vm:MainViewModel)DataContext).CreateFolderInFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                      CommandParameter="{Binding}"/>
-                            <Separator/>
-                            <MenuItem Header="✏️ Rename..."
-                                      Command="{Binding ((vm:MainViewModel)DataContext).RenameFolderItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                      CommandParameter="{Binding}"/>
-                            <MenuItem Header="🗑 Delete"
-                                      Command="{Binding ((vm:MainViewModel)DataContext).DeleteFolderItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                      CommandParameter="{Binding}"/>
-                            <Separator/>
-                            <MenuItem Header="📂 Reveal in File Explorer"
-                                      Command="{Binding ((vm:MainViewModel)DataContext).RevealFolderItemInExplorerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                      CommandParameter="{Binding}"/>
-                            <MenuItem Header="📋 Copy Path"
-                                      Command="{Binding ((vm:MainViewModel)DataContext).CopyItemPathCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                      CommandParameter="{Binding}"/>
-                            <MenuItem Header="🔗 Copy Relative Path"
-                                      Command="{Binding ((vm:MainViewModel)DataContext).CopyItemRelativePathCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                      CommandParameter="{Binding}"/>
-                            <Separator/>
-                            <MenuItem Header="🔄 Refresh"
-                                      Command="{Binding ((vm:MainViewModel)DataContext).RefreshFolderItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                      CommandParameter="{Binding}"/>
-                          </ContextMenu>
-                        </Grid.ContextMenu>
-                        <TextBlock Grid.Column="0" Text="{Binding IconGlyph}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                        <Border Grid.Column="2"
-                                IsVisible="{Binding HasGitStatus}"
-                                Margin="4,0,2,0"
-                                Padding="3,0"
-                                VerticalAlignment="Center">
-                          <TextBlock Text="{Binding GitStatusLetter}"
-                                     FontSize="10.5"
-                                     FontWeight="Bold"
-                                     Foreground="{Binding GitStatusBrush}"
-                                     ToolTip.Tip="{Binding GitStatusToolTip}"
-                                     VerticalAlignment="Center"/>
-                        </Border>
-                      </Grid>
-                    </TreeDataTemplate>
-                  </TreeView.ItemTemplate>
-                </TreeView>
-              </ScrollViewer>
+                <!-- Folder Tree -->
+                <ScrollViewer IsVisible="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNotNull}}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                  <TreeView ItemsSource="{Binding RootFolder.Children}"
+                            SelectedItem="{Binding SelectedFolderItem, Mode=TwoWay}"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="2,4">
+                    <TreeView.ItemTemplate>
+                      <TreeDataTemplate DataType="models:FolderItem" ItemsSource="{Binding Children}">
+                        <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1" Cursor="Hand" Background="Transparent" DoubleTapped="OnFolderItemDoubleTapped">
+                          <Grid.ContextMenu>
+                            <ContextMenu>
+                              <MenuItem Header="📄 New File..."
+                                        Command="{Binding ((vm:MainViewModel)DataContext).CreateFileInFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                              <MenuItem Header="📁 New Folder..."
+                                        Command="{Binding ((vm:MainViewModel)DataContext).CreateFolderInFolderCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                              <Separator/>
+                              <MenuItem Header="✏️ Rename..."
+                                        Command="{Binding ((vm:MainViewModel)DataContext).RenameFolderItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                              <MenuItem Header="🗑 Delete"
+                                        Command="{Binding ((vm:MainViewModel)DataContext).DeleteFolderItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                              <Separator/>
+                              <MenuItem Header="📂 Reveal in File Explorer"
+                                        Command="{Binding ((vm:MainViewModel)DataContext).RevealFolderItemInExplorerCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                              <MenuItem Header="📋 Copy Path"
+                                        Command="{Binding ((vm:MainViewModel)DataContext).CopyItemPathCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                              <MenuItem Header="🔗 Copy Relative Path"
+                                        Command="{Binding ((vm:MainViewModel)DataContext).CopyItemRelativePathCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                              <Separator/>
+                              <MenuItem Header="🔄 Refresh"
+                                        Command="{Binding ((vm:MainViewModel)DataContext).RefreshFolderItemCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"/>
+                            </ContextMenu>
+                          </Grid.ContextMenu>
+                          <TextBlock Grid.Column="0" Text="{Binding IconGlyph}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                          <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                          <Border Grid.Column="2"
+                                  IsVisible="{Binding HasGitStatus}"
+                                  Margin="4,0,2,0"
+                                  Padding="3,0"
+                                  VerticalAlignment="Center">
+                            <TextBlock Text="{Binding GitStatusLetter}"
+                                       FontSize="10.5"
+                                       FontWeight="Bold"
+                                       Foreground="{Binding GitStatusBrush}"
+                                       ToolTip.Tip="{Binding GitStatusToolTip}"
+                                       VerticalAlignment="Center"/>
+                          </Border>
+                        </Grid>
+                      </TreeDataTemplate>
+                    </TreeView.ItemTemplate>
+                  </TreeView>
+                </ScrollViewer>
+              </Grid>
+
+              <!-- 📑 Document Symbol Outline View -->
+              <Grid IsVisible="{Binding IsOutlineActive}">
+                <Grid DataContext="{Binding OutlineViewModel}" RowDefinitions="Auto,*">
+                  <!-- Filter Box -->
+                  <Border Grid.Row="0" Padding="6,5" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="0,0,0,1" Background="{DynamicResource ThemeWindowBackground}">
+                    <TextBox Text="{Binding FilterText, Mode=TwoWay}"
+                             Watermark="Filter symbols (e.g. class, method, #)..."
+                             FontSize="11"
+                             CornerRadius="3"
+                             Padding="6,3"/>
+                  </Border>
+
+                  <!-- Symbols List -->
+                  <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <Panel>
+                      <!-- When No Symbols Detected -->
+                      <StackPanel IsVisible="{Binding IsEmpty}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="6" Margin="16">
+                        <TextBlock Text="📑" FontSize="32" HorizontalAlignment="Center" Opacity="0.35"/>
+                        <TextBlock Text="No Symbols Found" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="{DynamicResource ThemeWindowForeground}"/>
+                        <TextBlock Text="Functions, classes, methods, and markdown headings will appear here." FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" Opacity="0.6" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                      </StackPanel>
+
+                      <!-- Symbol List Items -->
+                      <ItemsControl ItemsSource="{Binding FilteredSymbols}" Margin="2,4">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate DataType="models:SymbolItem">
+                            <Button Command="{Binding ((vm:MainViewModel)DataContext).OutlineViewModel.NavigateToSymbolCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="{Binding IndentMargin}"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch"
+                                    CornerRadius="3"
+                                    Cursor="Hand">
+                              <Grid ColumnDefinitions="Auto,*,Auto">
+                                <!-- Badge with kind color -->
+                                <Border Grid.Column="0"
+                                        Background="{Binding KindColor}"
+                                        CornerRadius="2"
+                                        Width="18" Height="16"
+                                        Margin="0,0,6,0"
+                                        VerticalAlignment="Center">
+                                  <TextBlock Text="{Binding KindBadge}"
+                                             FontSize="9.5"
+                                             FontWeight="Bold"
+                                             Foreground="#101010"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center"/>
+                                </Border>
+
+                                <!-- Symbol Name & Detail -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                  <TextBlock Text="{Binding Name}"
+                                             FontSize="11"
+                                             Foreground="{DynamicResource ThemeWindowForeground}"
+                                             TextTrimming="CharacterEllipsis"/>
+                                  <TextBlock Text="{Binding Detail}"
+                                             FontSize="10"
+                                             Opacity="0.5"
+                                             Foreground="{DynamicResource ThemeStatusBarForeground}"
+                                             TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+
+                                <!-- Line Number -->
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding LineNumber, StringFormat=':\{0\}'}"
+                                           FontSize="10"
+                                           Opacity="0.5"
+                                           Foreground="{DynamicResource ThemeStatusBarForeground}"
+                                           VerticalAlignment="Center"
+                                           Margin="6,0,4,0"/>
+                              </Grid>
+                            </Button>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </Panel>
+                  </ScrollViewer>
+                </Grid>
+              </Grid>
             </Panel>
-
 
             <!-- Sidebar Footer -->
             <Border Grid.Row="2" Padding="8,4" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="0,1,0,0" Background="{DynamicResource ThemeStatusBarBackground}">
-              <TextBlock Text="{Binding RootFolder.Name, FallbackValue='No Workspace'}" FontSize="10" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.8" TextTrimming="CharacterEllipsis"/>
+              <Panel>
+                <TextBlock IsVisible="{Binding !IsOutlineActive}" Text="{Binding RootFolder.Name, FallbackValue='No Workspace'}" FontSize="10" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.8" TextTrimming="CharacterEllipsis"/>
+                <TextBlock IsVisible="{Binding IsOutlineActive}" Text="{Binding OutlineViewModel.DocumentTitle, StringFormat='{}📑 \{0\}'}" FontSize="10" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.8" TextTrimming="CharacterEllipsis"/>
+              </Panel>
             </Border>
           </Grid>
         </Border>
