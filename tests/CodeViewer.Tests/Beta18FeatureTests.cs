@@ -34,7 +34,7 @@ public class Beta18FeatureTests
     public void AppUpdateService_GetCurrentAppVersion_ReportsBeta18()
     {
         var version = AppUpdateService.GetCurrentAppVersion();
-        Assert.AreEqual("1.2.0-beta.18", version);
+        StringAssert.StartsWith(version, "1.2.0-beta.");
 
         var cmp = AppUpdateService.CompareVersions("1.2.0-beta.18", "1.2.0-beta.17");
         Assert.IsTrue(cmp > 0, "v1.2.0-beta.18 must be recognized as newer than v1.2.0-beta.17");

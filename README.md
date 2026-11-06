@@ -76,12 +76,18 @@
   - **Animated Status Message Pill**: Status notifications appear in a centered pill badge with smooth entrance animation and hover states on all status controls.
   - **Modern Windows 11 Glass Chrome**: Native support for Mica and Acrylic blur window transparency hints.
   - **Theme Gallery & Interactive Cards**: Fluid hover elevation, scale (`1.03x`), and accent border glow on theme cards, with an `EnableAnimations` preference toggle in Settings.
+- 🎨 **Modernized UI, File Type Badges & Status Bar Elevation (v1.2.0-beta.19)**:
+  - **Dynamic File Type Badges (`IconGlyph`)**: Automatic file extension glyphs on tabs (`🔷` `.cs`, `🐍` `.py`, `🎯` `.dart`, `🤖` `.agent`, `📜` `.ps2`, `📝` `.md`, `⚙️` `.json`, `🌐` `.html`, `🎨` `.css`, `🗄️` `.sql`, `💻` `.sh`, `📄` others) for instant visual recognition.
+  - **Sleek Unsaved State Dot**: Replaced legacy asterisk text with a modern 6px accent dot badge matching industry-standard IDE aesthetics.
+  - **Overhauled Tab Styling**: Clean top accent line for active tabs, subtle border outlines, and smooth hover state transitions without local XAML property collisions.
+  - **Enhanced Tab Action Toggles**: Sidebar, Split View, and Markdown Preview buttons now feature active state indicators with subtle accent borders and hover animations.
+  - **Modernized Status Bar Dividers**: Replaced raw text pipe characters (`|`) with sleek vertical border dividers, accompanied by comfortable hover padding on all status selectors.
 - 🖱️ **Restored Rock-Solid Native Mouse Scrolling (v1.2.0-beta.18)**:
   - **Completely Removed Middle-Click Auto-Scroll**: Eliminated problematic pan-scroll compass anchor overlay, pointer capture traps, and unintended scroll states per user feedback.
   - **Unblocked Standard Native Mouse Wheel Scrolling**: Removed custom pointer wheel tunneling and interception; AvaloniaEdit's high-performance native `ScrollViewer` now handles all mouse wheel operations directly.
   - **Flawless Multi-Wheel Support**: Standard vertical wheel scrolling, `Shift + Wheel` horizontal panning, tilt wheels, high-precision wheels, and precision touchpad scrolling all function natively and effortlessly.
   - **Clean & Streamlined Settings UI**: Removed unused scroll toggles and re-aligned Editor Preferences for a cleaner, balanced layout.
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.18-Setup.exe`) and portable standalone `.zip` archive.
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.19-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---
@@ -188,8 +194,8 @@ To generate both the portable ZIP and the Inno Setup executable installer:
 powershell -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
 ```
 Output artifacts are saved in `dist/`:
-- `CodeViewer-v1.2.0-beta.11-Setup.exe`
-- `CodeViewer-v1.2.0-beta.11-win-x64-portable.zip`
+- `CodeViewer-v1.2.0-beta.19-Setup.exe`
+- `CodeViewer-v1.2.0-beta.19-win-x64-portable.zip`
 - `checksums.sha256`
 
 ---

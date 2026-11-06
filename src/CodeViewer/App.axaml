@@ -53,30 +53,10 @@
     </Style>
 
     <!-- Custom Tab Styling with Rounded Corners and Micro-Transitions -->
-    <Style Selector="Border.tabActive">
-      <Setter Property="Background" Value="{DynamicResource ThemeTabItemActiveBackground}"/>
-      <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
-      <Setter Property="BorderThickness" Value="0,2,0,0"/>
+    <Style Selector="Border.tab">
       <Setter Property="CornerRadius" Value="6,6,0,0"/>
-      <Setter Property="Transitions">
-        <Transitions>
-          <BrushTransition Property="Background" Duration="0:0:0.15"/>
-          <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
-        </Transitions>
-      </Setter>
-    </Style>
-
-    <Style Selector="Border.tabActive TextBlock">
-      <Setter Property="Foreground" Value="{DynamicResource ThemeTabItemActiveForeground}"/>
-      <Setter Property="FontWeight" Value="SemiBold"/>
-    </Style>
-
-    <Style Selector="Border.tabInactive">
-      <Setter Property="Background" Value="{DynamicResource ThemeTabItemInactiveBackground}"/>
-      <Setter Property="BorderBrush" Value="Transparent"/>
-      <Setter Property="BorderThickness" Value="0,2,0,0"/>
-      <Setter Property="CornerRadius" Value="6,6,0,0"/>
-      <Setter Property="Opacity" Value="0.82"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Margin" Value="0,2,2,0"/>
       <Setter Property="Transitions">
         <Transitions>
           <BrushTransition Property="Background" Duration="0:0:0.15"/>
@@ -86,13 +66,99 @@
       </Setter>
     </Style>
 
-    <Style Selector="Border.tabInactive TextBlock">
+    <Style Selector="Border.tab.tabActive">
+      <Setter Property="Background" Value="{DynamicResource ThemeTabItemActiveBackground}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
+      <Setter Property="BorderThickness" Value="0,2,0,0"/>
+      <Setter Property="Opacity" Value="1.0"/>
+    </Style>
+
+    <Style Selector="Border.tab.tabActive TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource ThemeTabItemActiveForeground}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style Selector="Border.tab.tabInactive">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderBrush" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0,2,0,0"/>
+      <Setter Property="Opacity" Value="0.75"/>
+    </Style>
+
+    <Style Selector="Border.tab.tabInactive TextBlock">
       <Setter Property="Foreground" Value="{DynamicResource ThemeTabItemInactiveForeground}"/>
     </Style>
 
-    <Style Selector="Border.tabInactive:pointerover">
-      <Setter Property="Background" Value="{DynamicResource ThemeTabBarBackground}"/>
-      <Setter Property="Opacity" Value="1.0"/>
+    <Style Selector="Border.tab.tabInactive:pointerover">
+      <Setter Property="Background" Value="{DynamicResource ThemeSelectionBackground}"/>
+      <Setter Property="Opacity" Value="0.95"/>
+    </Style>
+
+    <!-- Tab Bar Action Buttons -->
+    <Style Selector="Button.tab-action-btn">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.12"/>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.12"/>
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12"/>
+        </Transitions>
+      </Setter>
+    </Style>
+
+    <Style Selector="Button.tab-action-btn:pointerover">
+      <Setter Property="Background" Value="{DynamicResource ThemeSelectionBackground}"/>
+      <Setter Property="RenderTransform" Value="scale(1.08)"/>
+    </Style>
+
+    <Style Selector="Button.tab-action-btn:pressed">
+      <Setter Property="RenderTransform" Value="scale(0.94)"/>
+    </Style>
+
+    <Style Selector="Button.tab-action-btn.active">
+      <Setter Property="Background" Value="{DynamicResource ThemeSelectionBackground}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
+      <Setter Property="BorderThickness" Value="0,0,0,2"/>
+    </Style>
+
+    <!-- Breadcrumb Item Buttons -->
+    <Style Selector="Button.breadcrumb-btn">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="5,2"/>
+      <Setter Property="CornerRadius" Value="3"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.12"/>
+        </Transitions>
+      </Setter>
+    </Style>
+
+    <Style Selector="Button.breadcrumb-btn:pointerover">
+      <Setter Property="Background" Value="{DynamicResource ThemeSelectionBackground}"/>
+    </Style>
+
+    <!-- Floating Palette List Items -->
+    <Style Selector="Border.overlay-palette ListBoxItem">
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Padding" Value="6,4"/>
+      <Setter Property="Margin" Value="2,1"/>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.1"/>
+        </Transitions>
+      </Setter>
+    </Style>
+
+    <Style Selector="Border.overlay-palette ListBoxItem:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource ThemeSelectionBackground}"/>
+    </Style>
+
+    <Style Selector="Border.overlay-palette ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource ThemeSelectionBackground}"/>
     </Style>
 
     <!-- Tab Close Button Micro-Interactions -->

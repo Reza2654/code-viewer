@@ -114,7 +114,7 @@
               CornerRadius="6"
               Padding="10,4"
               VerticalAlignment="Center">
-        <TextBlock Text="v1.2.0-beta.18"
+        <TextBlock Text="v1.2.0-beta.19"
                    FontSize="11"
                    FontWeight="SemiBold"
                    Foreground="{DynamicResource ThemeAccentBrush}"/>

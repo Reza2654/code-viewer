@@ -91,6 +91,33 @@ public partial class DocumentViewModel : ViewModelBase
 
     public string DisplayName => IsModified ? $"{Title} *" : Title;
 
+    public string IconGlyph => GetIconForFile(FilePath ?? Title);
+
+    public static string GetIconForFile(string pathOrName)
+    {
+        if (string.IsNullOrEmpty(pathOrName)) return "📄";
+        var ext = Path.GetExtension(pathOrName).ToLowerInvariant();
+        return ext switch
+        {
+            ".agent" => "🤖",
+            ".ps2" => "📜",
+            ".cs" => "🔷",
+            ".dart" => "🎯",
+            ".py" => "🐍",
+            ".js" or ".mjs" or ".cjs" => "🟨",
+            ".ts" or ".tsx" => "🟦",
+            ".html" or ".htm" => "🌐",
+            ".css" or ".scss" or ".less" => "🎨",
+            ".json" or ".xml" or ".yaml" or ".yml" or ".toml" => "⚙️",
+            ".md" or ".markdown" => "📝",
+            ".sql" => "🗄️",
+            ".sh" or ".bash" or ".ps1" or ".cmd" or ".bat" => "💻",
+            ".png" or ".jpg" or ".jpeg" or ".ico" or ".svg" => "🖼️",
+            ".zip" or ".tar" or ".gz" or ".7z" => "📦",
+            _ => "📄"
+        };
+    }
+
     public string CaretDisplay
     {
         get
@@ -232,6 +259,7 @@ public partial class DocumentViewModel : ViewModelBase
         _model.IsModified = false;
         UpdateLanguage();
         OnPropertyChanged(nameof(DisplayName));
+        OnPropertyChanged(nameof(IconGlyph));
     }
 
     partial void OnLanguageChanged(string value)

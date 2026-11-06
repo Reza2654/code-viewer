@@ -398,12 +398,12 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate DataType="vm:DocumentViewModel">
-                  <Border Margin="0,0,2,0"
-                          Padding="14,6,8,6"
-                          CornerRadius="6,6,0,0"
-                          Cursor="Hand"
+                  <Border Classes="tab"
                           Classes.tabActive="{Binding IsActive}"
                           Classes.tabInactive="{Binding !IsActive}"
+                          Padding="12,6,8,6"
+                          CornerRadius="6,6,0,0"
+                          Cursor="Hand"
                           PointerPressed="OnTabPointerPressed">
                     <Border.ContextMenu>
                       <ContextMenu>
@@ -435,10 +435,19 @@
                                   CommandParameter="{Binding}"/>
                       </ContextMenu>
                     </Border.ContextMenu>
-                    <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                      <TextBlock Text="{Binding DisplayName}"
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding IconGlyph}"
+                                 FontSize="11"
+                                 VerticalAlignment="Center"/>
+                      <TextBlock Text="{Binding Title}"
                                  FontSize="12"
                                  VerticalAlignment="Center"/>
+                      <Ellipse Width="6" Height="6"
+                               Fill="{DynamicResource ThemeAccentBrush}"
+                               IsVisible="{Binding IsModified}"
+                               VerticalAlignment="Center"
+                               Margin="2,0,2,0"
+                               ToolTip.Tip="Unsaved changes"/>
                       <Button ToolTip.Tip="Close Tab (Ctrl+W)"
                               Classes="tab-close-btn"
                               Command="{Binding ((vm:MainViewModel)DataContext).CloseTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -457,42 +466,49 @@
           </ScrollViewer>
 
           <!-- Tab Bar Action Buttons: Sidebar, Split, Markdown, Run, Commands, Copy All & New Tab -->
-          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Margin="0,0,4,0">
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center" Margin="0,0,6,0">
             <Button Command="{Binding ToggleSidebarCommand}"
+                    Classes="tab-action-btn"
+                    Classes.active="{Binding IsSidebarOpen}"
                     ToolTip.Tip="Toggle Folder Sidebar (Ctrl+B)"
-                    Padding="5,3" CornerRadius="4" Background="Transparent" BorderThickness="0">
+                    Padding="6,4" CornerRadius="4">
               <TextBlock Text="📁" FontSize="12" VerticalAlignment="Center"/>
             </Button>
             <Button Command="{Binding ToggleSplitViewCommand}"
+                    Classes="tab-action-btn"
+                    Classes.active="{Binding IsSplitViewActive}"
                     ToolTip.Tip="Toggle Split View (Ctrl+\)"
-                    Padding="5,3" CornerRadius="4" Background="Transparent" BorderThickness="0">
+                    Padding="6,4" CornerRadius="4">
               <TextBlock Text="🔀" FontSize="12" VerticalAlignment="Center"/>
             </Button>
             <Button Command="{Binding ToggleMarkdownPreviewCommand}"
+                    Classes="tab-action-btn"
+                    Classes.active="{Binding IsMarkdownPreviewActive}"
                     ToolTip.Tip="Toggle Markdown Live Preview (Ctrl+Shift+M)"
                     IsVisible="{Binding IsActiveDocumentMarkdown}"
-                    Padding="5,3" CornerRadius="4" Background="Transparent" BorderThickness="0">
+                    Padding="6,4" CornerRadius="4">
               <TextBlock Text="📝" FontSize="12" VerticalAlignment="Center"/>
             </Button>
             <Button Command="{Binding RunActiveScriptCommand}"
+                    Classes="tab-action-btn"
                     ToolTip.Tip="Run Active Script (AgentLang, PS2, Python, Dart, PowerShell) (F5)"
-                    Padding="5,3" CornerRadius="4" Background="Transparent" BorderThickness="0">
+                    Padding="6,4" CornerRadius="4">
               <TextBlock Text="▶" FontSize="11" Foreground="#4CAF50" VerticalAlignment="Center"/>
             </Button>
             <Button Command="{Binding ShowCommandPaletteCommand}"
+                    Classes="tab-action-btn"
                     ToolTip.Tip="Command Palette (Ctrl+Shift+P / F1)"
-                    Padding="5,3" CornerRadius="4" Background="Transparent" BorderThickness="0">
+                    Padding="6,4" CornerRadius="4">
               <TextBlock Text="⚡" FontSize="12" VerticalAlignment="Center"/>
             </Button>
 
-            <Border Width="1" Height="16" Background="{DynamicResource ThemeBorderBrush}" Margin="4,0" Opacity="0.5"/>
+            <Border Width="1" Height="14" Background="{DynamicResource ThemeBorderBrush}" Margin="4,0" Opacity="0.4"/>
 
             <Button Command="{Binding CopyAllCommand}"
+                    Classes="tab-action-btn"
                     ToolTip.Tip="Copy All Content to Clipboard (Ctrl+Shift+C)"
-                    Padding="6,3"
-                    CornerRadius="4"
-                    Background="Transparent"
-                    BorderThickness="0">
+                    Padding="6,4"
+                    CornerRadius="4">
               <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                 <TextBlock Text="📋" FontSize="11" VerticalAlignment="Center"/>
                 <TextBlock Text="Copy All" FontSize="11" Foreground="{DynamicResource ThemeMenuForeground}" VerticalAlignment="Center"/>
@@ -500,13 +516,12 @@
             </Button>
 
             <Button Command="{Binding CreateNewDocumentCommand}"
+                    Classes="tab-action-btn"
                     ToolTip.Tip="New Tab (Ctrl+N)"
                     Width="26" Height="26"
                     Padding="0"
                     CornerRadius="4"
-                    Margin="2,1,2,1"
-                    Background="Transparent"
-                    BorderThickness="0">
+                    Margin="2,1,2,1">
               <TextBlock Text="+"
                          FontSize="16"
                          Foreground="{DynamicResource ThemeMenuForeground}"
@@ -653,11 +668,7 @@
                           <DataTemplate DataType="models:BreadcrumbItem">
                             <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                               <Button Command="{Binding ClickCommand}"
-                                      Background="Transparent"
-                                      BorderThickness="0"
-                                      Padding="4,2"
-                                      CornerRadius="3"
-                                      Cursor="Hand"
+                                      Classes="breadcrumb-btn"
                                       ToolTip.Tip="{Binding FullPath}">
                                 <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                   <TextBlock Text="📁" IsVisible="{Binding IsFolder}" FontSize="11" VerticalAlignment="Center"/>
@@ -704,7 +715,7 @@
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center"
                                    Foreground="{DynamicResource ThemeWindowForeground}"/>
-                        <TextBlock Text="Fast, lightweight modern code viewer &amp; editor — v1.2.0-beta.18"
+                        <TextBlock Text="Fast, lightweight modern code viewer &amp; editor — v1.2.0-beta.19"
                                    FontSize="13"
                                    Opacity="0.75"
                                    HorizontalAlignment="Center"
@@ -1371,7 +1382,7 @@
                 <TextBlock Text="▾" FontSize="9" VerticalAlignment="Center" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.8"/>
               </StackPanel>
             </Button>
-            <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
+            <Border Width="1" Height="12" Background="{DynamicResource ThemeBorderBrush}" Opacity="0.4" Margin="2,0"/>
             <Button ToolTip.Tip="File Encoding (Click to change)"
                     Background="Transparent"
                     BorderThickness="0"
@@ -1391,7 +1402,7 @@
               <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.EncodingName, FallbackValue='UTF-8'}"/>
             </Button>
 
-            <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
+            <Border Width="1" Height="12" Background="{DynamicResource ThemeBorderBrush}" Opacity="0.4" Margin="2,0"/>
             <Button ToolTip.Tip="Line Endings: Click to change (CRLF ⇄ LF)"
                     Background="Transparent"
                     BorderThickness="0"
@@ -1428,9 +1439,9 @@
           </Border>
 
           <!-- Right Info: Caret Position, Font Size, and Settings Button -->
-          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="0,0,8,0">
             <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.CaretDisplay, FallbackValue='Ln 1, Col 1'}"/>
-            <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
+            <Border Width="1" Height="12" Background="{DynamicResource ThemeBorderBrush}" Opacity="0.4" Margin="2,0"/>
             <Button ToolTip.Tip="Indentation: Click to change spaces"
                     Background="Transparent"
                     BorderThickness="0"
@@ -1446,7 +1457,7 @@
               </Button.Flyout>
               <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.TabSizeDisplay, FallbackValue='Spaces: 4'}"/>
             </Button>
-            <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
+            <Border Width="1" Height="12" Background="{DynamicResource ThemeBorderBrush}" Opacity="0.4" Margin="2,0"/>
             <Button Command="{Binding ResetZoomCommand}"
                     ToolTip.Tip="Zoom Level (Click or Ctrl+0 to reset zoom)"
                     Background="Transparent"
@@ -1457,7 +1468,7 @@
               <TextBlock Classes="statusitem" Text="{Binding ActiveDocument.FontSize, StringFormat='{}{0:0} pt', FallbackValue='14 pt'}"/>
             </Button>
 
-            <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
+            <Border Width="1" Height="12" Background="{DynamicResource ThemeBorderBrush}" Opacity="0.4" Margin="2,0"/>
             <Button Command="{Binding ToggleCodingFontCommand}"
                     ToolTip.Tip="Coding Font: Click or press Ctrl+Alt+F to toggle (Google Sans Code ⇄ Roboto Mono)"
                     Background="Transparent"
@@ -1470,7 +1481,7 @@
                 <TextBlock Classes="statusitem" Text="{Binding CurrentFontFamily}" MaxWidth="120" TextTrimming="CharacterEllipsis"/>
               </StackPanel>
             </Button>
-            <TextBlock Text="|" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.6" VerticalAlignment="Center" FontSize="11"/>
+            <Border Width="1" Height="12" Background="{DynamicResource ThemeBorderBrush}" Opacity="0.4" Margin="2,0"/>
             <Button Command="{Binding ShowSettingsCommand}"
                     ToolTip.Tip="Settings (Ctrl+,)"
                     Background="Transparent"
