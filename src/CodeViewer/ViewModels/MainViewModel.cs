@@ -37,26 +37,30 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private readonly AppConfig _config;
 
     public record ClosedTabState(string? FilePath, string Title, string Content, int CaretLine, int CaretColumn, string Language);
-    private readonly Stack<ClosedTabState> _recentlyClosedTabs = new();
 
-    private readonly HashSet<string> _activeReloadPrompts = new(StringComparer.OrdinalIgnoreCase);
     private CancellationTokenSource? _statusCts;
     private bool _isDisposed;
 
     [ObservableProperty]
-    private DocumentViewModel? _activeDocument;
+    private TabManager _tabManager = null!;
+
+    public ObservableCollection<DocumentViewModel> Documents => TabManager.Documents;
+
+    public DocumentViewModel? ActiveDocument
+    {
+        get => TabManager.ActiveDocument;
+        set => TabManager.ActiveDocument = value;
+    }
+
+    public bool HasDocuments => TabManager.HasDocuments;
+    public bool HasNoDocuments => TabManager.HasNoDocuments;
+    public bool CanReopenClosedTab => TabManager.CanReopenClosedTab;
 
     [ObservableProperty]
     private SearchViewModel _searchViewModel = new();
 
     [ObservableProperty]
-    private ObservableCollection<DocumentViewModel> _documents = [];
-
-    [ObservableProperty]
     private ObservableCollection<RecentFileItem> _recentFiles = [];
-
-    [ObservableProperty]
-    private ObservableCollection<RecentWorkspaceItem> _recentWorkspaces = [];
 
     [ObservableProperty]
     private ObservableCollection<BreadcrumbItem> _breadcrumbs = [];
@@ -72,10 +76,6 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     [ObservableProperty]
     private bool _enableAnimations = true;
-
-    public bool HasDocuments => Documents.Count > 0;
-    public bool HasNoDocuments => Documents.Count == 0;
-    public bool HasRecentWorkspaces => RecentWorkspaces.Count > 0;
 
     [ObservableProperty]
     private string _currentFontFamily = "Google Sans Code";
@@ -108,13 +108,29 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     // 📁 Folder Workspace & Tree Sidebar
     [ObservableProperty]
-    private bool _isSidebarOpen = true;
+    private WorkspaceCoordinator _workspaceCoordinator = null!;
 
-    [ObservableProperty]
-    private FolderItem? _rootFolder;
+    public bool IsSidebarOpen
+    {
+        get => WorkspaceCoordinator.IsSidebarOpen;
+        set => WorkspaceCoordinator.IsSidebarOpen = value;
+    }
 
-    [ObservableProperty]
-    private FolderItem? _selectedFolderItem;
+    public FolderItem? RootFolder
+    {
+        get => WorkspaceCoordinator.RootFolder;
+        set => WorkspaceCoordinator.RootFolder = value;
+    }
+
+    public FolderItem? SelectedFolderItem
+    {
+        get => WorkspaceCoordinator.SelectedFolderItem;
+        set => WorkspaceCoordinator.SelectedFolderItem = value;
+    }
+
+    public ObservableCollection<RecentWorkspaceItem> RecentWorkspaces => WorkspaceCoordinator.RecentWorkspaces;
+
+    public bool HasRecentWorkspaces => WorkspaceCoordinator.HasRecentWorkspaces;
 
     // 🔍 Global Workspace Search (Ctrl+Shift+F)
     [ObservableProperty]
@@ -144,18 +160,27 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     // ⚡ Command Palette
     [ObservableProperty]
-    private bool _isCommandPaletteOpen;
+    private CommandPaletteCoordinator _commandPalette = new();
 
-    [ObservableProperty]
-    private string _commandPaletteQuery = string.Empty;
+    public bool IsCommandPaletteOpen
+    {
+        get => CommandPalette.IsOpen;
+        set => CommandPalette.IsOpen = value;
+    }
 
-    [ObservableProperty]
-    private ObservableCollection<CommandPaletteItem> _filteredCommands = [];
+    public string CommandPaletteQuery
+    {
+        get => CommandPalette.Query;
+        set => CommandPalette.Query = value;
+    }
 
-    [ObservableProperty]
-    private CommandPaletteItem? _selectedCommandPaletteItem;
+    public ObservableCollection<CommandPaletteItem> FilteredCommands => CommandPalette.FilteredCommands;
 
-    private readonly List<CommandPaletteItem> _allCommands = [];
+    public CommandPaletteItem? SelectedCommandPaletteItem
+    {
+        get => CommandPalette.SelectedItem;
+        set => CommandPalette.SelectedItem = value;
+    }
 
     // 🔀 Split View
     [ObservableProperty]
@@ -265,7 +290,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         IIntegrationsUpdateService? integrationsUpdateService = null,
         IWorkspaceSearchService? workspaceSearchService = null,
         IAppUpdateService? appUpdateService = null,
-        IRecentWorkspacesService? recentWorkspacesService = null)
+        IRecentWorkspacesService? recentWorkspacesService = null,
+        WorkspaceCoordinator? workspaceCoordinator = null,
+        CommandPaletteCoordinator? commandPalette = null,
+        TabManager? tabManager = null)
     {
         _fileService = fileService;
         _languageService = languageService;
@@ -282,8 +310,109 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _appUpdateService = appUpdateService ?? new AppUpdateService();
         _recentWorkspacesService = recentWorkspacesService ?? new RecentWorkspacesService();
 
+        _workspaceCoordinator = workspaceCoordinator ?? new WorkspaceCoordinator(_dialogService, _recentWorkspacesService);
+        if (commandPalette != null)
+        {
+            _commandPalette = commandPalette;
+        }
 
-        _fileWatcherService.FileChangedOnDisk += OnFileChangedOnDisk;
+        _workspaceCoordinator.RequestOpenFile = fullPath => OpenFileInternalAsync(fullPath);
+        _workspaceCoordinator.RequestCloseFile = async fullPath =>
+        {
+            var openDoc = Documents.FirstOrDefault(d => string.Equals(d.FilePath, fullPath, StringComparison.OrdinalIgnoreCase));
+            if (openDoc != null)
+            {
+                await CloseTabAsync(openDoc);
+            }
+        };
+        _workspaceCoordinator.NotifyFileRenamed = (oldPath, newPath) =>
+        {
+            var openDoc = Documents.FirstOrDefault(d => string.Equals(d.FilePath, oldPath, StringComparison.OrdinalIgnoreCase));
+            if (openDoc != null)
+            {
+                openDoc.FilePath = newPath;
+                openDoc.Title = Path.GetFileName(newPath);
+            }
+        };
+        _workspaceCoordinator.RequestStatusMessage = msg => ShowTemporaryStatusAsync(msg);
+        _workspaceCoordinator.RequestSetClipboardText = path => RequestSetClipboardText != null ? RequestSetClipboardText(path) : Task.CompletedTask;
+        _workspaceCoordinator.WorkspaceChanged = () => UpdateBreadcrumbs();
+
+        _workspaceCoordinator.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(WorkspaceCoordinator.IsSidebarOpen))
+                OnPropertyChanged(nameof(IsSidebarOpen));
+            else if (e.PropertyName == nameof(WorkspaceCoordinator.RootFolder))
+            {
+                OnPropertyChanged(nameof(RootFolder));
+                UpdateBreadcrumbs();
+            }
+            else if (e.PropertyName == nameof(WorkspaceCoordinator.SelectedFolderItem))
+                OnPropertyChanged(nameof(SelectedFolderItem));
+            else if (e.PropertyName == nameof(WorkspaceCoordinator.HasRecentWorkspaces))
+                OnPropertyChanged(nameof(HasRecentWorkspaces));
+        };
+
+        _tabManager = tabManager ?? new TabManager(
+            _fileService,
+            _languageService,
+            _dialogService,
+            _themeService,
+            _settingsService,
+            _fileWatcherService,
+            _recentFilesService,
+            _config);
+
+        _tabManager.RequestGoToLine = (line, col) => RequestGoToLine?.Invoke(line, col);
+        _tabManager.RequestSetClipboardText = text => RequestSetClipboardText != null ? RequestSetClipboardText(text) : Task.CompletedTask;
+        _tabManager.RequestStatusMessage = (msg, duration) => ShowTemporaryStatusAsync(msg, duration);
+        _tabManager.GetWorkspaceRootPath = () => RootFolder?.FullPath;
+        _tabManager.GetCurrentTheme = () => CurrentTheme;
+        _tabManager.RequestSaveSession = () => SaveCurrentSessionAsync();
+        _tabManager.RequestReloadRecentFiles = () => LoadRecentFilesAsync();
+
+        _tabManager.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(TabManager.ActiveDocument))
+            {
+                OnPropertyChanged(nameof(ActiveDocument));
+                OnPropertyChanged(nameof(WindowTitle));
+                OnPropertyChanged(nameof(FilteredLanguageOptions));
+                OnPropertyChanged(nameof(IsActiveDocumentMarkdown));
+                if (!IsActiveDocumentMarkdown && IsMarkdownPreviewActive)
+                {
+                    IsMarkdownPreviewActive = false;
+                }
+                UpdateBreadcrumbs();
+            }
+            else if (e.PropertyName == nameof(TabManager.HasDocuments))
+                OnPropertyChanged(nameof(HasDocuments));
+            else if (e.PropertyName == nameof(TabManager.HasNoDocuments))
+                OnPropertyChanged(nameof(HasNoDocuments));
+            else if (e.PropertyName == nameof(TabManager.CanReopenClosedTab))
+                OnPropertyChanged(nameof(CanReopenClosedTab));
+            else if (e.PropertyName == nameof(TabManager.Documents))
+                OnPropertyChanged(nameof(Documents));
+        };
+
+        _tabManager.DocumentsChanged = () =>
+        {
+            OnPropertyChanged(nameof(HasDocuments));
+            OnPropertyChanged(nameof(HasNoDocuments));
+            UpdateBreadcrumbs();
+        };
+
+        _tabManager.DocumentStateChanged = () =>
+        {
+            OnPropertyChanged(nameof(WindowTitle));
+            OnPropertyChanged(nameof(FilteredLanguageOptions));
+            OnPropertyChanged(nameof(IsActiveDocumentMarkdown));
+            if (!IsActiveDocumentMarkdown && IsMarkdownPreviewActive)
+            {
+                IsMarkdownPreviewActive = false;
+            }
+            UpdateBreadcrumbs();
+        };
 
         var settings = _settingsService.CurrentSettings;
         _currentFontFamily = settings.FontFamily;
@@ -291,13 +420,6 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _rainbowBracketsEnabled = settings.EnableRainbowBrackets;
         _autoCloseBrackets = settings.AutoCloseBrackets;
         _enableAnimations = settings.EnableAnimations;
-
-        _documents.CollectionChanged += (s, e) =>
-        {
-            OnPropertyChanged(nameof(HasDocuments));
-            OnPropertyChanged(nameof(HasNoDocuments));
-            UpdateBreadcrumbs();
-        };
 
         _themeService.ThemeChanged += theme =>
         {
@@ -314,6 +436,18 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(PluginCategories));
         };
 
+        _commandPalette.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(CommandPaletteCoordinator.IsOpen))
+                OnPropertyChanged(nameof(IsCommandPaletteOpen));
+            else if (e.PropertyName == nameof(CommandPaletteCoordinator.Query))
+                OnPropertyChanged(nameof(CommandPaletteQuery));
+            else if (e.PropertyName == nameof(CommandPaletteCoordinator.SelectedItem))
+                OnPropertyChanged(nameof(SelectedCommandPaletteItem));
+            else if (e.PropertyName == nameof(CommandPaletteCoordinator.FilteredCommands))
+                OnPropertyChanged(nameof(FilteredCommands));
+        };
+
         InitializeCommands();
     }
 
@@ -325,28 +459,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         AutoCloseBrackets = settings.AutoCloseBrackets;
         EnableAnimations = settings.EnableAnimations;
 
-        foreach (var doc in Documents)
-        {
-            doc.FontSize = settings.FontSize;
-            doc.WordWrap = settings.WordWrap;
-            doc.ShowLineNumbers = settings.ShowLineNumbers;
-            doc.TabSize = settings.TabSize;
-        }
+        TabManager.ApplySettings(settings);
         _themeService.ApplyTheme(settings);
         ApplyCodeColorsToAllDocuments(CurrentTheme);
     }
 
     public void ApplyCodeColorsToAllDocuments(ColorTheme? theme = null)
     {
-        var target = theme ?? CurrentTheme;
-        _themeService.ApplyThemeToAllHighlightings(target);
-        foreach (var doc in Documents)
-        {
-            if (doc.HighlightingDefinition != null)
-            {
-                _themeService.ApplyCodeColorsToHighlighting(doc.HighlightingDefinition, target);
-            }
-        }
+        TabManager.ApplyCodeColorsToAllDocuments(theme ?? CurrentTheme);
     }
 
     /// <summary>
@@ -467,47 +587,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         OnPropertyChanged(nameof(HasRecentFiles));
     }
 
-    public async Task LoadRecentWorkspacesAsync()
-    {
-        var items = await _recentWorkspacesService.GetRecentWorkspacesAsync();
-        RecentWorkspaces.Clear();
-        foreach (var item in items)
-        {
-            item.OpenCommand = new AsyncRelayCommand(() => OpenRecentWorkspaceAsync(item.FolderPath));
-            RecentWorkspaces.Add(item);
-        }
-        OnPropertyChanged(nameof(HasRecentWorkspaces));
-    }
+    public Task LoadRecentWorkspacesAsync() => WorkspaceCoordinator.LoadRecentWorkspacesAsync();
 
-    public async Task AddRecentWorkspaceAsync(string folderPath)
-    {
-        await _recentWorkspacesService.AddRecentWorkspaceAsync(folderPath);
-        await LoadRecentWorkspacesAsync();
-    }
+    public Task AddRecentWorkspaceAsync(string folderPath) => WorkspaceCoordinator.AddRecentWorkspaceAsync(folderPath);
 
     [RelayCommand]
-    public async Task OpenRecentWorkspaceAsync(string? folderPath)
-    {
-        if (string.IsNullOrWhiteSpace(folderPath)) return;
-        if (Directory.Exists(folderPath))
-        {
-            OpenFolder(folderPath);
-        }
-        else
-        {
-            await _dialogService.ShowMessageAsync("Folder Not Found", $"The workspace folder '{folderPath}' no longer exists.");
-            await _recentWorkspacesService.RemoveRecentWorkspaceAsync(folderPath);
-            await LoadRecentWorkspacesAsync();
-        }
-    }
+    public Task OpenRecentWorkspaceAsync(string? folderPath) => WorkspaceCoordinator.OpenRecentWorkspaceAsync(folderPath);
 
     [RelayCommand]
-    public async Task ClearRecentWorkspacesAsync()
-    {
-        await _recentWorkspacesService.ClearAsync();
-        RecentWorkspaces.Clear();
-        OnPropertyChanged(nameof(HasRecentWorkspaces));
-    }
+    public Task ClearRecentWorkspacesAsync() => WorkspaceCoordinator.ClearRecentWorkspacesAsync();
 
     public void UpdateBreadcrumbs()
     {
@@ -734,39 +822,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
-    public void CreateNewDocument()
-    {
-        var settings = _settingsService.CurrentSettings;
-        var model = DocumentModel.CreateNew($"Untitled-{Documents.Count + 1}");
-        var fontSize = _config.DefaultFontSize > 0 ? _config.DefaultFontSize : settings.FontSize;
-        var docVm = new DocumentViewModel(model, _languageService, fontSize)
-        {
-            WordWrap = settings.WordWrap,
-            ShowLineNumbers = settings.ShowLineNumbers,
-            TabSize = settings.TabSize
-        };
-
-        if (docVm.HighlightingDefinition != null)
-        {
-            _themeService.ApplyCodeColorsToHighlighting(docVm.HighlightingDefinition, CurrentTheme);
-        }
-
-        Documents.Add(docVm);
-        ActiveDocument = docVm;
-        UpdateActiveDocumentSelection();
-        OnPropertyChanged(nameof(WindowTitle));
-        _ = SaveCurrentSessionAsync();
-    }
+    public void CreateNewDocument() => TabManager.CreateNewDocument();
 
     [RelayCommand]
-    public async Task OpenFileAsync()
-    {
-        var filePath = await _dialogService.ShowOpenFileDialogAsync();
-        if (!string.IsNullOrEmpty(filePath))
-        {
-            await OpenFileInternalAsync(filePath);
-        }
-    }
+    public Task OpenFileAsync() => TabManager.OpenFileAsync();
 
     public async Task ShowTemporaryStatusAsync(string message, int durationMs = 2500)
     {
@@ -790,367 +849,41 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     }
 
     [RelayCommand]
-    public async Task OpenRecentFileAsync(string? filePath)
-    {
-        if (string.IsNullOrWhiteSpace(filePath)) return;
+    public Task OpenRecentFileAsync(string? filePath) => TabManager.OpenRecentFileAsync(filePath);
 
-        if (!File.Exists(filePath))
-        {
-            await _recentFilesService.RemoveRecentFileAsync(filePath);
-            await LoadRecentFilesAsync();
-            _ = ShowTemporaryStatusAsync($"File not found: {Path.GetFileName(filePath)}");
-            await _dialogService.ShowMessageAsync("File Not Found", $"The recent file '{filePath}' no longer exists on disk.\n\nIt has been removed from recent files.");
-            return;
-        }
-
-        await OpenFileInternalAsync(filePath);
-    }
-
-    public async Task OpenFileInternalAsync(string filePath, int targetLine = 1, int targetCol = 1)
-    {
-        if (string.IsNullOrWhiteSpace(filePath))
-        {
-            return;
-        }
-
-        if (!File.Exists(filePath))
-        {
-            await _recentFilesService.RemoveRecentFileAsync(filePath);
-            await LoadRecentFilesAsync();
-            _ = ShowTemporaryStatusAsync($"File not found: {Path.GetFileName(filePath)}");
-            return;
-        }
-
-        var fullPath = Path.GetFullPath(filePath);
-
-        // Check if file is already open in a tab
-        var existing = Documents.FirstOrDefault(d => string.Equals(d.FilePath, fullPath, StringComparison.OrdinalIgnoreCase));
-        if (existing != null)
-        {
-            ActiveDocument = existing;
-            UpdateActiveDocumentSelection();
-            if (targetLine > 1 || targetCol > 1)
-            {
-                RequestGoToLine?.Invoke(targetLine, targetCol);
-            }
-            return;
-        }
-
-        try
-        {
-            var settings = _settingsService.CurrentSettings;
-            var model = await _fileService.OpenFileAsync(fullPath);
-            var fontSize = _config.DefaultFontSize > 0 ? _config.DefaultFontSize : settings.FontSize;
-            var docVm = new DocumentViewModel(model, _languageService, fontSize)
-            {
-                WordWrap = settings.WordWrap,
-                ShowLineNumbers = settings.ShowLineNumbers,
-                TabSize = settings.TabSize
-            };
-
-            if (docVm.HighlightingDefinition != null)
-            {
-                _themeService.ApplyCodeColorsToHighlighting(docVm.HighlightingDefinition, CurrentTheme);
-            }
-
-            // If the only document is an untouched empty Untitled tab, replace it
-            bool isUntouchedEmpty = false;
-            if (Documents.Count == 1 && Documents[0].Model.IsNewFile && !Documents[0].IsModified)
-            {
-                try
-                {
-                    isUntouchedEmpty = Documents[0].TextDocument.TextLength == 0;
-                }
-                catch
-                {
-                    isUntouchedEmpty = string.IsNullOrEmpty(Documents[0].Model.Text);
-                }
-            }
-
-            if (isUntouchedEmpty)
-            {
-                Documents[0] = docVm;
-            }
-            else
-            {
-                Documents.Add(docVm);
-            }
-
-            ActiveDocument = docVm;
-            UpdateActiveDocumentSelection();
-            _fileWatcherService.WatchFile(fullPath);
-            await _recentFilesService.AddRecentFileAsync(fullPath);
-            await LoadRecentFilesAsync();
-            OnPropertyChanged(nameof(WindowTitle));
-            _ = SaveCurrentSessionAsync();
-
-            if (targetLine > 1 || targetCol > 1)
-            {
-                RequestGoToLine?.Invoke(targetLine, targetCol);
-            }
-        }
-        catch (Exception ex)
-        {
-            await _dialogService.ShowMessageAsync("Error Opening File", $"Could not open file: {ex.Message}");
-        }
-    }
+    public Task OpenFileInternalAsync(string filePath, int targetLine = 1, int targetCol = 1) => TabManager.OpenFileInternalAsync(filePath, targetLine, targetCol);
 
     [RelayCommand]
-    public async Task SaveAsync()
-    {
-        if (ActiveDocument == null) return;
-
-        if (ActiveDocument.Model.IsNewFile)
-        {
-            await SaveAsAsync();
-            return;
-        }
-
-        try
-        {
-            if (ActiveDocument.FilePath != null)
-            {
-                _fileWatcherService.TemporarilyIgnore(ActiveDocument.FilePath);
-            }
-
-            ActiveDocument.SyncToModel();
-            await _fileService.SaveFileAsync(ActiveDocument.Model);
-            var fileInfo = new FileInfo(ActiveDocument.FilePath!);
-            ActiveDocument.MarkSaved(fileInfo.FullName, fileInfo.Length, fileInfo.LastWriteTimeUtc);
-            _fileWatcherService.WatchFile(fileInfo.FullName);
-            OnPropertyChanged(nameof(WindowTitle));
-            _ = SaveCurrentSessionAsync();
-        }
-        catch (Exception ex)
-        {
-            await _dialogService.ShowMessageAsync("Error Saving File", $"Could not save file: {ex.Message}");
-        }
-    }
+    public Task SaveAsync() => TabManager.SaveAsync();
 
     [RelayCommand]
-    public async Task SaveAsAsync()
-    {
-        if (ActiveDocument == null) return;
-
-        var defaultName = ActiveDocument.Title;
-        var targetPath = await _dialogService.ShowSaveFileDialogAsync(defaultName);
-        if (string.IsNullOrEmpty(targetPath)) return;
-
-        try
-        {
-            _fileWatcherService.TemporarilyIgnore(targetPath);
-            ActiveDocument.SyncToModel();
-            await _fileService.SaveFileAsync(ActiveDocument.Model, targetPath);
-            var fileInfo = new FileInfo(targetPath);
-            ActiveDocument.MarkSaved(fileInfo.FullName, fileInfo.Length, fileInfo.LastWriteTimeUtc);
-            _fileWatcherService.WatchFile(fileInfo.FullName);
-
-            await _recentFilesService.AddRecentFileAsync(targetPath);
-            await LoadRecentFilesAsync();
-            OnPropertyChanged(nameof(WindowTitle));
-            _ = SaveCurrentSessionAsync();
-        }
-        catch (Exception ex)
-        {
-            await _dialogService.ShowMessageAsync("Error Saving File", $"Could not save file: {ex.Message}");
-        }
-    }
+    public Task SaveAsAsync() => TabManager.SaveAsAsync();
 
     [RelayCommand]
-    public async Task CloseTabAsync(DocumentViewModel? doc)
-    {
-        var targetDoc = doc ?? ActiveDocument;
-        if (targetDoc == null) return;
-
-        if (targetDoc.IsModified)
-        {
-            var confirm = await _dialogService.ShowSaveConfirmationAsync(targetDoc.Title);
-            if (confirm == ConfirmResult.Cancel)
-            {
-                return;
-            }
-            if (confirm == ConfirmResult.Save)
-            {
-                targetDoc.SyncToModel();
-                if (targetDoc.Model.IsNewFile)
-                {
-                    var targetPath = await _dialogService.ShowSaveFileDialogAsync(targetDoc.Title);
-                    if (string.IsNullOrEmpty(targetPath)) return;
-                    _fileWatcherService.TemporarilyIgnore(targetPath);
-                    await _fileService.SaveFileAsync(targetDoc.Model, targetPath);
-                }
-                else
-                {
-                    if (targetDoc.FilePath != null)
-                    {
-                        _fileWatcherService.TemporarilyIgnore(targetDoc.FilePath);
-                    }
-                    await _fileService.SaveFileAsync(targetDoc.Model);
-                }
-            }
-        }
-
-        if (!string.IsNullOrEmpty(targetDoc.FilePath) || !string.IsNullOrEmpty(targetDoc.TextDocument.Text))
-        {
-            if (_recentlyClosedTabs.Count >= 20)
-            {
-                var list = _recentlyClosedTabs.ToList();
-                list.RemoveAt(list.Count - 1);
-                _recentlyClosedTabs.Clear();
-                for (int i = list.Count - 1; i >= 0; i--) _recentlyClosedTabs.Push(list[i]);
-            }
-            string text = string.Empty;
-            try
-            {
-                text = targetDoc.TextDocument?.Text ?? string.Empty;
-            }
-            catch
-            {
-                // Fallback for background thread/test executions where UI dispatcher isn't current
-            }
-            _recentlyClosedTabs.Push(new ClosedTabState(targetDoc.FilePath, targetDoc.Title, text, targetDoc.CaretLine, targetDoc.CaretColumn, targetDoc.Language));
-            OnPropertyChanged(nameof(CanReopenClosedTab));
-        }
-
-        if (!string.IsNullOrEmpty(targetDoc.FilePath))
-        {
-            _fileWatcherService.UnwatchFile(targetDoc.FilePath);
-        }
-
-        var index = Documents.IndexOf(targetDoc);
-        Documents.Remove(targetDoc);
-
-        if (Documents.Count == 0)
-        {
-            ActiveDocument = null;
-        }
-        else
-        {
-            var newIndex = Math.Clamp(index, 0, Documents.Count - 1);
-            ActiveDocument = Documents[newIndex];
-        }
-
-        UpdateActiveDocumentSelection();
-        OnPropertyChanged(nameof(WindowTitle));
-        _ = SaveCurrentSessionAsync();
-    }
-
-    public bool CanReopenClosedTab => _recentlyClosedTabs.Count > 0;
+    public Task CloseTabAsync(DocumentViewModel? doc) => TabManager.CloseTabAsync(doc);
 
     [RelayCommand]
-    public async Task ReopenClosedTabAsync()
-    {
-        if (_recentlyClosedTabs.Count == 0) return;
-
-        var closed = _recentlyClosedTabs.Pop();
-        OnPropertyChanged(nameof(CanReopenClosedTab));
-        if (!string.IsNullOrEmpty(closed.FilePath) && File.Exists(closed.FilePath))
-        {
-            await OpenFileInternalAsync(closed.FilePath, closed.CaretLine, closed.CaretColumn);
-        }
-        else if (!string.IsNullOrEmpty(closed.Content))
-        {
-            CreateNewDocument();
-            if (ActiveDocument != null)
-            {
-                ActiveDocument.TextDocument.Text = closed.Content;
-                ActiveDocument.Title = closed.Title;
-                ActiveDocument.Language = closed.Language;
-                ActiveDocument.CaretLine = closed.CaretLine;
-                ActiveDocument.CaretColumn = closed.CaretColumn;
-            }
-        }
-    }
+    public Task ReopenClosedTabAsync() => TabManager.ReopenClosedTabAsync();
 
     #region Tab Context Menu Operations
 
     [RelayCommand]
-    public async Task CloseOtherTabsAsync(DocumentViewModel? doc)
-    {
-        var keepDoc = doc ?? ActiveDocument;
-        if (keepDoc == null) return;
-
-        var toClose = Documents.Where(d => d != keepDoc).ToList();
-        foreach (var d in toClose)
-        {
-            await CloseTabAsync(d);
-        }
-    }
+    public Task CloseOtherTabsAsync(DocumentViewModel? doc) => TabManager.CloseOtherTabsAsync(doc);
 
     [RelayCommand]
-    public async Task CloseTabsToTheRightAsync(DocumentViewModel? doc)
-    {
-        var target = doc ?? ActiveDocument;
-        if (target == null) return;
-
-        var index = Documents.IndexOf(target);
-        if (index < 0 || index >= Documents.Count - 1) return;
-
-        var toClose = Documents.Skip(index + 1).ToList();
-        foreach (var d in toClose)
-        {
-            await CloseTabAsync(d);
-        }
-    }
+    public Task CloseTabsToTheRightAsync(DocumentViewModel? doc) => TabManager.CloseTabsToTheRightAsync(doc);
 
     [RelayCommand]
-    public async Task CloseSavedTabsAsync()
-    {
-        var toClose = Documents.Where(d => !d.IsModified).ToList();
-        foreach (var d in toClose)
-        {
-            await CloseTabAsync(d);
-        }
-    }
+    public Task CloseSavedTabsAsync() => TabManager.CloseSavedTabsAsync();
 
     [RelayCommand]
-    public async Task CopyDocumentPathAsync(DocumentViewModel? doc)
-    {
-        var target = doc ?? ActiveDocument;
-        if (target?.FilePath != null && RequestSetClipboardText != null)
-        {
-            await RequestSetClipboardText(target.FilePath);
-            _ = ShowTemporaryStatusAsync("✓ Copied path to clipboard");
-        }
-    }
+    public Task CopyDocumentPathAsync(DocumentViewModel? doc) => TabManager.CopyDocumentPathAsync(doc);
 
     [RelayCommand]
-    public async Task CopyDocumentRelativePathAsync(DocumentViewModel? doc)
-    {
-        var target = doc ?? ActiveDocument;
-        if (target?.FilePath != null && RequestSetClipboardText != null)
-        {
-            var path = target.FilePath;
-            if (RootFolder != null && path.StartsWith(RootFolder.FullPath, StringComparison.OrdinalIgnoreCase))
-            {
-                path = Path.GetRelativePath(RootFolder.FullPath, path);
-            }
-            await RequestSetClipboardText(path);
-            _ = ShowTemporaryStatusAsync("✓ Copied relative path to clipboard");
-        }
-    }
+    public Task CopyDocumentRelativePathAsync(DocumentViewModel? doc) => TabManager.CopyDocumentRelativePathAsync(doc);
 
     [RelayCommand]
-    public void RevealInExplorer(DocumentViewModel? doc)
-    {
-        var target = doc ?? ActiveDocument;
-        if (!string.IsNullOrEmpty(target?.FilePath) && File.Exists(target.FilePath))
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = $"/select,\"{target.FilePath}\"",
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                _ = _dialogService.ShowMessageAsync("Error", $"Could not open Explorer: {ex.Message}");
-            }
-        }
-    }
+    public void RevealInExplorer(DocumentViewModel? doc) => TabManager.RevealInExplorer(doc);
 
     #endregion
 
@@ -1720,111 +1453,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         await _sessionService.SaveSessionAsync(openPaths, ActiveDocument?.FilePath);
     }
 
-    private void OnFileChangedOnDisk(object? sender, string changedPath)
-    {
-        Avalonia.Threading.Dispatcher.UIThread.Post(async () =>
-        {
-            var doc = Documents.FirstOrDefault(d => string.Equals(d.FilePath, changedPath, StringComparison.OrdinalIgnoreCase));
-            if (doc == null) return;
-
-            lock (_activeReloadPrompts)
-            {
-                if (_activeReloadPrompts.Contains(changedPath)) return;
-                _activeReloadPrompts.Add(changedPath);
-            }
-
-            try
-            {
-                if (!File.Exists(changedPath))
-                {
-                    var keepOpen = await _dialogService.ShowConfirmationAsync(
-                        "File Deleted Externally",
-                        $"'{doc.DisplayName}' has been deleted on disk.\n\nDo you want to keep the document open in Code Viewer or close this tab?",
-                        confirmText: "Keep Open",
-                        cancelText: "Close Tab");
-                    if (!keepOpen)
-                    {
-                        await CloseTabAsync(doc);
-                    }
-                    else
-                    {
-                        doc.IsModified = true;
-                        OnPropertyChanged(nameof(WindowTitle));
-                        _ = ShowTemporaryStatusAsync($"File deleted on disk: {doc.DisplayName}");
-                    }
-                    return;
-                }
-
-                bool shouldReload;
-                if (doc.IsModified)
-                {
-                    shouldReload = await _dialogService.ShowConfirmationAsync(
-                        "File Changed Externally",
-                        $"'{doc.DisplayName}' has been modified outside of Code Viewer, but you have unsaved local changes.\n\nDo you want to reload it from disk and overwrite your local changes?",
-                        confirmText: "Reload",
-                        cancelText: "Keep Local");
-                }
-                else
-                {
-                    shouldReload = await _dialogService.ShowConfirmationAsync(
-                        "File Changed Externally",
-                        $"'{doc.DisplayName}' has been modified outside of Code Viewer.\n\nDo you want to reload it from disk?",
-                        confirmText: "Reload",
-                        cancelText: "Ignore");
-                }
-
-                if (shouldReload && File.Exists(changedPath))
-                {
-                    var newContent = await ReadAllTextWithRetryAsync(changedPath, doc.Model.EncodingInfo.Encoding);
-                    var fileInfo = new FileInfo(changedPath);
-                    doc.TextDocument.Text = newContent;
-                    doc.MarkSaved(fileInfo.FullName, fileInfo.Length, fileInfo.LastWriteTimeUtc);
-                    OnPropertyChanged(nameof(WindowTitle));
-                    _ = ShowTemporaryStatusAsync($"Reloaded {doc.DisplayName} from disk");
-                }
-            }
-            catch (Exception ex)
-            {
-                await _dialogService.ShowMessageAsync("Reload Error", $"Could not reload file: {ex.Message}");
-            }
-            finally
-            {
-                lock (_activeReloadPrompts)
-                {
-                    _activeReloadPrompts.Remove(changedPath);
-                }
-            }
-        });
-    }
-
-    private static async Task<string> ReadAllTextWithRetryAsync(string path, System.Text.Encoding encoding, int maxRetries = 5, int delayMs = 120)
-    {
-        for (int i = 0; i < maxRetries; i++)
-        {
-            try
-            {
-                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, FileOptions.Asynchronous);
-                using var reader = new StreamReader(stream, encoding);
-                return await reader.ReadToEndAsync();
-            }
-            catch (IOException) when (i < maxRetries - 1)
-            {
-                await Task.Delay(delayMs);
-            }
-        }
-
-        using var finalStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        using var finalReader = new StreamReader(finalStream, encoding);
-        return await finalReader.ReadToEndAsync();
-    }
-
-    private void UpdateActiveDocumentSelection()
-    {
-        foreach (var doc in Documents)
-        {
-            doc.IsActive = (doc == ActiveDocument);
-        }
-    }
+    public void UpdateActiveDocumentSelection() => TabManager.UpdateActiveDocumentSelection();
 
     public bool IsActiveDocumentMarkdown =>
         ActiveDocument != null &&
@@ -1832,329 +1461,45 @@ public partial class MainViewModel : ViewModelBase, IDisposable
          (ActiveDocument.FilePath?.EndsWith(".md", StringComparison.OrdinalIgnoreCase) ?? false) ||
          (ActiveDocument.FilePath?.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase) ?? false));
 
-    partial void OnActiveDocumentChanged(DocumentViewModel? value)
-    {
-        UpdateActiveDocumentSelection();
-        OnPropertyChanged(nameof(WindowTitle));
-        OnPropertyChanged(nameof(FilteredLanguageOptions));
-        OnPropertyChanged(nameof(IsActiveDocumentMarkdown));
-        if (!IsActiveDocumentMarkdown && IsMarkdownPreviewActive)
-        {
-            IsMarkdownPreviewActive = false;
-        }
-        UpdateBreadcrumbs();
-        _ = SaveCurrentSessionAsync();
-    }
-
     #region Folder Workspace & Tree Sidebar Operations
 
     [RelayCommand]
-    public async Task OpenFolderAsync()
-    {
-        var folderPath = await _dialogService.ShowOpenFolderDialogAsync();
-        if (!string.IsNullOrEmpty(folderPath) && Directory.Exists(folderPath))
-        {
-            OpenFolder(folderPath);
-        }
-    }
+    public Task OpenFolderAsync() => WorkspaceCoordinator.OpenFolderAsync();
 
-    public void OpenFolder(string folderPath)
-    {
-        if (string.IsNullOrEmpty(folderPath) || !Directory.Exists(folderPath)) return;
-        var fullPath = Path.GetFullPath(folderPath);
-        var root = new FolderItem(fullPath, true);
-        root.IsExpanded = true;
-        RootFolder = root;
-        IsSidebarOpen = true;
-        _ = AddRecentWorkspaceAsync(fullPath);
-        UpdateBreadcrumbs();
-        _ = ShowTemporaryStatusAsync($"Opened workspace: {root.Name}");
-    }
+    public void OpenFolder(string folderPath) => WorkspaceCoordinator.OpenFolder(folderPath);
 
     [RelayCommand]
-    public void CloseFolder()
-    {
-        RootFolder = null;
-        UpdateBreadcrumbs();
-    }
+    public void CloseFolder() => WorkspaceCoordinator.CloseFolder();
 
     [RelayCommand]
-    public void ToggleSidebar()
-    {
-        IsSidebarOpen = !IsSidebarOpen;
-    }
+    public void ToggleSidebar() => WorkspaceCoordinator.ToggleSidebar();
 
     [RelayCommand]
-    public async Task SelectFolderItemAsync(FolderItem? item)
-    {
-        if (item == null) return;
-        SelectedFolderItem = item;
-        if (!item.IsDirectory && !string.IsNullOrEmpty(item.FullPath) && File.Exists(item.FullPath))
-        {
-            await OpenFileInternalAsync(item.FullPath);
-        }
-        else if (item.IsDirectory)
-        {
-            item.IsExpanded = !item.IsExpanded;
-        }
-    }
+    public Task SelectFolderItemAsync(FolderItem? item) => WorkspaceCoordinator.SelectFolderItemAsync(item);
 
     [RelayCommand]
-    public async Task CreateFileInFolderAsync(FolderItem? item)
-    {
-        var targetFolder = item?.IsDirectory == true ? item : (item?.Parent ?? RootFolder);
-        if (targetFolder == null || string.IsNullOrEmpty(targetFolder.FullPath) || !Directory.Exists(targetFolder.FullPath))
-        {
-            await _dialogService.ShowMessageAsync("New File", "Please open a workspace folder first.");
-            return;
-        }
-
-        var fileName = await _dialogService.ShowPromptAsync("New File", $"Create new file in '{targetFolder.Name}':", "untitled.txt", "e.g. main.dart");
-        if (string.IsNullOrWhiteSpace(fileName)) return;
-
-        var fullPath = Path.Combine(targetFolder.FullPath, fileName.Trim());
-        try
-        {
-            if (File.Exists(fullPath))
-            {
-                await _dialogService.ShowMessageAsync("File Exists", $"A file named '{fileName}' already exists in this folder.");
-                return;
-            }
-
-            File.WriteAllText(fullPath, string.Empty);
-            await targetFolder.RefreshAsync();
-            await OpenFileInternalAsync(fullPath);
-            _ = ShowTemporaryStatusAsync($"Created {fileName}");
-        }
-        catch (Exception ex)
-        {
-            await _dialogService.ShowMessageAsync("Error", $"Could not create file: {ex.Message}");
-        }
-    }
+    public Task CreateFileInFolderAsync(FolderItem? item) => WorkspaceCoordinator.CreateFileInFolderAsync(item);
 
     [RelayCommand]
-    public async Task CreateFolderInFolderAsync(FolderItem? item)
-    {
-        var targetFolder = item?.IsDirectory == true ? item : (item?.Parent ?? RootFolder);
-        if (targetFolder == null || string.IsNullOrEmpty(targetFolder.FullPath) || !Directory.Exists(targetFolder.FullPath))
-        {
-            await _dialogService.ShowMessageAsync("New Folder", "Please open a workspace folder first.");
-            return;
-        }
-
-        var folderName = await _dialogService.ShowPromptAsync("New Folder", $"Create new folder in '{targetFolder.Name}':", "NewFolder", "e.g. src");
-        if (string.IsNullOrWhiteSpace(folderName)) return;
-
-        var fullPath = Path.Combine(targetFolder.FullPath, folderName.Trim());
-        try
-        {
-            if (Directory.Exists(fullPath))
-            {
-                await _dialogService.ShowMessageAsync("Folder Exists", $"A folder named '{folderName}' already exists.");
-                return;
-            }
-
-            Directory.CreateDirectory(fullPath);
-            await targetFolder.RefreshAsync();
-            _ = ShowTemporaryStatusAsync($"Created folder {folderName}");
-        }
-        catch (Exception ex)
-        {
-            await _dialogService.ShowMessageAsync("Error", $"Could not create folder: {ex.Message}");
-        }
-    }
+    public Task CreateFolderInFolderAsync(FolderItem? item) => WorkspaceCoordinator.CreateFolderInFolderAsync(item);
 
     [RelayCommand]
-    public async Task RenameFolderItemAsync(FolderItem? item)
-    {
-        var target = item ?? SelectedFolderItem;
-        if (target == null || string.IsNullOrEmpty(target.FullPath)) return;
-
-        var oldName = target.Name;
-        var newName = await _dialogService.ShowPromptAsync("Rename", $"Enter new name for '{oldName}':", oldName);
-        if (string.IsNullOrWhiteSpace(newName) || string.Equals(newName.Trim(), oldName, StringComparison.Ordinal)) return;
-
-        newName = newName.Trim();
-        var parentDir = Path.GetDirectoryName(target.FullPath);
-        if (string.IsNullOrEmpty(parentDir)) return;
-
-        var newFullPath = Path.Combine(parentDir, newName);
-        try
-        {
-            if (target.IsDirectory)
-            {
-                if (Directory.Exists(newFullPath))
-                {
-                    await _dialogService.ShowMessageAsync("Rename Error", $"A folder named '{newName}' already exists.");
-                    return;
-                }
-                Directory.Move(target.FullPath, newFullPath);
-            }
-            else
-            {
-                if (File.Exists(newFullPath))
-                {
-                    await _dialogService.ShowMessageAsync("Rename Error", $"A file named '{newName}' already exists.");
-                    return;
-                }
-                File.Move(target.FullPath, newFullPath);
-
-                var openDoc = Documents.FirstOrDefault(d => string.Equals(d.FilePath, target.FullPath, StringComparison.OrdinalIgnoreCase));
-                if (openDoc != null)
-                {
-                    openDoc.FilePath = newFullPath;
-                    openDoc.Title = newName;
-                }
-            }
-
-            if (target.Parent != null)
-            {
-                await target.Parent.RefreshAsync();
-            }
-            else if (RootFolder != null)
-            {
-                await RootFolder.RefreshAsync();
-            }
-
-            _ = ShowTemporaryStatusAsync($"Renamed to {newName}");
-        }
-        catch (Exception ex)
-        {
-            await _dialogService.ShowMessageAsync("Rename Failed", ex.Message);
-        }
-    }
+    public Task RenameFolderItemAsync(FolderItem? item) => WorkspaceCoordinator.RenameFolderItemAsync(item);
 
     [RelayCommand]
-    public async Task DeleteFolderItemAsync(FolderItem? item)
-    {
-        var target = item ?? SelectedFolderItem;
-        if (target == null || string.IsNullOrEmpty(target.FullPath)) return;
-
-        var itemType = target.IsDirectory ? "folder" : "file";
-        var confirmed = await _dialogService.ShowConfirmationAsync(
-            "Confirm Delete",
-            $"Are you sure you want to delete the {itemType} '{target.Name}'?\nThis action cannot be undone.",
-            "Delete",
-            "Cancel");
-
-        if (!confirmed) return;
-
-        try
-        {
-            if (target.IsDirectory)
-            {
-                if (Directory.Exists(target.FullPath))
-                {
-                    Directory.Delete(target.FullPath, recursive: true);
-                }
-            }
-            else
-            {
-                if (File.Exists(target.FullPath))
-                {
-                    File.Delete(target.FullPath);
-                }
-
-                var openDoc = Documents.FirstOrDefault(d => string.Equals(d.FilePath, target.FullPath, StringComparison.OrdinalIgnoreCase));
-                if (openDoc != null)
-                {
-                    await CloseTabAsync(openDoc);
-                }
-
-            }
-
-            if (target.Parent != null)
-            {
-                await target.Parent.RefreshAsync();
-            }
-            else if (RootFolder != null)
-            {
-                await RootFolder.RefreshAsync();
-            }
-
-            _ = ShowTemporaryStatusAsync($"Deleted {target.Name}");
-        }
-        catch (Exception ex)
-        {
-            await _dialogService.ShowMessageAsync("Delete Failed", ex.Message);
-        }
-    }
+    public Task DeleteFolderItemAsync(FolderItem? item) => WorkspaceCoordinator.DeleteFolderItemAsync(item);
 
     [RelayCommand]
-    public void RevealFolderItemInExplorer(FolderItem? item)
-    {
-        var target = item ?? SelectedFolderItem;
-        var fullPath = target?.FullPath ?? RootFolder?.FullPath;
-        if (string.IsNullOrEmpty(fullPath)) return;
-
-        try
-        {
-            if (OperatingSystem.IsWindows())
-            {
-                if (File.Exists(fullPath))
-                {
-                    Process.Start("explorer.exe", $"/select,\"{fullPath}\"");
-                }
-                else if (Directory.Exists(fullPath))
-                {
-                    Process.Start("explorer.exe", $"\"{fullPath}\"");
-                }
-            }
-            else
-            {
-                var dir = File.Exists(fullPath) ? Path.GetDirectoryName(fullPath) : fullPath;
-                if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
-                {
-                    Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true });
-                }
-            }
-        }
-        catch
-        {
-            // Ignore
-        }
-    }
+    public void RevealFolderItemInExplorer(FolderItem? item) => WorkspaceCoordinator.RevealFolderItemInExplorer(item);
 
     [RelayCommand]
-    public async Task CopyItemPathAsync(FolderItem? item)
-    {
-        var target = item ?? SelectedFolderItem;
-        var path = target?.FullPath ?? RootFolder?.FullPath;
-        if (string.IsNullOrEmpty(path)) return;
-
-        if (RequestSetClipboardText != null)
-        {
-            await RequestSetClipboardText(path);
-            _ = ShowTemporaryStatusAsync($"✓ Copied path: {path}");
-        }
-    }
+    public Task CopyItemPathAsync(FolderItem? item) => WorkspaceCoordinator.CopyItemPathAsync(item);
 
     [RelayCommand]
-    public async Task CopyItemRelativePathAsync(FolderItem? item)
-    {
-        var target = item ?? SelectedFolderItem;
-        if (target == null || string.IsNullOrEmpty(target.FullPath)) return;
-
-        var root = RootFolder?.FullPath ?? Environment.CurrentDirectory;
-        var rel = Path.GetRelativePath(root, target.FullPath);
-
-        if (RequestSetClipboardText != null)
-        {
-            await RequestSetClipboardText(rel);
-            _ = ShowTemporaryStatusAsync($"✓ Copied relative path: {rel}");
-        }
-    }
+    public Task CopyItemRelativePathAsync(FolderItem? item) => WorkspaceCoordinator.CopyItemRelativePathAsync(item);
 
     [RelayCommand]
-    public async Task RefreshFolderItemAsync(FolderItem? item)
-    {
-        var target = item ?? RootFolder;
-        if (target != null)
-        {
-            await target.RefreshAsync();
-            _ = ShowTemporaryStatusAsync("✓ Refreshed workspace");
-        }
-    }
+    public Task RefreshFolderItemAsync(FolderItem? item) => WorkspaceCoordinator.RefreshFolderItemAsync(item);
 
     #endregion
 
@@ -2488,50 +1833,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     #region Command Palette Operations
 
     [RelayCommand]
-    public void ShowCommandPalette()
-    {
-        CommandPaletteQuery = string.Empty;
-        FilterCommands(string.Empty);
-        IsCommandPaletteOpen = true;
-    }
+    public void ShowCommandPalette() => CommandPalette.Show();
 
     [RelayCommand]
-    public void CloseCommandPalette()
-    {
-        IsCommandPaletteOpen = false;
-    }
+    public void CloseCommandPalette() => CommandPalette.Close();
 
-    partial void OnCommandPaletteQueryChanged(string value)
-    {
-        FilterCommands(value);
-    }
-
-    public void FilterCommands(string query)
-    {
-        FilteredCommands.Clear();
-        var q = query.Trim();
-        var matches = string.IsNullOrEmpty(q)
-            ? _allCommands
-            : _allCommands.Where(c =>
-                c.Title.Contains(q, StringComparison.OrdinalIgnoreCase) ||
-                c.Category.Contains(q, StringComparison.OrdinalIgnoreCase) ||
-                c.ShortcutText.Contains(q, StringComparison.OrdinalIgnoreCase));
-
-        foreach (var cmd in matches)
-        {
-            FilteredCommands.Add(cmd);
-        }
-
-        SelectedCommandPaletteItem = FilteredCommands.FirstOrDefault();
-    }
+    public void FilterCommands(string query) => CommandPalette.Filter(query);
 
     [RelayCommand]
-    public void ExecuteSelectedCommandPaletteItem()
-    {
-        var selected = SelectedCommandPaletteItem;
-        IsCommandPaletteOpen = false;
-        selected?.Action?.Invoke();
-    }
+    public void ExecuteSelectedCommandPaletteItem() => CommandPalette.ExecuteSelected();
 
     public void ExecutePluginById(string pluginId)
     {
@@ -2544,104 +1854,104 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public void InitializeCommands()
     {
-        _allCommands.Clear();
+        CommandPalette.ClearCommands();
 
         // File operations
-        _allCommands.Add(new CommandPaletteItem("file.new", "New File", "File", "Ctrl+N", "📄", () => CreateNewDocument()));
-        _allCommands.Add(new CommandPaletteItem("file.open", "Open File...", "File", "Ctrl+O", "📂", () => _ = OpenFileAsync()));
-        _allCommands.Add(new CommandPaletteItem("file.openFolder", "Open Folder / Workspace...", "File", "Ctrl+Shift+O", "📁", () => _ = OpenFolderAsync()));
-        _allCommands.Add(new CommandPaletteItem("file.quickOpen", "Quick Open...", "File", "Ctrl+P", "🔍", () => _ = ShowQuickOpenAsync()));
-        _allCommands.Add(new CommandPaletteItem("file.save", "Save", "File", "Ctrl+S", "💾", () => _ = SaveAsync()));
-        _allCommands.Add(new CommandPaletteItem("file.saveAs", "Save As...", "File", "Ctrl+Shift+S", "💾", () => _ = SaveAsAsync()));
-        _allCommands.Add(new CommandPaletteItem("file.closeTab", "Close Tab", "File", "Ctrl+W", "✕", () => _ = CloseTabAsync(ActiveDocument)));
-        _allCommands.Add(new CommandPaletteItem("file.closeOtherTabs", "Close Other Tabs", "File", "", "✕", () => _ = CloseOtherTabsAsync(ActiveDocument)));
-        _allCommands.Add(new CommandPaletteItem("file.closeSavedTabs", "Close Saved Tabs", "File", "", "✕", () => _ = CloseSavedTabsAsync()));
-        _allCommands.Add(new CommandPaletteItem("file.copyPath", "Copy Document Path", "File", "", "📋", () => _ = CopyDocumentPathAsync(ActiveDocument)));
-        _allCommands.Add(new CommandPaletteItem("file.revealInExplorer", "Reveal in Explorer", "File", "", "📁", () => RevealInExplorer(ActiveDocument)));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("file.new", "New File", "File", "Ctrl+N", "📄", () => CreateNewDocument()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("file.open", "Open File...", "File", "Ctrl+O", "📂", () => _ = OpenFileAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("file.openFolder", "Open Folder / Workspace...", "File", "Ctrl+Shift+O", "📁", () => _ = OpenFolderAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("file.quickOpen", "Quick Open...", "File", "Ctrl+P", "🔍", () => _ = ShowQuickOpenAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("file.save", "Save", "File", "Ctrl+S", "💾", () => _ = SaveAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("file.saveAs", "Save As...", "File", "Ctrl+Shift+S", "💾", () => _ = SaveAsAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("file.closeTab", "Close Tab", "File", "Ctrl+W", "✕", () => _ = CloseTabAsync(ActiveDocument)));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("file.closeOtherTabs", "Close Other Tabs", "File", "", "✕", () => _ = CloseOtherTabsAsync(ActiveDocument)));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("file.closeSavedTabs", "Close Saved Tabs", "File", "", "✕", () => _ = CloseSavedTabsAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("file.copyPath", "Copy Document Path", "File", "", "📋", () => _ = CopyDocumentPathAsync(ActiveDocument)));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("file.revealInExplorer", "Reveal in Explorer", "File", "", "📁", () => RevealInExplorer(ActiveDocument)));
 
         // Edit operations
-        _allCommands.Add(new CommandPaletteItem("edit.find", "Find...", "Edit", "Ctrl+F", "🔎", () => ShowSearch()));
-        _allCommands.Add(new CommandPaletteItem("edit.findInFiles", "Find in Files (Workspace Search)...", "Edit", "Ctrl+Shift+F", "🔍", () => OpenGlobalSearch()));
-        _allCommands.Add(new CommandPaletteItem("edit.replace", "Replace...", "Edit", "Ctrl+H", "🔄", () => ShowReplace()));
-        _allCommands.Add(new CommandPaletteItem("edit.goToLine", "Go to Line...", "Edit", "Ctrl+G", "🎯", () => ShowGoToLine()));
-        _allCommands.Add(new CommandPaletteItem("edit.toggleComment", "Toggle Line Comment", "Edit", "Ctrl+/", "💬", () => ToggleComment()));
-        _allCommands.Add(new CommandPaletteItem("edit.copyAll", "Copy All Content", "Edit", "Ctrl+Shift+C", "📋", () => _ = CopyAllAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("edit.find", "Find...", "Edit", "Ctrl+F", "🔎", () => ShowSearch()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("edit.findInFiles", "Find in Files (Workspace Search)...", "Edit", "Ctrl+Shift+F", "🔍", () => OpenGlobalSearch()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("edit.replace", "Replace...", "Edit", "Ctrl+H", "🔄", () => ShowReplace()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("edit.goToLine", "Go to Line...", "Edit", "Ctrl+G", "🎯", () => ShowGoToLine()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("edit.toggleComment", "Toggle Line Comment", "Edit", "Ctrl+/", "💬", () => ToggleComment()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("edit.copyAll", "Copy All Content", "Edit", "Ctrl+Shift+C", "📋", () => _ = CopyAllAsync()));
 
         // Workspace operations
-        _allCommands.Add(new CommandPaletteItem("workspace.newFile", "Workspace: New File...", "Workspace", "", "📄", () => _ = CreateFileInFolderAsync(null)));
-        _allCommands.Add(new CommandPaletteItem("workspace.newFolder", "Workspace: New Folder...", "Workspace", "", "📁", () => _ = CreateFolderInFolderAsync(null)));
-        _allCommands.Add(new CommandPaletteItem("workspace.refresh", "Workspace: Refresh Folder Tree", "Workspace", "", "🔄", () => _ = RefreshFolderItemAsync(null)));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("workspace.newFile", "Workspace: New File...", "Workspace", "", "📄", () => _ = CreateFileInFolderAsync(null)));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("workspace.newFolder", "Workspace: New Folder...", "Workspace", "", "📁", () => _ = CreateFolderInFolderAsync(null)));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("workspace.refresh", "Workspace: Refresh Folder Tree", "Workspace", "", "🔄", () => _ = RefreshFolderItemAsync(null)));
 
 
         // View operations
-        _allCommands.Add(new CommandPaletteItem("view.toggleSidebar", "Toggle Folder Sidebar", "View", "Ctrl+B", "📁", () => ToggleSidebar()));
-        _allCommands.Add(new CommandPaletteItem("view.toggleSplit", "Toggle Split View", "View", "Ctrl+\\", "🔀", () => ToggleSplitView()));
-        _allCommands.Add(new CommandPaletteItem("view.toggleMarkdown", "Toggle Markdown Live Preview", "View", "Ctrl+Shift+M", "📝", () => ToggleMarkdownPreview()));
-        _allCommands.Add(new CommandPaletteItem("view.toggleRtl", "Toggle RTL / LTR Direction (Persian/Arabic)", "View", "Ctrl+Alt+R", "⇄", () => ToggleRtl()));
-        _allCommands.Add(new CommandPaletteItem("view.zoomIn", "Zoom In", "View", "Ctrl++", "🔍", () => ZoomIn()));
-        _allCommands.Add(new CommandPaletteItem("view.zoomOut", "Zoom Out", "View", "Ctrl+-", "🔍", () => ZoomOut()));
-        _allCommands.Add(new CommandPaletteItem("view.resetZoom", "Reset Zoom", "View", "Ctrl+0", "🔍", () => ResetZoom()));
-        _allCommands.Add(new CommandPaletteItem("view.toggleWordWrap", "Toggle Word Wrap", "View", "Alt+Z", "↩️", () => ToggleWordWrap()));
-        _allCommands.Add(new CommandPaletteItem("view.toggleLineNumbers", "Toggle Line Numbers", "View", "", "#️⃣", () => ToggleLineNumbers()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleSidebar", "Toggle Folder Sidebar", "View", "Ctrl+B", "📁", () => ToggleSidebar()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleSplit", "Toggle Split View", "View", "Ctrl+\\", "🔀", () => ToggleSplitView()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleMarkdown", "Toggle Markdown Live Preview", "View", "Ctrl+Shift+M", "📝", () => ToggleMarkdownPreview()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleRtl", "Toggle RTL / LTR Direction (Persian/Arabic)", "View", "Ctrl+Alt+R", "⇄", () => ToggleRtl()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.zoomIn", "Zoom In", "View", "Ctrl++", "🔍", () => ZoomIn()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.zoomOut", "Zoom Out", "View", "Ctrl+-", "🔍", () => ZoomOut()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.resetZoom", "Reset Zoom", "View", "Ctrl+0", "🔍", () => ResetZoom()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleWordWrap", "Toggle Word Wrap", "View", "Alt+Z", "↩️", () => ToggleWordWrap()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleLineNumbers", "Toggle Line Numbers", "View", "", "#️⃣", () => ToggleLineNumbers()));
 
         // Run & Developer Tools
-        _allCommands.Add(new CommandPaletteItem("run.activeScript", "Run Active Script (AgentLang, PS2, Python, PowerShell, Dart)", "Run", "F5", "▶", () => _ = RunActiveScriptAsync()));
-        _allCommands.Add(new CommandPaletteItem("run.stopScript", "Stop Running Script", "Run", "", "⏹", () => RunnerViewModel.Cancel()));
-        _allCommands.Add(new CommandPaletteItem("run.clearOutput", "Clear Runner Console Output", "Run", "", "🧹", () => RunnerViewModel.ClearOutput()));
-        _allCommands.Add(new CommandPaletteItem("diff.compare", "Compare / Diff Active Document with File...", "Diff", "Ctrl+Shift+D", "🔍", () => _ = ShowDiffAsync()));
-        _allCommands.Add(new CommandPaletteItem("diff.close", "Close Diff Viewer", "Diff", "", "✕", () => DiffViewModel.CloseDiff()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("run.activeScript", "Run Active Script (AgentLang, PS2, Python, PowerShell, Dart)", "Run", "F5", "▶", () => _ = RunActiveScriptAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("run.stopScript", "Stop Running Script", "Run", "", "⏹", () => RunnerViewModel.Cancel()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("run.clearOutput", "Clear Runner Console Output", "Run", "", "🧹", () => RunnerViewModel.ClearOutput()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("diff.compare", "Compare / Diff Active Document with File...", "Diff", "Ctrl+Shift+D", "🔍", () => _ = ShowDiffAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("diff.close", "Close Diff Viewer", "Diff", "", "✕", () => DiffViewModel.CloseDiff()));
 
         // Utilities & Plugins
-        _allCommands.Add(new CommandPaletteItem("tools.jsonFormat", "Format JSON (2 spaces)", "Tools", "", "⚙️", () => ExecutePluginById("builtin-json-format")));
-        _allCommands.Add(new CommandPaletteItem("tools.jsonMinify", "Minify JSON", "Tools", "", "⚙️", () => ExecutePluginById("builtin-json-minify")));
-        _allCommands.Add(new CommandPaletteItem("tools.sortAsc", "Sort Lines (A to Z)", "Tools", "", "🔤", () => ExecutePluginById("builtin-sort-lines-asc")));
-        _allCommands.Add(new CommandPaletteItem("tools.sortDesc", "Sort Lines (Z to A)", "Tools", "", "🔤", () => ExecutePluginById("builtin-sort-lines-desc")));
-        _allCommands.Add(new CommandPaletteItem("tools.removeDuplicates", "Remove Duplicate Lines", "Tools", "", "✂️", () => ExecutePluginById("builtin-remove-duplicate-lines")));
-        _allCommands.Add(new CommandPaletteItem("tools.reverseLines", "Reverse Lines", "Tools", "", "🔄", () => ExecutePluginById("builtin-reverse-lines")));
-        _allCommands.Add(new CommandPaletteItem("tools.base64Encode", "Base64 Encode", "Tools", "", "🔐", () => ExecutePluginById("builtin-base64-encode")));
-        _allCommands.Add(new CommandPaletteItem("tools.base64Decode", "Base64 Decode", "Tools", "", "🔓", () => ExecutePluginById("builtin-base64-decode")));
-        _allCommands.Add(new CommandPaletteItem("tools.urlEncode", "URL Encode", "Tools", "", "🌐", () => ExecutePluginById("builtin-url-encode")));
-        _allCommands.Add(new CommandPaletteItem("tools.urlDecode", "URL Decode", "Tools", "", "🌐", () => ExecutePluginById("builtin-url-decode")));
-        _allCommands.Add(new CommandPaletteItem("tools.caseUpper", "Convert to UPPERCASE", "Tools", "", "🔠", () => ExecutePluginById("builtin-case-upper")));
-        _allCommands.Add(new CommandPaletteItem("tools.caseLower", "Convert to lowercase", "Tools", "", "🔡", () => ExecutePluginById("builtin-case-lower")));
-        _allCommands.Add(new CommandPaletteItem("tools.caseTitle", "Convert to Title Case", "Tools", "", "🔤", () => ExecutePluginById("builtin-case-title")));
-        _allCommands.Add(new CommandPaletteItem("tools.statistics", "Text Statistics...", "Tools", "", "📊", () => ExecutePluginById("builtin-text-statistics")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("tools.jsonFormat", "Format JSON (2 spaces)", "Tools", "", "⚙️", () => ExecutePluginById("builtin-json-format")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("tools.jsonMinify", "Minify JSON", "Tools", "", "⚙️", () => ExecutePluginById("builtin-json-minify")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("tools.sortAsc", "Sort Lines (A to Z)", "Tools", "", "🔤", () => ExecutePluginById("builtin-sort-lines-asc")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("tools.sortDesc", "Sort Lines (Z to A)", "Tools", "", "🔤", () => ExecutePluginById("builtin-sort-lines-desc")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("tools.removeDuplicates", "Remove Duplicate Lines", "Tools", "", "✂️", () => ExecutePluginById("builtin-remove-duplicate-lines")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("tools.reverseLines", "Reverse Lines", "Tools", "", "🔄", () => ExecutePluginById("builtin-reverse-lines")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("tools.base64Encode", "Base64 Encode", "Tools", "", "🔐", () => ExecutePluginById("builtin-base64-encode")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("tools.base64Decode", "Base64 Decode", "Tools", "", "🔓", () => ExecutePluginById("builtin-base64-decode")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("tools.urlEncode", "URL Encode", "Tools", "", "🌐", () => ExecutePluginById("builtin-url-encode")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("tools.urlDecode", "URL Decode", "Tools", "", "🌐", () => ExecutePluginById("builtin-url-decode")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("tools.caseUpper", "Convert to UPPERCASE", "Tools", "", "🔠", () => ExecutePluginById("builtin-case-upper")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("tools.caseLower", "Convert to lowercase", "Tools", "", "🔡", () => ExecutePluginById("builtin-case-lower")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("tools.caseTitle", "Convert to Title Case", "Tools", "", "🔤", () => ExecutePluginById("builtin-case-title")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("tools.statistics", "Text Statistics...", "Tools", "", "📊", () => ExecutePluginById("builtin-text-statistics")));
 
         // Preferences & Themes
-        _allCommands.Add(new CommandPaletteItem("theme.darkPlus", "Theme: Dark+ (VS Code)", "Preferences", "", "🎨", () => SelectThemeById("dark-plus")));
-        _allCommands.Add(new CommandPaletteItem("theme.oneDark", "Theme: One Dark Pro", "Preferences", "", "🎨", () => SelectThemeById("one-dark")));
-        _allCommands.Add(new CommandPaletteItem("theme.monokai", "Theme: Monokai", "Preferences", "", "🎨", () => SelectThemeById("monokai")));
-        _allCommands.Add(new CommandPaletteItem("theme.dracula", "Theme: Dracula", "Preferences", "", "🎨", () => SelectThemeById("dracula")));
-        _allCommands.Add(new CommandPaletteItem("theme.solarizedDark", "Theme: Solarized Dark", "Preferences", "", "🎨", () => SelectThemeById("solarized-dark")));
-        _allCommands.Add(new CommandPaletteItem("theme.tokyoNight", "Theme: Tokyo Night", "Preferences", "", "🎨", () => SelectThemeById("tokyo-night")));
-        _allCommands.Add(new CommandPaletteItem("theme.nord", "Theme: Nord", "Preferences", "", "🎨", () => SelectThemeById("nord")));
-        _allCommands.Add(new CommandPaletteItem("theme.catppuccinMocha", "Theme: Catppuccin Mocha", "Preferences", "", "🎨", () => SelectThemeById("catppuccin-mocha")));
-        _allCommands.Add(new CommandPaletteItem("theme.gitHubDark", "Theme: GitHub Dark", "Preferences", "", "🎨", () => SelectThemeById("github-dark")));
-        _allCommands.Add(new CommandPaletteItem("theme.gitHubLight", "Theme: GitHub Light", "Preferences", "", "🎨", () => SelectThemeById("github-light")));
-        _allCommands.Add(new CommandPaletteItem("theme.solarizedLight", "Theme: Solarized Light", "Preferences", "", "🎨", () => SelectThemeById("solarized-light")));
-        _allCommands.Add(new CommandPaletteItem("theme.catppuccinLatte", "Theme: Catppuccin Latte", "Preferences", "", "🎨", () => SelectThemeById("catppuccin-latte")));
-        _allCommands.Add(new CommandPaletteItem("theme.cyberpunk", "Theme: Synthwave '84 (Cyberpunk)", "Preferences", "", "🎨", () => SelectThemeById("cyberpunk")));
-        _allCommands.Add(new CommandPaletteItem("theme.gruvboxDark", "Theme: Gruvbox Dark", "Preferences", "", "🎨", () => SelectThemeById("gruvbox-dark")));
-        _allCommands.Add(new CommandPaletteItem("theme.monokaiPro", "Theme: Monokai Pro", "Preferences", "", "🎨", () => SelectThemeById("monokai-pro")));
-        _allCommands.Add(new CommandPaletteItem("theme.rosePine", "Theme: Rosé Pine", "Preferences", "", "🎨", () => SelectThemeById("rose-pine")));
-        _allCommands.Add(new CommandPaletteItem("theme.auraDark", "Theme: Aura Dark", "Preferences", "", "🎨", () => SelectThemeById("aura-dark")));
-        _allCommands.Add(new CommandPaletteItem("theme.oneLight", "Theme: One Light", "Preferences", "", "🎨", () => SelectThemeById("one-light")));
-        _allCommands.Add(new CommandPaletteItem("theme.import", "Import Color Theme (.json)...", "Preferences", "", "🎨", () => _ = ImportThemeAsync()));
-        _allCommands.Add(new CommandPaletteItem("syntax.import", "Import Syntax Definition (.xshd)...", "Preferences", "", "📜", () => _ = ImportSyntaxAsync()));
-        _allCommands.Add(new CommandPaletteItem("settings.open", "Open Settings...", "Preferences", "Ctrl+,", "⚙️", () => ShowSettings()));
-        _allCommands.Add(new CommandPaletteItem("font.toggle", "Toggle Coding Font (Google Sans Code ⇄ Roboto Mono)", "Preferences", "Ctrl+Alt+F", "🔤", () => _ = ToggleCodingFontAsync()));
-        _allCommands.Add(new CommandPaletteItem("font.googleSansCode", "Font: Google Sans Code", "Preferences", "", "🔤", () => _ = SetCodingFontAsync("Google Sans Code")));
-        _allCommands.Add(new CommandPaletteItem("font.robotoMono", "Font: Roboto Mono", "Preferences", "", "🔤", () => _ = SetCodingFontAsync("Roboto Mono")));
-        _allCommands.Add(new CommandPaletteItem("view.breadcrumbs", "Toggle Breadcrumbs Bar", "View", "", "🧭", () => _ = ToggleBreadcrumbsAsync()));
-        _allCommands.Add(new CommandPaletteItem("view.rainbowBrackets", "Toggle Rainbow Brackets", "View", "", "🌈", () => _ = ToggleRainbowBracketsAsync()));
-        _allCommands.Add(new CommandPaletteItem("editor.autoCloseBrackets", "Toggle Auto-Close Brackets & Quotes", "Editor", "", "()", () => _ = ToggleAutoCloseBracketsAsync()));
-        _allCommands.Add(new CommandPaletteItem("editor.toggleLineEnding", "Toggle Line Endings (CRLF ⇄ LF)", "Editor", "", "↵", () => ToggleLineEnding()));
-        _allCommands.Add(new CommandPaletteItem("editor.encodingUtf8", "Set Encoding: UTF-8", "Editor", "", "🔤", () => ChangeEncoding("UTF-8")));
-        _allCommands.Add(new CommandPaletteItem("editor.encodingUtf8Bom", "Set Encoding: UTF-8 with BOM", "Editor", "", "🔤", () => ChangeEncoding("UTF-8 with BOM")));
-        _allCommands.Add(new CommandPaletteItem("editor.encodingUtf16Le", "Set Encoding: UTF-16 LE", "Editor", "", "🔤", () => ChangeEncoding("UTF-16 LE")));
-        _allCommands.Add(new CommandPaletteItem("workspace.clearRecent", "Clear Recent Workspaces History", "File", "", "🗑️", () => _ = ClearRecentWorkspacesAsync()));
-        _allCommands.Add(new CommandPaletteItem("app.update", "Check for Code Viewer App Updates...", "Help", "", "🚀", () => _ = CheckForUpdatesAsync()));
-        _allCommands.Add(new CommandPaletteItem("help.updates", "Check Language & Integration Updates...", "Help", "", "🔄", () => _ = CheckIntegrationsUpdateAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.darkPlus", "Theme: Dark+ (VS Code)", "Preferences", "", "🎨", () => SelectThemeById("dark-plus")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.oneDark", "Theme: One Dark Pro", "Preferences", "", "🎨", () => SelectThemeById("one-dark")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.monokai", "Theme: Monokai", "Preferences", "", "🎨", () => SelectThemeById("monokai")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.dracula", "Theme: Dracula", "Preferences", "", "🎨", () => SelectThemeById("dracula")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.solarizedDark", "Theme: Solarized Dark", "Preferences", "", "🎨", () => SelectThemeById("solarized-dark")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.tokyoNight", "Theme: Tokyo Night", "Preferences", "", "🎨", () => SelectThemeById("tokyo-night")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.nord", "Theme: Nord", "Preferences", "", "🎨", () => SelectThemeById("nord")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.catppuccinMocha", "Theme: Catppuccin Mocha", "Preferences", "", "🎨", () => SelectThemeById("catppuccin-mocha")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.gitHubDark", "Theme: GitHub Dark", "Preferences", "", "🎨", () => SelectThemeById("github-dark")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.gitHubLight", "Theme: GitHub Light", "Preferences", "", "🎨", () => SelectThemeById("github-light")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.solarizedLight", "Theme: Solarized Light", "Preferences", "", "🎨", () => SelectThemeById("solarized-light")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.catppuccinLatte", "Theme: Catppuccin Latte", "Preferences", "", "🎨", () => SelectThemeById("catppuccin-latte")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.cyberpunk", "Theme: Synthwave '84 (Cyberpunk)", "Preferences", "", "🎨", () => SelectThemeById("cyberpunk")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.gruvboxDark", "Theme: Gruvbox Dark", "Preferences", "", "🎨", () => SelectThemeById("gruvbox-dark")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.monokaiPro", "Theme: Monokai Pro", "Preferences", "", "🎨", () => SelectThemeById("monokai-pro")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.rosePine", "Theme: Rosé Pine", "Preferences", "", "🎨", () => SelectThemeById("rose-pine")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.auraDark", "Theme: Aura Dark", "Preferences", "", "🎨", () => SelectThemeById("aura-dark")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.oneLight", "Theme: One Light", "Preferences", "", "🎨", () => SelectThemeById("one-light")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("theme.import", "Import Color Theme (.json)...", "Preferences", "", "🎨", () => _ = ImportThemeAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("syntax.import", "Import Syntax Definition (.xshd)...", "Preferences", "", "📜", () => _ = ImportSyntaxAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("settings.open", "Open Settings...", "Preferences", "Ctrl+,", "⚙️", () => ShowSettings()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("font.toggle", "Toggle Coding Font (Google Sans Code ⇄ Roboto Mono)", "Preferences", "Ctrl+Alt+F", "🔤", () => _ = ToggleCodingFontAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("font.googleSansCode", "Font: Google Sans Code", "Preferences", "", "🔤", () => _ = SetCodingFontAsync("Google Sans Code")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("font.robotoMono", "Font: Roboto Mono", "Preferences", "", "🔤", () => _ = SetCodingFontAsync("Roboto Mono")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.breadcrumbs", "Toggle Breadcrumbs Bar", "View", "", "🧭", () => _ = ToggleBreadcrumbsAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.rainbowBrackets", "Toggle Rainbow Brackets", "View", "", "🌈", () => _ = ToggleRainbowBracketsAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("editor.autoCloseBrackets", "Toggle Auto-Close Brackets & Quotes", "Editor", "", "()", () => _ = ToggleAutoCloseBracketsAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("editor.toggleLineEnding", "Toggle Line Endings (CRLF ⇄ LF)", "Editor", "", "↵", () => ToggleLineEnding()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("editor.encodingUtf8", "Set Encoding: UTF-8", "Editor", "", "🔤", () => ChangeEncoding("UTF-8")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("editor.encodingUtf8Bom", "Set Encoding: UTF-8 with BOM", "Editor", "", "🔤", () => ChangeEncoding("UTF-8 with BOM")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("editor.encodingUtf16Le", "Set Encoding: UTF-16 LE", "Editor", "", "🔤", () => ChangeEncoding("UTF-16 LE")));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("workspace.clearRecent", "Clear Recent Workspaces History", "File", "", "🗑️", () => _ = ClearRecentWorkspacesAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("app.update", "Check for Code Viewer App Updates...", "Help", "", "🚀", () => _ = CheckForUpdatesAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("help.updates", "Check Language & Integration Updates...", "Help", "", "🔄", () => _ = CheckIntegrationsUpdateAsync()));
     }
 
     #endregion
@@ -2652,7 +1962,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _isDisposed = true;
         _statusCts?.Cancel();
         _statusCts?.Dispose();
-        _fileWatcherService.FileChangedOnDisk -= OnFileChangedOnDisk;
+        TabManager.Dispose();
         _fileWatcherService.Dispose();
         _settingsService.SettingsChanged -= OnSettingsChanged;
     }
