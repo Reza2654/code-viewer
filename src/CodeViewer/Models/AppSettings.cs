@@ -120,6 +120,9 @@ public class AppSettings
     [JsonPropertyName("showBreadcrumbs")]
     public bool ShowBreadcrumbs { get; set; } = true;
 
+    [JsonPropertyName("showMinimap")]
+    public bool ShowMinimap { get; set; } = false;
+
     // Custom Syntax Highlighting Color Overrides (hex format: #RRGGBB, empty or null means use theme default)
     [JsonPropertyName("customCodeKeyword")]
     public string? CustomCodeKeyword { get; set; }
@@ -191,6 +194,7 @@ public class AppSettings
             AutoCloseBrackets = AutoCloseBrackets,
             EnableRainbowBrackets = EnableRainbowBrackets,
             ShowBreadcrumbs = ShowBreadcrumbs,
+            ShowMinimap = ShowMinimap,
             CustomCodeKeyword = CustomCodeKeyword,
             CustomCodeComment = CustomCodeComment,
             CustomCodeString = CustomCodeString,

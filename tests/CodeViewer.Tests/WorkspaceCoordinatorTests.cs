@@ -278,7 +278,8 @@ public class WorkspaceCoordinatorTests
             var coordinator = new WorkspaceCoordinator(new FakeDialogService(), new FakeRecentWorkspacesService(), fakeGit);
             coordinator.OpenFolder(tempDir);
 
-            // Wait for refresh to complete
+            // Wait for any in-flight background refresh to complete
+            await Task.Delay(100);
             await coordinator.RefreshGitStatusAsync();
 
             var root = coordinator.RootFolder!;

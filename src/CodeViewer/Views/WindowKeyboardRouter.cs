@@ -240,6 +240,14 @@ public static class WindowKeyboardRouter
             return true;
         }
 
+        // Ctrl + Alt + M : Toggle Minimap
+        if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Alt) && e.Key == Key.M)
+        {
+            _ = vm.ToggleMinimapCommand.ExecuteAsync(null);
+            e.Handled = true;
+            return true;
+        }
+
         // Ctrl + , : Settings
         if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.OemComma || e.Key == Key.OemPeriod))
         {

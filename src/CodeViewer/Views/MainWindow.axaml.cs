@@ -44,6 +44,8 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
         Editor.TextArea.TextView.BackgroundRenderers.Add(_searchHighlightRenderer);
         Editor.TextArea.TextView.LineTransformers.Add(_rainbowBracketColorizer);
 
+        Minimap.Attach(Editor);
+
         Editor.TextArea.TextEntering += OnEditorTextEntering;
         Editor.AddHandler(KeyDownEvent, OnEditorKeyDown, RoutingStrategies.Tunnel);
 
@@ -573,6 +575,7 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
             _wordOccurrenceRenderer.UpdateOccurrences();
             UpdateSearchMatches();
             Editor.TextArea?.TextView?.InvalidateVisual();
+            Minimap.InvalidateVisual();
             Editor.Focus();
         }
     }

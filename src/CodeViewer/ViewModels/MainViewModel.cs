@@ -69,6 +69,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private bool _showBreadcrumbs = true;
 
     [ObservableProperty]
+    private bool _showMinimap;
+
+    [ObservableProperty]
     private bool _rainbowBracketsEnabled = true;
 
     [ObservableProperty]
@@ -421,6 +424,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         var settings = _settingsService.CurrentSettings;
         _currentFontFamily = settings.FontFamily;
         _showBreadcrumbs = settings.ShowBreadcrumbs;
+        _showMinimap = settings.ShowMinimap;
         _rainbowBracketsEnabled = settings.EnableRainbowBrackets;
         _autoCloseBrackets = settings.AutoCloseBrackets;
         _enableAnimations = settings.EnableAnimations;
@@ -459,6 +463,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         CurrentFontFamily = settings.FontFamily;
         ShowBreadcrumbs = settings.ShowBreadcrumbs;
+        ShowMinimap = settings.ShowMinimap;
         RainbowBracketsEnabled = settings.EnableRainbowBrackets;
         AutoCloseBrackets = settings.AutoCloseBrackets;
         EnableAnimations = settings.EnableAnimations;
@@ -804,6 +809,15 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         ShowBreadcrumbs = !ShowBreadcrumbs;
         var settings = _settingsService.CurrentSettings;
         settings.ShowBreadcrumbs = ShowBreadcrumbs;
+        await _settingsService.SaveAsync(settings);
+    }
+
+    [RelayCommand]
+    public async Task ToggleMinimapAsync()
+    {
+        ShowMinimap = !ShowMinimap;
+        var settings = _settingsService.CurrentSettings;
+        settings.ShowMinimap = ShowMinimap;
         await _settingsService.SaveAsync(settings);
     }
 
@@ -1953,6 +1967,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         CommandPalette.RegisterCommand(new CommandPaletteItem("font.googleSansCode", "Font: Google Sans Code", "Preferences", "", "🔤", () => _ = SetCodingFontAsync("Google Sans Code")));
         CommandPalette.RegisterCommand(new CommandPaletteItem("font.robotoMono", "Font: Roboto Mono", "Preferences", "", "🔤", () => _ = SetCodingFontAsync("Roboto Mono")));
         CommandPalette.RegisterCommand(new CommandPaletteItem("view.breadcrumbs", "Toggle Breadcrumbs Bar", "View", "", "🧭", () => _ = ToggleBreadcrumbsAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("view.minimap", "Toggle Code Minimap", "View", "Ctrl+Alt+M", "🗺️", () => _ = ToggleMinimapAsync()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("view.rainbowBrackets", "Toggle Rainbow Brackets", "View", "", "🌈", () => _ = ToggleRainbowBracketsAsync()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("editor.autoCloseBrackets", "Toggle Auto-Close Brackets & Quotes", "Editor", "", "()", () => _ = ToggleAutoCloseBracketsAsync()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("editor.toggleLineEnding", "Toggle Line Endings (CRLF ⇄ LF)", "Editor", "", "↵", () => ToggleLineEnding()));

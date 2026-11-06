@@ -696,21 +696,33 @@
                     </ScrollViewer>
                   </Border>
 
-                  <ae:TextEditor x:Name="Editor"
-                                 Grid.Row="1"
-                                 Document="{Binding ActiveDocument.TextDocument}"
-                                 SyntaxHighlighting="{Binding ActiveDocument.HighlightingDefinition}"
-                                 FontSize="{Binding ActiveDocument.FontSize, FallbackValue=14.0}"
-                                 WordWrap="{Binding ActiveDocument.WordWrap, FallbackValue=False}"
-                                 ShowLineNumbers="{Binding ActiveDocument.ShowLineNumbers, FallbackValue=True}"
-                                 FlowDirection="LeftToRight"
-                                 FontFamily="{DynamicResource CodeFontFamily}"
-                                 Background="{DynamicResource ThemeEditorBackground}"
-                                 Foreground="{DynamicResource ThemeEditorForeground}"
-                                 HorizontalScrollBarVisibility="Auto"
-                                 VerticalScrollBarVisibility="Visible"
-                                 LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"
-                                 DragDrop.AllowDrop="True"/>
+                  <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+                    <ae:TextEditor x:Name="Editor"
+                                   Grid.Column="0"
+                                   Document="{Binding ActiveDocument.TextDocument}"
+                                   SyntaxHighlighting="{Binding ActiveDocument.HighlightingDefinition}"
+                                   FontSize="{Binding ActiveDocument.FontSize, FallbackValue=14.0}"
+                                   WordWrap="{Binding ActiveDocument.WordWrap, FallbackValue=False}"
+                                   ShowLineNumbers="{Binding ActiveDocument.ShowLineNumbers, FallbackValue=True}"
+                                   FlowDirection="LeftToRight"
+                                   FontFamily="{DynamicResource CodeFontFamily}"
+                                   Background="{DynamicResource ThemeEditorBackground}"
+                                   Foreground="{DynamicResource ThemeEditorForeground}"
+                                   HorizontalScrollBarVisibility="Auto"
+                                   VerticalScrollBarVisibility="Visible"
+                                   LineNumbersForeground="{DynamicResource ThemeLineNumbersForeground}"
+                                   DragDrop.AllowDrop="True"/>
+
+                    <!-- Code Minimap Column -->
+                    <Border Grid.Column="1"
+                            Width="110"
+                            IsVisible="{Binding ShowMinimap}"
+                            Background="{DynamicResource ThemeTabBarBackground}"
+                            BorderBrush="{DynamicResource ThemeBorderBrush}"
+                            BorderThickness="1,0,0,0">
+                      <views:CodeMinimapControl x:Name="Minimap"/>
+                    </Border>
+                  </Grid>
                 </Grid>
 
                 <!-- Welcome Screen / Empty State (Visible when HasNoDocuments) -->

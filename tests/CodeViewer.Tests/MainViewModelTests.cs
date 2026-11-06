@@ -137,4 +137,18 @@ public class MainViewModelTests
         Assert.IsFalse(_vm.HasRecentFiles);
         Assert.AreEqual(0, _vm.RecentFiles.Count);
     }
+
+    [TestMethod]
+    public async Task ToggleMinimap_FlipsSettingAndPersists()
+    {
+        var initial = _vm.ShowMinimap;
+        await _vm.ToggleMinimapAsync();
+
+        Assert.AreEqual(!initial, _vm.ShowMinimap);
+        Assert.AreEqual(!initial, _vm.SettingsService.CurrentSettings.ShowMinimap);
+
+        await _vm.ToggleMinimapAsync();
+        Assert.AreEqual(initial, _vm.ShowMinimap);
+        Assert.AreEqual(initial, _vm.SettingsService.CurrentSettings.ShowMinimap);
+    }
 }
