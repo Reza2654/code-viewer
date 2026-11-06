@@ -36,6 +36,7 @@ public partial class App : Application
                 var integrationsUpdateService = new IntegrationsUpdateService();
                 var appUpdateService = new AppUpdateService();
                 var recentWorkspacesService = new RecentWorkspacesService();
+                var gitService = new GitService();
 
                 // 3. Create Main ViewModel
                 var mainViewModel = new MainViewModel(
@@ -48,7 +49,8 @@ public partial class App : Application
                     pluginService,
                     integrationsUpdateService: integrationsUpdateService,
                     appUpdateService: appUpdateService,
-                    recentWorkspacesService: recentWorkspacesService);
+                    recentWorkspacesService: recentWorkspacesService,
+                    gitService: gitService);
 
                 // 4. Create MainWindow
                 var mainWindow = new MainWindow

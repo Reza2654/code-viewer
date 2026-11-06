@@ -291,6 +291,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         IWorkspaceSearchService? workspaceSearchService = null,
         IAppUpdateService? appUpdateService = null,
         IRecentWorkspacesService? recentWorkspacesService = null,
+        IGitService? gitService = null,
         WorkspaceCoordinator? workspaceCoordinator = null,
         CommandPaletteCoordinator? commandPalette = null,
         TabManager? tabManager = null)
@@ -310,7 +311,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _appUpdateService = appUpdateService ?? new AppUpdateService();
         _recentWorkspacesService = recentWorkspacesService ?? new RecentWorkspacesService();
 
-        _workspaceCoordinator = workspaceCoordinator ?? new WorkspaceCoordinator(_dialogService, _recentWorkspacesService);
+        _workspaceCoordinator = workspaceCoordinator ?? new WorkspaceCoordinator(_dialogService, _recentWorkspacesService, gitService);
         if (commandPalette != null)
         {
             _commandPalette = commandPalette;
@@ -370,6 +371,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _tabManager.GetCurrentTheme = () => CurrentTheme;
         _tabManager.RequestSaveSession = () => SaveCurrentSessionAsync();
         _tabManager.RequestReloadRecentFiles = () => LoadRecentFilesAsync();
+        _tabManager.DocumentSaved = path => WorkspaceCoordinator.RequestDebouncedGitStatusRefresh();
+
+        _fileWatcherService.FileChangedOnDisk += OnFileWatcherChangedOnDisk;
 
         _tabManager.PropertyChanged += (s, e) =>
         {
@@ -1501,6 +1505,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     public Task RefreshFolderItemAsync(FolderItem? item) => WorkspaceCoordinator.RefreshFolderItemAsync(item);
 
+    public IReadOnlyDictionary<string, GitFileStatus> CachedGitStatuses => WorkspaceCoordinator.CachedGitStatuses;
+    public string? GitRepoRoot => WorkspaceCoordinator.GitRepoRoot;
+
+    [RelayCommand]
+    public Task RefreshGitStatusAsync() => WorkspaceCoordinator.RefreshGitStatusAsync();
+
     #endregion
 
     #region Global Workspace Search (Ctrl+Shift+F)
@@ -1950,16 +1960,23 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         CommandPalette.RegisterCommand(new CommandPaletteItem("editor.encodingUtf8Bom", "Set Encoding: UTF-8 with BOM", "Editor", "", "🔤", () => ChangeEncoding("UTF-8 with BOM")));
         CommandPalette.RegisterCommand(new CommandPaletteItem("editor.encodingUtf16Le", "Set Encoding: UTF-16 LE", "Editor", "", "🔤", () => ChangeEncoding("UTF-16 LE")));
         CommandPalette.RegisterCommand(new CommandPaletteItem("workspace.clearRecent", "Clear Recent Workspaces History", "File", "", "🗑️", () => _ = ClearRecentWorkspacesAsync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("workspace.refreshGitStatus", "Git: Refresh Status", "Git", "Ctrl+Shift+G", "🌿", () => _ = RefreshGitStatusAsync()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("app.update", "Check for Code Viewer App Updates...", "Help", "", "🚀", () => _ = CheckForUpdatesAsync()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("help.updates", "Check Language & Integration Updates...", "Help", "", "🔄", () => _ = CheckIntegrationsUpdateAsync()));
     }
 
     #endregion
 
+    private void OnFileWatcherChangedOnDisk(object? sender, string path)
+    {
+        WorkspaceCoordinator.RequestDebouncedGitStatusRefresh();
+    }
+
     public void Dispose()
     {
         if (_isDisposed) return;
         _isDisposed = true;
+        _fileWatcherService.FileChangedOnDisk -= OnFileWatcherChangedOnDisk;
         _statusCts?.Cancel();
         _statusCts?.Dispose();
         TabManager.Dispose();

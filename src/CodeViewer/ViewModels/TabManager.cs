@@ -57,6 +57,7 @@ public partial class TabManager : ViewModelBase, IDisposable
     public Func<ColorTheme?>? GetCurrentTheme { get; set; }
     public Func<Task>? RequestSaveSession { get; set; }
     public Func<Task>? RequestReloadRecentFiles { get; set; }
+    public Action<string>? DocumentSaved { get; set; }
     public Action? ActiveDocumentChanged { get; set; }
     public Action? DocumentsChanged { get; set; }
     public Action? DocumentStateChanged { get; set; }
@@ -315,6 +316,7 @@ public partial class TabManager : ViewModelBase, IDisposable
             var fileInfo = new FileInfo(ActiveDocument.FilePath!);
             ActiveDocument.MarkSaved(fileInfo.FullName, fileInfo.Length, fileInfo.LastWriteTimeUtc);
             _fileWatcherService.WatchFile(fileInfo.FullName);
+            DocumentSaved?.Invoke(fileInfo.FullName);
             DocumentStateChanged?.Invoke();
             if (RequestSaveSession != null)
             {
@@ -344,6 +346,7 @@ public partial class TabManager : ViewModelBase, IDisposable
             var fileInfo = new FileInfo(targetPath);
             ActiveDocument.MarkSaved(fileInfo.FullName, fileInfo.Length, fileInfo.LastWriteTimeUtc);
             _fileWatcherService.WatchFile(fileInfo.FullName);
+            DocumentSaved?.Invoke(fileInfo.FullName);
 
             await _recentFilesService.AddRecentFileAsync(targetPath);
             if (RequestReloadRecentFiles != null)

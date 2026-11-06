@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -17,6 +18,14 @@ public partial class WorkspaceCoordinator : ViewModelBase
 {
     private readonly IDialogService _dialogService;
     private readonly IRecentWorkspacesService _recentWorkspacesService;
+    private readonly IGitService _gitService;
+
+    private Dictionary<string, GitFileStatus> _cachedGitStatuses = new(StringComparer.OrdinalIgnoreCase);
+    private string? _gitRepoRoot;
+    private System.Threading.CancellationTokenSource? _gitStatusDebounceCts;
+
+    public IReadOnlyDictionary<string, GitFileStatus> CachedGitStatuses => _cachedGitStatuses;
+    public string? GitRepoRoot => _gitRepoRoot;
 
     [ObservableProperty]
     private bool _isSidebarOpen = true;
@@ -42,10 +51,12 @@ public partial class WorkspaceCoordinator : ViewModelBase
 
     public WorkspaceCoordinator(
         IDialogService dialogService,
-        IRecentWorkspacesService recentWorkspacesService)
+        IRecentWorkspacesService recentWorkspacesService,
+        IGitService? gitService = null)
     {
         _dialogService = dialogService;
         _recentWorkspacesService = recentWorkspacesService;
+        _gitService = gitService ?? new GitService();
     }
 
     public async Task LoadRecentWorkspacesAsync()
@@ -106,12 +117,14 @@ public partial class WorkspaceCoordinator : ViewModelBase
         var fullPath = Path.GetFullPath(folderPath);
         var root = new FolderItem(fullPath, true)
         {
-            IsExpanded = true
+            IsExpanded = true,
+            ChildrenLoadedCallback = item => ApplyGitStatusToSubtree(item)
         };
         RootFolder = root;
         IsSidebarOpen = true;
         _ = AddRecentWorkspaceAsync(fullPath);
         WorkspaceChanged?.Invoke();
+        _ = RefreshGitStatusAsync();
         if (RequestStatusMessage != null)
         {
             _ = RequestStatusMessage($"Opened workspace: {root.Name}");
@@ -121,6 +134,9 @@ public partial class WorkspaceCoordinator : ViewModelBase
     [RelayCommand]
     public void CloseFolder()
     {
+        _gitStatusDebounceCts?.Cancel();
+        _cachedGitStatuses.Clear();
+        _gitRepoRoot = null;
         RootFolder = null;
         WorkspaceChanged?.Invoke();
     }
@@ -173,6 +189,7 @@ public partial class WorkspaceCoordinator : ViewModelBase
 
             File.WriteAllText(fullPath, string.Empty);
             await targetFolder.RefreshAsync();
+            RequestDebouncedGitStatusRefresh();
             if (RequestOpenFile != null)
             {
                 await RequestOpenFile(fullPath);
@@ -269,6 +286,8 @@ public partial class WorkspaceCoordinator : ViewModelBase
                 await RootFolder.RefreshAsync();
             }
 
+            RequestDebouncedGitStatusRefresh();
+
             if (RequestStatusMessage != null)
             {
                 _ = RequestStatusMessage($"Renamed to {newName}");
@@ -325,6 +344,8 @@ public partial class WorkspaceCoordinator : ViewModelBase
             {
                 await RootFolder.RefreshAsync();
             }
+
+            RequestDebouncedGitStatusRefresh();
 
             if (RequestStatusMessage != null)
             {
@@ -415,10 +436,145 @@ public partial class WorkspaceCoordinator : ViewModelBase
         if (target != null)
         {
             await target.RefreshAsync();
+            await RefreshGitStatusAsync();
             if (RequestStatusMessage != null)
             {
                 _ = RequestStatusMessage("✓ Refreshed workspace");
             }
         }
     }
+
+    #region Git Status Operations
+
+    [RelayCommand]
+    public async Task RefreshGitStatusAsync(System.Threading.CancellationToken cancellationToken = default)
+    {
+        if (RootFolder == null || string.IsNullOrEmpty(RootFolder.FullPath))
+        {
+            _cachedGitStatuses.Clear();
+            _gitRepoRoot = null;
+            return;
+        }
+
+        var rootPath = RootFolder.FullPath;
+        var repoRoot = await _gitService.FindGitRootAsync(rootPath, cancellationToken);
+        _gitRepoRoot = repoRoot;
+
+        if (string.IsNullOrEmpty(repoRoot))
+        {
+            _cachedGitStatuses.Clear();
+            RunOnUIThread(() =>
+            {
+                if (RootFolder != null)
+                {
+                    ClearGitStatusSubtree(RootFolder);
+                }
+            });
+            return;
+        }
+
+        var statuses = await _gitService.GetStatusAsync(rootPath, cancellationToken);
+        if (cancellationToken.IsCancellationRequested) return;
+
+        _cachedGitStatuses = statuses;
+
+        RunOnUIThread(() =>
+        {
+            if (RootFolder != null)
+            {
+                ApplyGitStatusToSubtree(RootFolder);
+            }
+        });
+    }
+
+    public void ApplyGitStatusToSubtree(FolderItem item)
+    {
+        if (item.IsDirectory)
+        {
+            var dirPrefix = item.FullPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            var hasModified = false;
+            foreach (var kv in _cachedGitStatuses)
+            {
+                if (kv.Value != GitFileStatus.Clean && kv.Value != GitFileStatus.Ignored &&
+                    kv.Key.StartsWith(dirPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    hasModified = true;
+                    break;
+                }
+            }
+            item.HasModifiedChild = hasModified;
+
+            foreach (var child in item.Children)
+            {
+                ApplyGitStatusToSubtree(child);
+            }
+        }
+        else
+        {
+            if (_cachedGitStatuses.TryGetValue(item.FullPath, out var status))
+            {
+                item.GitStatus = status;
+            }
+            else
+            {
+                item.GitStatus = GitFileStatus.Clean;
+            }
+        }
+    }
+
+    public void ClearGitStatusSubtree(FolderItem item)
+    {
+        item.GitStatus = GitFileStatus.Clean;
+        item.HasModifiedChild = false;
+        foreach (var child in item.Children)
+        {
+            ClearGitStatusSubtree(child);
+        }
+    }
+
+    public void RequestDebouncedGitStatusRefresh(int delayMs = 300)
+    {
+        _gitStatusDebounceCts?.Cancel();
+        _gitStatusDebounceCts?.Dispose();
+        _gitStatusDebounceCts = new System.Threading.CancellationTokenSource();
+        var token = _gitStatusDebounceCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(delayMs, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await RefreshGitStatusAsync(token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Debounce cancelled
+            }
+        }, token);
+    }
+
+    private static void RunOnUIThread(Action action)
+    {
+        try
+        {
+            if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+            {
+                action();
+            }
+            else
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(action);
+            }
+        }
+        catch
+        {
+            // Unit test fallback when Avalonia dispatcher is unavailable
+            action();
+        }
+    }
+
+    #endregion
 }

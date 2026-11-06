@@ -582,7 +582,7 @@
                           Padding="2,4">
                   <TreeView.ItemTemplate>
                     <TreeDataTemplate DataType="models:FolderItem" ItemsSource="{Binding Children}">
-                      <Grid ColumnDefinitions="Auto,*" Margin="0,1" Cursor="Hand" Background="Transparent" DoubleTapped="OnFolderItemDoubleTapped">
+                      <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,1" Cursor="Hand" Background="Transparent" DoubleTapped="OnFolderItemDoubleTapped">
                         <Grid.ContextMenu>
                           <ContextMenu>
                             <MenuItem Header="📄 New File..."
@@ -615,7 +615,19 @@
                           </ContextMenu>
                         </Grid.ContextMenu>
                         <TextBlock Grid.Column="0" Text="{Binding IconGlyph}" FontSize="12" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                        <Border Grid.Column="2"
+                                IsVisible="{Binding HasGitStatus}"
+                                Margin="4,0,2,0"
+                                Padding="3,0"
+                                VerticalAlignment="Center">
+                          <TextBlock Text="{Binding GitStatusLetter}"
+                                     FontSize="10.5"
+                                     FontWeight="Bold"
+                                     Foreground="{Binding GitStatusBrush}"
+                                     ToolTip.Tip="{Binding GitStatusToolTip}"
+                                     VerticalAlignment="Center"/>
+                        </Border>
                       </Grid>
                     </TreeDataTemplate>
                   </TreeView.ItemTemplate>
