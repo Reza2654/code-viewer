@@ -96,6 +96,17 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private bool _showBreadcrumbs = true;
 
+    [ObservableProperty]
+    private bool _showMinimap = false;
+
+    [ObservableProperty]
+    private string _defaultTerminalShell = "Auto";
+
+    [ObservableProperty]
+    private ShellOption _selectedTerminalShell = ShellOption.All[0];
+
+    private bool _isSyncingTerminalShell;
+
     // Fonts & Editor
     [ObservableProperty]
     private string _selectedFont;
@@ -202,6 +213,7 @@ public partial class SettingsViewModel : ViewModelBase
 
     public ObservableCollection<string> AvailableFonts { get; } = [];
     public ObservableCollection<int> AvailableTabSizes { get; } = [2, 4, 8];
+    public IReadOnlyList<ShellOption> AvailableTerminalShells => ShellOption.All;
 
     public bool IsAllThemeFilter => string.Equals(ThemeFilterMode, "All", StringComparison.OrdinalIgnoreCase);
     public bool IsDarkThemeFilter => string.Equals(ThemeFilterMode, "Dark", StringComparison.OrdinalIgnoreCase);
@@ -245,6 +257,10 @@ public partial class SettingsViewModel : ViewModelBase
         _autoCloseBrackets = current.AutoCloseBrackets;
         _enableRainbowBrackets = current.EnableRainbowBrackets;
         _showBreadcrumbs = current.ShowBreadcrumbs;
+        _showMinimap = current.ShowMinimap;
+        var initialShell = ResolveShellOption(current.DefaultTerminalShell);
+        _defaultTerminalShell = initialShell.Type.ToString();
+        _selectedTerminalShell = initialShell;
         _autoCheckForUpdates = current.AutoCheckForUpdates;
         _enableAnimations = current.EnableAnimations;
         _runInBackgroundOnStartup = current.RunInBackgroundOnStartup;
@@ -312,6 +328,46 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     private bool _isUpdatingTheme;
+
+    partial void OnSelectedTerminalShellChanged(ShellOption value)
+    {
+        if (value == null || _isSyncingTerminalShell) return;
+        _isSyncingTerminalShell = true;
+        try
+        {
+            DefaultTerminalShell = value.Type.ToString();
+        }
+        finally
+        {
+            _isSyncingTerminalShell = false;
+        }
+    }
+
+    partial void OnDefaultTerminalShellChanged(string value)
+    {
+        if (_isSyncingTerminalShell) return;
+        _isSyncingTerminalShell = true;
+        try
+        {
+            SelectedTerminalShell = ResolveShellOption(value);
+        }
+        finally
+        {
+            _isSyncingTerminalShell = false;
+        }
+    }
+
+    private static ShellOption ResolveShellOption(string? shellName)
+    {
+        if (!string.IsNullOrWhiteSpace(shellName))
+        {
+            var match = ShellOption.All.FirstOrDefault(s =>
+                string.Equals(s.Type.ToString(), shellName, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(s.DisplayName, shellName, StringComparison.OrdinalIgnoreCase));
+            if (match != null) return match;
+        }
+        return ShellOption.All[0];
+    }
 
     partial void OnSelectedThemeChanged(ColorTheme value)
     {
@@ -781,6 +837,8 @@ public partial class SettingsViewModel : ViewModelBase
             AutoCloseBrackets = AutoCloseBrackets,
             EnableRainbowBrackets = EnableRainbowBrackets,
             ShowBreadcrumbs = ShowBreadcrumbs,
+            ShowMinimap = ShowMinimap,
+            DefaultTerminalShell = ResolveShellOption(DefaultTerminalShell).Type.ToString(),
             CustomCodeKeyword = CustomCodeKeyword,
             CustomCodeComment = CustomCodeComment,
             CustomCodeString = CustomCodeString,
@@ -860,6 +918,18 @@ public partial class SettingsViewModel : ViewModelBase
         AutoCloseBrackets = defaults.AutoCloseBrackets;
         EnableRainbowBrackets = defaults.EnableRainbowBrackets;
         ShowBreadcrumbs = defaults.ShowBreadcrumbs;
+        ShowMinimap = defaults.ShowMinimap;
+        var defaultShellOption = ResolveShellOption(defaults.DefaultTerminalShell);
+        _isSyncingTerminalShell = true;
+        try
+        {
+            DefaultTerminalShell = defaultShellOption.Type.ToString();
+            SelectedTerminalShell = defaultShellOption;
+        }
+        finally
+        {
+            _isSyncingTerminalShell = false;
+        }
         CustomCodeKeyword = defaults.CustomCodeKeyword;
         CustomCodeComment = defaults.CustomCodeComment;
         CustomCodeString = defaults.CustomCodeString;

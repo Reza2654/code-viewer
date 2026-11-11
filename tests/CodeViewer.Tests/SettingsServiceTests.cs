@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using CodeViewer.Configuration;
 using CodeViewer.Models;
 using CodeViewer.Services;
 using CodeViewer.ViewModels;
@@ -144,6 +145,81 @@ public class SettingsServiceTests
         Assert.AreEqual("Google Sans Code", AppSettings.SanitizeFontFamily("   "));
     }
 
+    [TestMethod]
+    public async Task SettingsViewModel_ShowMinimap_LoadsSavesAndResets()
+    {
+        var settingsService = new SettingsService(_tempSettingsFile);
+        await settingsService.SaveAsync(new AppSettings { ShowMinimap = true });
+
+        var vm = new SettingsViewModel(settingsService, new ThemeService());
+        Assert.IsTrue(vm.ShowMinimap);
+
+        vm.ShowMinimap = false;
+        await vm.SaveAsync();
+        Assert.IsFalse(settingsService.CurrentSettings.ShowMinimap);
+
+        vm.ShowMinimap = true;
+        vm.ResetDefaults();
+        Assert.IsFalse(vm.ShowMinimap);
+    }
+
+    [TestMethod]
+    public async Task SettingsViewModel_DefaultTerminalShell_LoadsSavesSyncsAndResets()
+    {
+        var settingsService = new SettingsService(_tempSettingsFile);
+        await settingsService.SaveAsync(new AppSettings { DefaultTerminalShell = nameof(ShellType.PowerShell) });
+
+        var vm = new SettingsViewModel(settingsService, new ThemeService());
+        CollectionAssert.AreEquivalent(
+            Enum.GetValues<ShellType>(),
+            vm.AvailableTerminalShells.Select(s => s.Type).ToArray());
+        Assert.AreEqual(nameof(ShellType.PowerShell), vm.DefaultTerminalShell);
+        Assert.AreEqual(ShellType.PowerShell, vm.SelectedTerminalShell.Type);
+
+        // Selecting via ComboBox option syncs DefaultTerminalShell string
+        vm.SelectedTerminalShell = vm.AvailableTerminalShells.First(s => s.Type == ShellType.Python);
+        Assert.AreEqual(nameof(ShellType.Python), vm.DefaultTerminalShell);
+
+        await vm.SaveAsync();
+        Assert.AreEqual(nameof(ShellType.Python), settingsService.CurrentSettings.DefaultTerminalShell);
+
+        // Updating via string syncs SelectedTerminalShell
+        vm.DefaultTerminalShell = nameof(ShellType.Node);
+        Assert.AreEqual(ShellType.Node, vm.SelectedTerminalShell.Type);
+
+        // ResetDefaults restores Auto
+        vm.ResetDefaults();
+        Assert.AreEqual(nameof(ShellType.Auto), vm.DefaultTerminalShell);
+        Assert.AreEqual(ShellType.Auto, vm.SelectedTerminalShell.Type);
+
+        // Unknown values fall back cleanly to Auto on save
+        vm.DefaultTerminalShell = "UnknownShell";
+        await vm.SaveAsync();
+        Assert.AreEqual(nameof(ShellType.Auto), settingsService.CurrentSettings.DefaultTerminalShell);
+    }
+
+    [TestMethod]
+    public async Task SettingsViewModel_SaveAsync_UpdatesMainViewModelMinimapAndShell()
+    {
+        var settingsService = new SettingsService(_tempSettingsFile);
+        using var mainVm = new MainViewModel(
+            new FileService(),
+            new LanguageService(),
+            new RecentFilesService(5),
+            new DialogService(),
+            new AppConfig(),
+            settingsService: settingsService,
+            sessionService: new SessionService(Path.Combine(_tempDir, "session.json")));
+
+        var settingsVm = new SettingsViewModel(settingsService, mainVm.ThemeService);
+        settingsVm.ShowMinimap = true;
+        settingsVm.SelectedTerminalShell = settingsVm.AvailableTerminalShells.First(s => s.Type == ShellType.CommandPrompt);
+
+        await settingsVm.SaveAsync();
+
+        Assert.IsTrue(mainVm.ShowMinimap);
+        Assert.AreEqual(ShellType.CommandPrompt, mainVm.RunnerViewModel.SelectedShell.Type);
+    }
 }
 
 

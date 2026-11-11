@@ -280,6 +280,14 @@ public static class WindowKeyboardRouter
             return true;
         }
 
+        // Ctrl + Shift + G : Refresh Git Status
+        if (e.KeyModifiers == (KeyModifiers.Control | KeyModifiers.Shift) && e.Key == Key.G)
+        {
+            _ = vm.RefreshGitStatusCommand.ExecuteAsync(null);
+            e.Handled = true;
+            return true;
+        }
+
         // Ctrl + , : Settings
         if (e.KeyModifiers == KeyModifiers.Control && (e.Key == Key.OemComma || e.Key == Key.OemPeriod))
         {

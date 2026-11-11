@@ -210,7 +210,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private OutlineViewModel _outlineViewModel = new();
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOutlineVisible))]
     private bool _isOutlineActive;
+
+    public bool IsOutlineVisible => IsSidebarOpen && IsOutlineActive;
 
     public IReadOnlyList<ColorTheme> AvailableThemes => _themeService.AvailableThemes;
     public ColorTheme CurrentTheme => _themeService.CurrentTheme;
@@ -354,7 +357,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         _workspaceCoordinator.PropertyChanged += (s, e) =>
         {
             if (e.PropertyName == nameof(WorkspaceCoordinator.IsSidebarOpen))
+            {
                 OnPropertyChanged(nameof(IsSidebarOpen));
+                OnPropertyChanged(nameof(IsOutlineVisible));
+            }
             else if (e.PropertyName == nameof(WorkspaceCoordinator.RootFolder))
             {
                 OnPropertyChanged(nameof(RootFolder));

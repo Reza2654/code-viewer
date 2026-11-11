@@ -141,62 +141,29 @@
   </Window.Styles>
 
   <Window.KeyBindings>
-    <!-- File Operation Shortcuts -->
-    <KeyBinding Gesture="Ctrl+N" Command="{Binding CreateNewDocumentCommand}"/>
-    <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}"/>
+    <!-- Shortcuts not handled by WindowKeyboardRouter -->
     <KeyBinding Gesture="Ctrl+Shift+O" Command="{Binding OpenFolderCommand}"/>
-    <KeyBinding Gesture="Ctrl+P" Command="{Binding ShowQuickOpenCommand}"/>
-    <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}"/>
-    <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}"/>
     <KeyBinding Gesture="Ctrl+Shift+C" Command="{Binding CopyAllCommand}"/>
-    <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseTabCommand}" CommandParameter="{Binding ActiveDocument}"/>
-    <KeyBinding Gesture="Ctrl+Shift+T" Command="{Binding ReopenClosedTabCommand}"/>
-
-    <!-- Search & Replace Shortcuts -->
-    <KeyBinding Gesture="Ctrl+F" Command="{Binding ShowSearchCommand}"/>
-    <KeyBinding Gesture="Ctrl+H" Command="{Binding ShowReplaceCommand}"/>
-    <KeyBinding Gesture="Ctrl+G" Command="{Binding ShowGoToLineCommand}"/>
-    <KeyBinding Gesture="F3" Command="{Binding SearchViewModel.FindNextCommand}"/>
-    <KeyBinding Gesture="Shift+F3" Command="{Binding SearchViewModel.FindPreviousCommand}"/>
-
-    <!-- Code Editing Shortcuts -->
-    <KeyBinding Gesture="Ctrl+OemQuestion" Command="{Binding ToggleCommentCommand}"/>
-    <KeyBinding Gesture="Ctrl+Divide" Command="{Binding ToggleCommentCommand}"/>
-
-    <!-- View & Productivity Shortcuts (v1.2.0-beta.1) -->
     <KeyBinding Gesture="Ctrl+B" Command="{Binding ToggleSidebarCommand}"/>
     <KeyBinding Gesture="Ctrl+OemBackslash" Command="{Binding ToggleSplitViewCommand}"/>
     <KeyBinding Gesture="Ctrl+Shift+P" Command="{Binding ShowCommandPaletteCommand}"/>
     <KeyBinding Gesture="F1" Command="{Binding ShowCommandPaletteCommand}"/>
-    <KeyBinding Gesture="F5" Command="{Binding RunActiveScriptCommand}"/>
     <KeyBinding Gesture="Ctrl+Shift+M" Command="{Binding ToggleMarkdownPreviewCommand}"/>
     <KeyBinding Gesture="Ctrl+Shift+D" Command="{Binding ShowDiffCommand}"/>
     <KeyBinding Gesture="Ctrl+Alt+R" Command="{Binding ToggleRtlCommand}"/>
     <KeyBinding Gesture="Ctrl+Alt+F" Command="{Binding ToggleCodingFontCommand}"/>
-
-    <!-- View & Zoom Shortcuts -->
-    <KeyBinding Gesture="Ctrl+OemPlus" Command="{Binding ZoomInCommand}"/>
-    <KeyBinding Gesture="Ctrl+Add" Command="{Binding ZoomInCommand}"/>
-    <KeyBinding Gesture="Ctrl+OemMinus" Command="{Binding ZoomOutCommand}"/>
-    <KeyBinding Gesture="Ctrl+Subtract" Command="{Binding ZoomOutCommand}"/>
-    <KeyBinding Gesture="Ctrl+D0" Command="{Binding ResetZoomCommand}"/>
-    <KeyBinding Gesture="Ctrl+NumPad0" Command="{Binding ResetZoomCommand}"/>
-    <KeyBinding Gesture="Alt+Z" Command="{Binding ToggleWordWrapCommand}"/>
-
-    <!-- Settings Shortcut -->
-    <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding ShowSettingsCommand}"/>
   </Window.KeyBindings>
 
   <Grid RowDefinitions="Auto,*">
     <!-- Top Menu Bar -->
     <Menu Grid.Row="0">
       <MenuItem Header="_File">
-        <MenuItem Header="_New File" Command="{Binding CreateNewDocumentCommand}" HotKey="Ctrl+N" InputGesture="Ctrl+N"/>
-        <MenuItem Header="_Open File..." Command="{Binding OpenFileCommand}" HotKey="Ctrl+O" InputGesture="Ctrl+O"/>
-        <MenuItem Header="Open _Folder..." Command="{Binding OpenFolderCommand}" HotKey="Ctrl+Shift+O" InputGesture="Ctrl+Shift+O"/>
+        <MenuItem Header="_New File" Command="{Binding CreateNewDocumentCommand}" InputGesture="Ctrl+N"/>
+        <MenuItem Header="_Open File..." Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O"/>
+        <MenuItem Header="Open _Folder..." Command="{Binding OpenFolderCommand}" InputGesture="Ctrl+Shift+O"/>
         <MenuItem Header="Close Folder" Command="{Binding CloseFolderCommand}" IsEnabled="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNotNull}}"/>
-        <MenuItem Header="Quick _Open..." Command="{Binding ShowQuickOpenCommand}" HotKey="Ctrl+P" InputGesture="Ctrl+P"/>
-        <MenuItem Header="_Command Palette..." Command="{Binding ShowCommandPaletteCommand}" HotKey="Ctrl+Shift+P" InputGesture="Ctrl+Shift+P"/>
+        <MenuItem Header="Quick _Open..." Command="{Binding ShowQuickOpenCommand}" InputGesture="Ctrl+P"/>
+        <MenuItem Header="_Command Palette..." Command="{Binding ShowCommandPaletteCommand}" InputGesture="Ctrl+Shift+P"/>
         <MenuItem Header="Open _Recent" ItemsSource="{Binding RecentFiles}" IsEnabled="{Binding HasRecentFiles}">
           <MenuItem.Styles>
             <Style Selector="MenuItem > MenuItem" x:DataType="models:RecentFileItem">
@@ -220,12 +187,12 @@
         <MenuItem Header="Clear Recent Files" Command="{Binding ClearRecentFilesCommand}" IsEnabled="{Binding HasRecentFiles}"/>
         <MenuItem Header="Clear Recent Workspaces" Command="{Binding ClearRecentWorkspacesCommand}" IsEnabled="{Binding HasRecentWorkspaces}"/>
         <Separator/>
-        <MenuItem Header="_Save" Command="{Binding SaveCommand}" HotKey="Ctrl+S" InputGesture="Ctrl+S"/>
-        <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" HotKey="Ctrl+Shift+S" InputGesture="Ctrl+Shift+S"/>
-        <MenuItem Header="_Close Tab" Command="{Binding CloseTabCommand}" CommandParameter="{Binding ActiveDocument}" HotKey="Ctrl+W" InputGesture="Ctrl+W"/>
-        <MenuItem Header="_Reopen Closed Tab" Command="{Binding ReopenClosedTabCommand}" HotKey="Ctrl+Shift+T" InputGesture="Ctrl+Shift+T"/>
+        <MenuItem Header="_Save" Command="{Binding SaveCommand}" InputGesture="Ctrl+S"/>
+        <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S"/>
+        <MenuItem Header="_Close Tab" Command="{Binding CloseTabCommand}" CommandParameter="{Binding ActiveDocument}" InputGesture="Ctrl+W"/>
+        <MenuItem Header="_Reopen Closed Tab" Command="{Binding ReopenClosedTabCommand}" InputGesture="Ctrl+Shift+T"/>
         <Separator/>
-        <MenuItem Header="_Settings..." Command="{Binding ShowSettingsCommand}" HotKey="Ctrl+OemComma"/>
+        <MenuItem Header="_Settings..." Command="{Binding ShowSettingsCommand}" InputGesture="Ctrl+OemComma"/>
         <MenuItem Header="File _Info..." Click="OnShowFileInfoClick"/>
         <Separator/>
         <MenuItem Header="E_xit" Click="OnExitClick" InputGesture="Alt+F4"/>
@@ -237,50 +204,63 @@
         <Separator/>
         <MenuItem Header="Cu_t" Click="OnCutClick" HotKey="Ctrl+X" InputGesture="Ctrl+X"/>
         <MenuItem Header="_Copy" Click="OnCopyClick" HotKey="Ctrl+C" InputGesture="Ctrl+C"/>
-        <MenuItem Header="Copy _All" Command="{Binding CopyAllCommand}" HotKey="Ctrl+Shift+C" InputGesture="Ctrl+Shift+C"/>
+        <MenuItem Header="Copy _All" Command="{Binding CopyAllCommand}" InputGesture="Ctrl+Shift+C"/>
         <MenuItem Header="_Paste" Click="OnPasteClick" HotKey="Ctrl+V" InputGesture="Ctrl+V"/>
         <MenuItem Header="Select _All" Click="OnSelectAllClick" HotKey="Ctrl+A" InputGesture="Ctrl+A"/>
         <Separator/>
-        <MenuItem Header="_Find..." Command="{Binding ShowSearchCommand}" HotKey="Ctrl+F" InputGesture="Ctrl+F"/>
-        <MenuItem Header="Find in _Files..." Command="{Binding OpenGlobalSearchCommand}" HotKey="Ctrl+Shift+F" InputGesture="Ctrl+Shift+F"/>
-        <MenuItem Header="_Replace..." Command="{Binding ShowReplaceCommand}" HotKey="Ctrl+H" InputGesture="Ctrl+H"/>
+        <MenuItem Header="_Find..." Command="{Binding ShowSearchCommand}" InputGesture="Ctrl+F"/>
+        <MenuItem Header="Find in _Files..." Command="{Binding OpenGlobalSearchCommand}" InputGesture="Ctrl+Shift+F"/>
+        <MenuItem Header="_Replace..." Command="{Binding ShowReplaceCommand}" InputGesture="Ctrl+H"/>
 
-        <MenuItem Header="Go to _Line..." Command="{Binding ShowGoToLineCommand}" HotKey="Ctrl+G" InputGesture="Ctrl+G"/>
+        <MenuItem Header="Go to _Line..." Command="{Binding ShowGoToLineCommand}" InputGesture="Ctrl+G"/>
         <Separator/>
-        <MenuItem Header="Toggle _Line Comment" Command="{Binding ToggleCommentCommand}" HotKey="Ctrl+OemQuestion"/>
-        <MenuItem Header="_Duplicate Line / Selection" Click="OnDuplicateLineClick" HotKey="Ctrl+D" InputGesture="Ctrl+D"/>
-        <MenuItem Header="_Delete Line" Click="OnDeleteLineClick" HotKey="Ctrl+Shift+K" InputGesture="Ctrl+Shift+K"/>
+        <MenuItem Header="Toggle _Line Comment" Command="{Binding ToggleCommentCommand}" InputGesture="Ctrl+OemQuestion"/>
+        <MenuItem Header="_Duplicate Line / Selection" Click="OnDuplicateLineClick" InputGesture="Ctrl+D"/>
+        <MenuItem Header="_Delete Line" Click="OnDeleteLineClick" InputGesture="Ctrl+Shift+K"/>
         <Separator/>
-        <MenuItem Header="_Settings..." Command="{Binding ShowSettingsCommand}" HotKey="Ctrl+OemComma"/>
+        <MenuItem Header="_Settings..." Command="{Binding ShowSettingsCommand}" InputGesture="Ctrl+OemComma"/>
       </MenuItem>
 
       <MenuItem Header="_View">
-        <MenuItem Header="Toggle _Folder Sidebar" Command="{Binding ToggleSidebarCommand}" HotKey="Ctrl+B" InputGesture="Ctrl+B">
+        <MenuItem Header="Toggle _Folder Sidebar" Command="{Binding ToggleSidebarCommand}" InputGesture="Ctrl+B">
           <MenuItem.Icon>
             <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding IsSidebarOpen}"/>
           </MenuItem.Icon>
         </MenuItem>
-        <MenuItem Header="Toggle _Split View" Command="{Binding ToggleSplitViewCommand}" HotKey="Ctrl+OemBackslash" InputGesture="Ctrl+OemBackslash">
+        <MenuItem Header="Focus _Explorer" Command="{Binding ShowExplorerSidebarCommand}" InputGesture="Ctrl+Shift+E"/>
+        <MenuItem Header="Toggle Document _Outline" Command="{Binding ToggleOutlineCommand}" InputGesture="Ctrl+Alt+O">
+          <MenuItem.Icon>
+            <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding IsOutlineVisible}"/>
+          </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="Toggle Terminal _Console" Command="{Binding ToggleRunnerConsoleCommand}" InputGesture="Ctrl+OemTilde">
+          <MenuItem.Icon>
+            <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding RunnerViewModel.IsVisible}"/>
+          </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="_Refresh Git Status" Command="{Binding RefreshGitStatusCommand}" InputGesture="Ctrl+Shift+G"/>
+        <Separator/>
+        <MenuItem Header="Toggle _Split View" Command="{Binding ToggleSplitViewCommand}" InputGesture="Ctrl+OemBackslash">
           <MenuItem.Icon>
             <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding IsSplitViewActive}"/>
           </MenuItem.Icon>
         </MenuItem>
-        <MenuItem Header="Toggle _Markdown Live Preview" Command="{Binding ToggleMarkdownPreviewCommand}" HotKey="Ctrl+Shift+M" InputGesture="Ctrl+Shift+M">
+        <MenuItem Header="Toggle _Markdown Live Preview" Command="{Binding ToggleMarkdownPreviewCommand}" InputGesture="Ctrl+Shift+M">
           <MenuItem.Icon>
             <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding IsMarkdownPreviewActive}"/>
           </MenuItem.Icon>
         </MenuItem>
-        <MenuItem Header="Toggle _RTL / LTR Direction" Command="{Binding ToggleRtlCommand}" HotKey="Ctrl+Alt+R" InputGesture="Ctrl+Alt+R">
+        <MenuItem Header="Toggle _RTL / LTR Direction" Command="{Binding ToggleRtlCommand}" InputGesture="Ctrl+Alt+R">
           <MenuItem.Icon>
             <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding ActiveDocument.IsRtl, FallbackValue=False}"/>
           </MenuItem.Icon>
         </MenuItem>
         <Separator/>
-        <MenuItem Header="Zoom _In" Command="{Binding ZoomInCommand}" HotKey="Ctrl+OemPlus"/>
-        <MenuItem Header="Zoom _Out" Command="{Binding ZoomOutCommand}" HotKey="Ctrl+OemMinus"/>
-        <MenuItem Header="_Reset Zoom" Command="{Binding ResetZoomCommand}" HotKey="Ctrl+D0"/>
+        <MenuItem Header="Zoom _In" Command="{Binding ZoomInCommand}" InputGesture="Ctrl+OemPlus"/>
+        <MenuItem Header="Zoom _Out" Command="{Binding ZoomOutCommand}" InputGesture="Ctrl+OemMinus"/>
+        <MenuItem Header="_Reset Zoom" Command="{Binding ResetZoomCommand}" InputGesture="Ctrl+D0"/>
         <Separator/>
-        <MenuItem Header="Toggle _Word Wrap" Command="{Binding ToggleWordWrapCommand}" HotKey="Alt+Z" InputGesture="Alt+Z">
+        <MenuItem Header="Toggle _Word Wrap" Command="{Binding ToggleWordWrapCommand}" InputGesture="Alt+Z">
           <MenuItem.Icon>
             <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding ActiveDocument.WordWrap, FallbackValue=False}"/>
           </MenuItem.Icon>
@@ -291,13 +271,18 @@
             <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding ShowBreadcrumbs}"/>
           </MenuItem.Icon>
         </MenuItem>
+        <MenuItem Header="Toggle Code _Minimap" Command="{Binding ToggleMinimapCommand}" InputGesture="Ctrl+Alt+M">
+          <MenuItem.Icon>
+            <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding ShowMinimap}"/>
+          </MenuItem.Icon>
+        </MenuItem>
         <MenuItem Header="Toggle _Rainbow Brackets" Command="{Binding ToggleRainbowBracketsCommand}">
           <MenuItem.Icon>
             <TextBlock Text="✓" FontWeight="Bold" IsVisible="{Binding RainbowBracketsEnabled}"/>
           </MenuItem.Icon>
         </MenuItem>
         <Separator/>
-        <MenuItem Header="Toggle Coding _Font (Google Sans Code ⇄ Roboto Mono)" Command="{Binding ToggleCodingFontCommand}" HotKey="Ctrl+Alt+F" InputGesture="Ctrl+Alt+F"/>
+        <MenuItem Header="Toggle Coding _Font (Google Sans Code ⇄ Roboto Mono)" Command="{Binding ToggleCodingFontCommand}" InputGesture="Ctrl+Alt+F"/>
         <MenuItem Header="Coding _Font">
           <MenuItem Header="Google Sans Code" Command="{Binding SetCodingFontCommand}" CommandParameter="Google Sans Code">
             <MenuItem.Icon>
@@ -341,9 +326,9 @@
 
       <!-- Developer Tools & Plugins Menu -->
       <MenuItem Header="_Tools">
-        <MenuItem Header="▶ _Run Active Script" Command="{Binding RunActiveScriptCommand}" HotKey="F5" InputGesture="F5"/>
-        <MenuItem Header="🔍 _Compare / Diff Files..." Command="{Binding ShowDiffCommand}" HotKey="Ctrl+Shift+D" InputGesture="Ctrl+Shift+D"/>
-        <MenuItem Header="⚡ _Command Palette..." Command="{Binding ShowCommandPaletteCommand}" HotKey="Ctrl+Shift+P" InputGesture="Ctrl+Shift+P"/>
+        <MenuItem Header="▶ _Run Active Script" Command="{Binding RunActiveScriptCommand}" InputGesture="F5"/>
+        <MenuItem Header="🔍 _Compare / Diff Files..." Command="{Binding ShowDiffCommand}" InputGesture="Ctrl+Shift+D"/>
+        <MenuItem Header="⚡ _Command Palette..." Command="{Binding ShowCommandPaletteCommand}" InputGesture="Ctrl+Shift+P"/>
         <Separator/>
         <MenuItem Header="_JSON Tools">
           <MenuItem Header="_Format JSON (2 spaces)" Click="OnJsonFormatClick"/>

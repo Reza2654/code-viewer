@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:CodeViewer.ViewModels"
         xmlns:models="using:CodeViewer.Models"
+        xmlns:services="using:CodeViewer.Services"
         x:Class="CodeViewer.Views.SettingsDialog"
         x:DataType="vm:SettingsViewModel"
         Title="Settings &amp; Preferences - Code Viewer"
@@ -374,9 +375,14 @@
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Margin="0,4"/>
 
-                  <CheckBox Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2"
+                  <CheckBox Grid.Row="5" Grid.Column="0"
                             IsChecked="{Binding ShowBreadcrumbs}"
                             Content="Show breadcrumbs bar above editor"
+                            Foreground="{DynamicResource ThemeWindowForeground}"
+                            Margin="0,4"/>
+                  <CheckBox Grid.Row="5" Grid.Column="1"
+                            IsChecked="{Binding ShowMinimap}"
+                            Content="Show code minimap overview"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Margin="0,4"/>
                 </Grid>
@@ -794,6 +800,33 @@
                                Foreground="#888888"/>
                   </StackPanel>
                 </CheckBox>
+              </StackPanel>
+            </Border>
+
+            <!-- Terminal & Script Execution -->
+            <Border Classes="settings-card">
+              <StackPanel Spacing="10">
+                <TextBlock Text="Terminal &amp; Script Execution"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource ThemeWindowForeground}"
+                           FontSize="14"/>
+                <TextBlock Text="Select the default shell used by the integrated terminal console (Ctrl+`) and script runner."
+                           FontSize="11"
+                           Foreground="#888888"/>
+
+                <ComboBox ItemsSource="{Binding AvailableTerminalShells}"
+                          SelectedItem="{Binding SelectedTerminalShell, Mode=TwoWay}"
+                          HorizontalAlignment="Stretch"
+                          MaxDropDownHeight="260">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="services:ShellOption">
+                      <StackPanel Spacing="1" Margin="0,2">
+                        <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="12"/>
+                        <TextBlock Text="{Binding Description}" FontSize="10" Opacity="0.7"/>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
               </StackPanel>
             </Border>
 
