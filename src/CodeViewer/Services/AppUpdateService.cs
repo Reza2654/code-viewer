@@ -61,7 +61,7 @@ public class AppUpdateService : IAppUpdateService
             // Fallback handled
         }
 
-        return "1.2.0-beta.19";
+        return "1.2.0-beta.20";
     }
 
     public async Task<AppUpdateInfo> CheckForUpdatesAsync(bool isManualCheck = false, CancellationToken cancellationToken = default)

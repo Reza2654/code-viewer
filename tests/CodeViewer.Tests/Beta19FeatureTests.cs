@@ -10,13 +10,17 @@ namespace CodeViewer.Tests;
 public class Beta19FeatureTests
 {
     [TestMethod]
-    public void AppUpdateService_GetCurrentAppVersion_ReportsBeta19()
+    public void AppUpdateService_GetCurrentAppVersion_ReportsBetaVersion()
     {
         var version = AppUpdateService.GetCurrentAppVersion();
-        Assert.AreEqual("1.2.0-beta.19", version);
+        Assert.AreEqual("1.2.0-beta.20", version);
+        StringAssert.StartsWith(version, "1.2.0-beta.");
 
         var cmp = AppUpdateService.CompareVersions("1.2.0-beta.19", "1.2.0-beta.18");
         Assert.IsTrue(cmp > 0, "v1.2.0-beta.19 must be recognized as newer than v1.2.0-beta.18");
+
+        var cmp20 = AppUpdateService.CompareVersions("1.2.0-beta.20", "1.2.0-beta.19");
+        Assert.IsTrue(cmp20 > 0, "v1.2.0-beta.20 must be recognized as newer than v1.2.0-beta.19");
     }
 
     [TestMethod]

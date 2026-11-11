@@ -16,13 +16,16 @@
 
 - 🔤 **Google Sans Code Default Font**: Bundled with Google's modern, highly legible developer font Google Sans Code out-of-the-box, with embedded asset fallbacks, automatic system font discovery, and optional installer task to register the font system-wide in Windows.
 - ✨ **Silky-Smooth Cursor Blinking & Smooth Inertial Scroll**: Modern smooth cosine opacity cursor breathing (~60fps) with instant snap-to-solid on typing/navigation, paired with 60/120fps exponential decay inertial mouse-wheel scrolling for buttery smooth gliding.
-- 📁 **Folder Sidebar & Workspace Explorer (Ctrl+B)**: Sleek, collapsible project tree with lazy-loaded folder hierarchy (`📁 MyProject` -> `src` -> `main.dart`) and language badges. Includes header quick actions (`📄+` New File, `📁+` New Folder, `🔄` Refresh) and full right-click context menu (New File, New Folder, Rename, Delete, Reveal in File Explorer, Copy Path, Copy Relative Path, Refresh).
-- 🔍 **Global Workspace Search (Ctrl+Shift+F)**: Multi-threaded blazing-fast search across all files in your workspace with match preview, case sensitivity (`Aa`), whole-word matching (`\b`), debounced instant typing, and jump-to-line navigation.
-- ⚡ **Command Palette (Ctrl+Shift+P / F1)**: Instant fuzzy launcher for every editor feature, plugin, theme, and setting.
-- 🔀 **Split View (Ctrl+\)**: Side-by-side simultaneous document comparison and editing with zero lag.
-- 🔍 **Diff Viewer (Ctrl+Shift+D)**: Built-in pure C# Myers diff comparison highlighting added, removed, and modified lines with summary statistics.
-- ▶ **Interactive Script Runner Console (F5)**: Embedded bottom console to run scripts for **AgentLang** (`.agent`), **PS2** (`.ps2`), **Dart** (`.dart`), **Python** (`.py`), and **PowerShell** (`.ps1`) with real-time stdout/stderr streaming, **interactive stdin input bar** to send data to scripts (`input()`, `Read-Host`), execution timers, `Shift+F5` kill switch, and `Ctrl+K` clear console.
-- 📝 **Markdown Live Preview (Ctrl+Shift+M)**: Ultra-fast native Avalonia Markdown renderer without heavy webviews or external runtime overhead.
+- 📁 **Folder Sidebar & Workspace Explorer (`Ctrl+B` / `Ctrl+Shift+E`)**: Sleek, collapsible project tree with lazy-loaded folder hierarchy (`📁 MyProject` -> `src` -> `main.dart`) and language badges. Includes header quick actions (`📄+` New File, `📁+` New Folder, `🔄` Refresh) and full right-click context menu (New File, New Folder, Rename, Delete, Reveal in File Explorer, Copy Path, Copy Relative Path, Refresh).
+- 🔀 **Git Status Indicators in Workspace Tree (`Ctrl+Shift+G`)**: Non-blocking background Git repository status integration decorating modified (`M`), untracked (`U`), added/staged (`+`), and deleted files and folders directly in the explorer tree with theme-friendly status badges.
+- 🧭 **Document Symbol Outline (`Ctrl+Alt+O`)**: Fast structural code and document outline in the sidebar for instant jump-to-symbol navigation across C#, Python, JavaScript/TypeScript, Dart, PowerShell, JSON, HTML/XML, Markdown headings, and more.
+- 🗺️ **Code Minimap (`Ctrl+Alt+M`)**: Synchronized overview minimap margin beside the editor viewport for effortless spatial navigation in large files, configurable in both the `_View` menu and Settings dialog.
+- 🔍 **Global Workspace Search (`Ctrl+Shift+F`)**: Multi-threaded blazing-fast search across all files in your workspace with match preview, case sensitivity (`Aa`), whole-word matching (`\b`), debounced instant typing, and jump-to-line navigation.
+- ⚡ **Command Palette (`Ctrl+Shift+P` / `F1`)**: Instant fuzzy launcher for every editor feature, plugin, theme, and setting.
+- 🔀 **Split View (`Ctrl+\`)**: Side-by-side simultaneous document comparison and editing with zero lag.
+- 🔍 **Diff Viewer (`Ctrl+Shift+D`)**: Built-in pure C# Myers diff comparison highlighting added, removed, and modified lines with summary statistics.
+- ▶ **Interactive Terminal & Multi-Shell Script Runner (`` Ctrl+` `` / `F5`)**: Embedded bottom console supporting both script execution (**AgentLang**, **PS2**, **Dart**, **Python**, **PowerShell**, **Node.js**, **WSL/Bash**, **CMD**) and an **Interactive Command Mode** when idle to run arbitrary workspace commands (`git`, `dotnet`, `npm`, `python`) without leaving CodeViewer. Features real-time stdout/stderr streaming, interactive stdin input, shell selector (`Auto`, `PowerShell`, `CMD`, `WSL / Bash`, `Python`, `Node`), `Shift+F5` kill switch, and `Ctrl+K` clear console.
+- 📝 **Markdown Split Live Preview (`Ctrl+Shift+M`)**: Ultra-fast native Avalonia Markdown renderer supporting side-by-side synchronized scrolling with the editor, GitHub-flavored tables, and interactive-style task lists without heavy webviews or external runtime overhead.
 - ⇄ **Full RTL & Persian (Farsi) Language Support (Ctrl+Alt+R)**: Native Right-to-Left text direction flow for Persian, Arabic, and Hebrew with automatic script detection, View menu text direction toggle, Persian language mode (`.fa`, `.farsi`, `.persian`), cursive font fallbacks, and RTL Markdown Live Preview.
 - ⚡ **Instant & Ultra-Fast Startup**: Sub-25ms startup time powered by Ahead-Of-Time ReadyToRun (R2R) native compilation, Tiered PGO, on-demand syntax highlighter compilation, instant in-memory theme resolution, 64KB single-pass file streaming, and asynchronous background plugin/theme discovery.
 - 🪟 **Native Windows 11 Context Menu**: Directly integrates into the modern Windows 11 right-click context menu powered by a native `IExplorerCommand` Sparse Package shell extension.
@@ -76,6 +79,11 @@
   - **Animated Status Message Pill**: Status notifications appear in a centered pill badge with smooth entrance animation and hover states on all status controls.
   - **Modern Windows 11 Glass Chrome**: Native support for Mica and Acrylic blur window transparency hints.
   - **Theme Gallery & Interactive Cards**: Fluid hover elevation, scale (`1.03x`), and accent border glow on theme cards, with an `EnableAnimations` preference toggle in Settings.
+- 🧩 **Workspace Intelligence, Terminal & Architecture Overhaul (v1.2.0-beta.20)**:
+  - **Modular Architecture**: Decomposed monolithic viewmodels/views into focused coordinators (`WorkspaceCoordinator`, `TabManager`, `CommandPaletteCoordinator`, `BuiltInThemes`, `WindowKeyboardRouter`, `SmartBracketEditHandler`).
+  - **Git Explorer Badges & Outline**: Non-blocking workspace Git status decorations (`Ctrl+Shift+G`), Document Symbol Outline (`Ctrl+Alt+O`), and synchronized Code Minimap (`Ctrl+Alt+M`).
+  - **Multi-Shell Terminal & Markdown Split Preview**: Interactive bottom console (`` Ctrl+` ``) with shell selector (`Auto`, `PowerShell`, `CMD`, `WSL/Bash`, `Python`, `Node`) plus synchronized Markdown split scrolling, tables, and task lists.
+  - **Verified Performance Baseline**: Validated across 28 benchmark scenarios in [`BENCHMARK_REPORT.md`](tests/CodeViewer.Benchmarks/BENCHMARK_REPORT.md) (including 0-allocation RTL scanning and sub-millisecond outline/command filtering).
 - 🎨 **Modernized UI, File Type Badges & Status Bar Elevation (v1.2.0-beta.19)**:
   - **Dynamic File Type Badges (`IconGlyph`)**: Automatic file extension glyphs on tabs (`🔷` `.cs`, `🐍` `.py`, `🎯` `.dart`, `🤖` `.agent`, `📜` `.ps2`, `📝` `.md`, `⚙️` `.json`, `🌐` `.html`, `🎨` `.css`, `🗄️` `.sql`, `💻` `.sh`, `📄` others) for instant visual recognition.
   - **Sleek Unsaved State Dot**: Replaced legacy asterisk text with a modern 6px accent dot badge matching industry-standard IDE aesthetics.
@@ -87,7 +95,7 @@
   - **Unblocked Standard Native Mouse Wheel Scrolling**: Removed custom pointer wheel tunneling and interception; AvaloniaEdit's high-performance native `ScrollViewer` now handles all mouse wheel operations directly.
   - **Flawless Multi-Wheel Support**: Standard vertical wheel scrolling, `Shift + Wheel` horizontal panning, tilt wheels, high-precision wheels, and precision touchpad scrolling all function natively and effortlessly.
   - **Clean & Streamlined Settings UI**: Removed unused scroll toggles and re-aligned Editor Preferences for a cleaner, balanced layout.
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.19-Setup.exe`) and portable standalone `.zip` archive.
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.20-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---
@@ -97,14 +105,19 @@
 | Shortcut | Action |
 | :--- | :--- |
 | `Ctrl + B` | Toggle Folder Workspace Sidebar |
+| `Ctrl + Shift + E` | Focus Explorer Sidebar |
 | `Ctrl + Shift + O` | Open Folder |
+| `Ctrl + Shift + G` | Refresh Git Status in Explorer |
+| `Ctrl + Alt + O` | Toggle Document Symbol Outline |
+| `Ctrl + Alt + M` | Toggle Code Minimap |
 | `Ctrl + Shift + F` | Find in Files (Global Workspace Search) |
 | `Ctrl + Shift + P` / `F1` | Command Palette |
 | `Ctrl + \` | Toggle Split View |
+| `` Ctrl + ` `` | Toggle Interactive Terminal & Script Runner |
 | `F5` | Run Active Script (AgentLang, PS2, Dart, Python, PowerShell) |
 | `Shift + F5` | Stop Running Script |
 | `Ctrl + K` | Clear Console Output |
-| `Ctrl + Shift + M` | Toggle Markdown Live Preview |
+| `Ctrl + Shift + M` | Toggle Markdown Split Live Preview |
 | `Ctrl + Alt + R` | Toggle RTL / LTR Text Direction (Persian/Arabic) |
 | `Ctrl + Alt + F` | Toggle Coding Font (Google Sans Code ⇄ Roboto Mono) |
 | `Ctrl + Shift + D` | Compare / Diff Files |
@@ -138,7 +151,7 @@
 ## Installation & Packaging
 
 ### Option 1: Installer (Recommended)
-Download and run `CodeViewer-v1.2.0-beta.11-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
+Download and run `CodeViewer-v1.2.0-beta.20-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
 - Installs Code Viewer to your system.
 - Creates Start Menu and Desktop shortcuts.
 - Optionally installs and registers Google Sans Code & Roboto Mono fonts system-wide.
@@ -146,7 +159,7 @@ Download and run `CodeViewer-v1.2.0-beta.11-Setup.exe` from the [Releases](https
 - Automatically registers the modern Windows 11 right-click context menu.
 
 ### Option 2: Portable ZIP
-Download `CodeViewer-v1.2.0-beta.11-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
+Download `CodeViewer-v1.2.0-beta.20-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
 
 To enable the modern Windows 11 context menu for portable use, right-click `scripts\register-windows11-context-menu.ps1` and select **Run with PowerShell**.
 
@@ -184,9 +197,14 @@ dotnet build CodeViewer.slnx
 # Run all unit tests
 dotnet test tests/CodeViewer.Tests/CodeViewer.Tests.csproj
 
+# Run the performance benchmark suite
+dotnet run --project tests/CodeViewer.Benchmarks/CodeViewer.Benchmarks.csproj -c Release
+
 # Run the app locally
 dotnet run --project src/CodeViewer/CodeViewer.csproj
 ```
+
+Baseline numbers for all 28 benchmark scenarios are recorded in [`BENCHMARK_REPORT.md`](tests/CodeViewer.Benchmarks/BENCHMARK_REPORT.md).
 
 ### Packaging Release & Installer
 To generate both the portable ZIP and the Inno Setup executable installer:
@@ -194,8 +212,8 @@ To generate both the portable ZIP and the Inno Setup executable installer:
 powershell -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
 ```
 Output artifacts are saved in `dist/`:
-- `CodeViewer-v1.2.0-beta.19-Setup.exe`
-- `CodeViewer-v1.2.0-beta.19-win-x64-portable.zip`
+- `CodeViewer-v1.2.0-beta.20-Setup.exe`
+- `CodeViewer-v1.2.0-beta.20-win-x64-portable.zip`
 - `checksums.sha256`
 
 ---
