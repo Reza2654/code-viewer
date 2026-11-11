@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
@@ -12,6 +13,11 @@ namespace CodeViewer.Rendering;
 public static class MarkdownRenderer
 {
     private static readonly FontFamily MonospaceFamily = new("Google Sans Code, Cascadia Code, Consolas, Courier New, monospace");
+    private static readonly SearchValues<char> InlineTokenStartChars = SearchValues.Create(['`', '~', '*', '[']);
+    private static readonly IBrush DefaultTableHeaderBg = new SolidColorBrush(Color.FromArgb(40, 128, 128, 128));
+    private static readonly IBrush DefaultTableAltRowBg = new SolidColorBrush(Color.FromArgb(15, 128, 128, 128));
+    private static readonly IBrush DefaultCodeBg = new SolidColorBrush(Color.FromArgb(50, 0, 0, 0));
+    private static readonly IBrush DefaultCodeBorder = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255));
 
     public static Control Render(string markdown, IBrush? foreground = null, IBrush? borderBrush = null, IBrush? codeBackground = null)
     {
@@ -32,17 +38,16 @@ public static class MarkdownRenderer
             return panel;
         }
 
-        var lines = markdown.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        var lines = SplitLinesFast(markdown);
         bool inCodeBlock = false;
         var codeBlockLines = new List<string>();
 
-        for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++)
+        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++)
         {
-            var rawLine = lines[lineIndex];
-            var line = rawLine;
+            var line = lines[lineIndex];
 
             // Handle fenced code blocks
-            if (line.TrimStart().StartsWith("```"))
+            if (line.AsSpan().TrimStart().StartsWith("```"))
             {
                 if (inCodeBlock)
                 {
@@ -64,10 +69,10 @@ public static class MarkdownRenderer
                 continue;
             }
 
-            var trimmed = line.Trim();
+            var trimmedSpan = line.AsSpan().Trim();
 
             // Horizontal rule
-            if (trimmed is "---" or "***" or "___")
+            if (trimmedSpan is "---" or "***" or "___")
             {
                 panel.Children.Add(new Border
                 {
@@ -80,45 +85,53 @@ public static class MarkdownRenderer
             }
 
             // Headings
-            if (line.StartsWith("# "))
+            if (line.StartsWith("# ", StringComparison.Ordinal))
             {
                 panel.Children.Add(CreateHeading(line[2..], 22, FontWeight.Bold, foreground, new Thickness(0, 10, 0, 4)));
                 continue;
             }
-            if (line.StartsWith("## "))
+            if (line.StartsWith("## ", StringComparison.Ordinal))
             {
                 panel.Children.Add(CreateHeading(line[3..], 18, FontWeight.Bold, foreground, new Thickness(0, 8, 0, 3)));
                 continue;
             }
-            if (line.StartsWith("### "))
+            if (line.StartsWith("### ", StringComparison.Ordinal))
             {
                 panel.Children.Add(CreateHeading(line[4..], 15, FontWeight.SemiBold, foreground, new Thickness(0, 6, 0, 2)));
                 continue;
             }
-            if (line.StartsWith("#### "))
+            if (line.StartsWith("#### ", StringComparison.Ordinal))
             {
                 panel.Children.Add(CreateHeading(line[5..], 13, FontWeight.SemiBold, foreground, new Thickness(0, 4, 0, 2)));
                 continue;
             }
-            if (line.StartsWith("##### "))
+            if (line.StartsWith("##### ", StringComparison.Ordinal))
             {
                 panel.Children.Add(CreateHeading(line[6..], 12, FontWeight.SemiBold, foreground, new Thickness(0, 3, 0, 1)));
                 continue;
             }
-            if (line.StartsWith("###### "))
+            if (line.StartsWith("###### ", StringComparison.Ordinal))
             {
                 panel.Children.Add(CreateHeading(line[7..], 11, FontWeight.SemiBold, foreground, new Thickness(0, 2, 0, 1)));
                 continue;
             }
 
             // Tables: begins and ends with |
-            if (trimmed.StartsWith('|') && trimmed.EndsWith('|') && trimmed.Length > 2)
+            if (trimmedSpan.Length > 2 && trimmedSpan[0] == '|' && trimmedSpan[^1] == '|')
             {
                 var tableLines = new List<string> { line };
-                while (lineIndex + 1 < lines.Length && lines[lineIndex + 1].Trim().StartsWith('|') && lines[lineIndex + 1].Trim().EndsWith('|'))
+                while (lineIndex + 1 < lines.Count)
                 {
-                    lineIndex++;
-                    tableLines.Add(lines[lineIndex]);
+                    var nextSpan = lines[lineIndex + 1].AsSpan().Trim();
+                    if (nextSpan.Length >= 2 && nextSpan[0] == '|' && nextSpan[^1] == '|')
+                    {
+                        lineIndex++;
+                        tableLines.Add(lines[lineIndex]);
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
 
                 panel.Children.Add(CreateTable(tableLines, foreground, borderBrush, codeBackground));
@@ -126,43 +139,43 @@ public static class MarkdownRenderer
             }
 
             // Blockquote
-            if (line.StartsWith("> "))
+            if (line.StartsWith("> ", StringComparison.Ordinal))
             {
                 panel.Children.Add(CreateBlockquote(line[2..], foreground, borderBrush));
                 continue;
             }
 
             // Task list item
-            if (trimmed.StartsWith("- [ ] ") || trimmed.StartsWith("* [ ] "))
+            if (trimmedSpan.StartsWith("- [ ] ") || trimmedSpan.StartsWith("* [ ] "))
             {
-                panel.Children.Add(CreateTaskListItem(false, trimmed[6..], foreground));
+                panel.Children.Add(CreateTaskListItem(false, trimmedSpan[6..].ToString(), foreground));
                 continue;
             }
-            if (trimmed.StartsWith("- [x] ", StringComparison.OrdinalIgnoreCase) || trimmed.StartsWith("* [x] ", StringComparison.OrdinalIgnoreCase))
+            if (trimmedSpan.StartsWith("- [x] ", StringComparison.OrdinalIgnoreCase) || trimmedSpan.StartsWith("* [x] ", StringComparison.OrdinalIgnoreCase))
             {
-                panel.Children.Add(CreateTaskListItem(true, trimmed[6..], foreground));
+                panel.Children.Add(CreateTaskListItem(true, trimmedSpan[6..].ToString(), foreground));
                 continue;
             }
 
             // Bullet list
-            if (trimmed.StartsWith("- ") || trimmed.StartsWith("* "))
+            if (trimmedSpan.StartsWith("- ") || trimmedSpan.StartsWith("* "))
             {
-                panel.Children.Add(CreateListItem("•", trimmed[2..], foreground));
+                panel.Children.Add(CreateListItem("•", trimmedSpan[2..].ToString(), foreground));
                 continue;
             }
 
             // Numbered list
-            if (trimmed.Length > 2 && char.IsDigit(trimmed[0]) && (trimmed[1] == '.' || (trimmed.Length > 3 && char.IsDigit(trimmed[1]) && trimmed[2] == '.')))
+            if (trimmedSpan.Length > 2 && char.IsDigit(trimmedSpan[0]) && (trimmedSpan[1] == '.' || (trimmedSpan.Length > 3 && char.IsDigit(trimmedSpan[1]) && trimmedSpan[2] == '.')))
             {
-                int dotIdx = trimmed.IndexOf('.');
-                var num = trimmed[..(dotIdx + 1)];
-                var itemText = trimmed[(dotIdx + 1)..].TrimStart();
+                int dotIdx = trimmedSpan.IndexOf('.');
+                var num = trimmedSpan[..(dotIdx + 1)].ToString();
+                var itemText = trimmedSpan[(dotIdx + 1)..].TrimStart().ToString();
                 panel.Children.Add(CreateListItem(num, itemText, foreground));
                 continue;
             }
 
             // Empty line
-            if (string.IsNullOrWhiteSpace(line))
+            if (trimmedSpan.IsEmpty)
             {
                 panel.Children.Add(new Border { Height = 4 });
                 continue;
@@ -179,6 +192,28 @@ public static class MarkdownRenderer
         }
 
         return panel;
+    }
+
+    private static List<string> SplitLinesFast(string text)
+    {
+        var lines = new List<string>(Math.Max(16, text.Length / 40));
+        int start = 0;
+        int len = text.Length;
+        for (int i = 0; i < len; i++)
+        {
+            char c = text[i];
+            if (c == '\r' || c == '\n')
+            {
+                lines.Add(text.Substring(start, i - start));
+                if (c == '\r' && i + 1 < len && text[i + 1] == '\n')
+                {
+                    i++;
+                }
+                start = i + 1;
+            }
+        }
+        lines.Add(start < len ? text.Substring(start) : string.Empty);
+        return lines;
     }
 
     public static bool IsRtlText(string text)
@@ -240,12 +275,17 @@ public static class MarkdownRenderer
         };
     }
 
+    private static ColumnDefinitions CreateSideColumns(double fixedWidth, bool fixedOnRight) =>
+        fixedOnRight
+            ? new ColumnDefinitions { new ColumnDefinition(1, GridUnitType.Star), new ColumnDefinition(fixedWidth, GridUnitType.Pixel) }
+            : new ColumnDefinitions { new ColumnDefinition(fixedWidth, GridUnitType.Pixel), new ColumnDefinition(1, GridUnitType.Star) };
+
     private static Grid CreateListItem(string bullet, string text, IBrush? fg)
     {
         bool isRtl = IsRtlText(text);
         var grid = new Grid
         {
-            ColumnDefinitions = isRtl ? new ColumnDefinitions("*,20") : new ColumnDefinitions("20,*"),
+            ColumnDefinitions = CreateSideColumns(20, isRtl),
             Margin = new Thickness(4, 1, 0, 1)
         };
 
@@ -280,7 +320,7 @@ public static class MarkdownRenderer
         bool isRtl = IsRtlText(text);
         var grid = new Grid
         {
-            ColumnDefinitions = isRtl ? new ColumnDefinitions("*,22") : new ColumnDefinitions("22,*"),
+            ColumnDefinitions = CreateSideColumns(22, isRtl),
             Margin = new Thickness(4, 2, 0, 2)
         };
 
@@ -316,32 +356,51 @@ public static class MarkdownRenderer
         return grid;
     }
 
+    private static bool IsSeparatorRow(ReadOnlySpan<char> span)
+    {
+        for (int i = 0; i < span.Length; i++)
+        {
+            char c = span[i];
+            if (c != '-' && c != '|' && c != ':' && c != ' ')
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static Control CreateTable(List<string> tableLines, IBrush? fg, IBrush? borderBrush, IBrush? headerBg)
     {
         if (tableLines.Count == 0) return new Border();
 
-        var parsedRows = new List<string[]>();
+        var parsedRows = new List<string[]>(tableLines.Count);
         int colCount = 0;
 
         foreach (var line in tableLines)
         {
-            var trimmed = line.Trim();
-            if (trimmed.StartsWith('|')) trimmed = trimmed[1..];
-            if (trimmed.EndsWith('|')) trimmed = trimmed[..^1];
+            var span = line.AsSpan().Trim();
+            if (!span.IsEmpty && span[0] == '|') span = span[1..];
+            if (!span.IsEmpty && span[^1] == '|') span = span[..^1];
 
             // If line is separator like ---|---|---, skip adding as data row
-            var stripped = trimmed.Replace("-", "").Replace("|", "").Replace(":", "").Replace(" ", "");
-            if (stripped.Length == 0)
+            if (IsSeparatorRow(span))
             {
                 continue;
             }
 
-            var cells = trimmed.Split('|').Select(c => c.Trim()).ToArray();
+            var cells = span.ToString().Split('|');
+            for (int k = 0; k < cells.Length; k++)
+            {
+                cells[k] = cells[k].Trim();
+            }
             colCount = Math.Max(colCount, cells.Length);
             parsedRows.Add(cells);
         }
 
         if (parsedRows.Count == 0 || colCount == 0) return new Border();
+
+        var resolvedHeaderBg = headerBg ?? DefaultTableHeaderBg;
+        var resolvedBorder = borderBrush ?? Brushes.Gray;
 
         var grid = new Grid
         {
@@ -376,9 +435,9 @@ public static class MarkdownRenderer
                 var cellBorder = new Border
                 {
                     Background = isHeader
-                        ? (headerBg ?? new SolidColorBrush(Color.FromArgb(40, 128, 128, 128)))
-                        : (r % 2 == 1 ? new SolidColorBrush(Color.FromArgb(15, 128, 128, 128)) : Brushes.Transparent),
-                    BorderBrush = borderBrush ?? Brushes.Gray,
+                        ? resolvedHeaderBg
+                        : (r % 2 == 1 ? DefaultTableAltRowBg : Brushes.Transparent),
+                    BorderBrush = resolvedBorder,
                     BorderThickness = new Thickness(0, 0, c < colCount - 1 ? 1 : 0, r < parsedRows.Count - 1 ? 1 : 0),
                     Padding = new Thickness(8, 5),
                     Child = tb
@@ -392,7 +451,7 @@ public static class MarkdownRenderer
 
         return new Border
         {
-            BorderBrush = borderBrush ?? Brushes.Gray,
+            BorderBrush = resolvedBorder,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
             ClipToBounds = true,
@@ -419,8 +478,8 @@ public static class MarkdownRenderer
 
         return new Border
         {
-            Background = background ?? new SolidColorBrush(Color.FromArgb(50, 0, 0, 0)),
-            BorderBrush = borderBrush ?? new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)),
+            Background = background ?? DefaultCodeBg,
+            BorderBrush = borderBrush ?? DefaultCodeBorder,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(10, 8),
@@ -446,6 +505,19 @@ public static class MarkdownRenderer
 
     private static void AddFormattedInlines(TextBlock tb, string text)
     {
+        if (string.IsNullOrEmpty(text))
+        {
+            tb.Text = text;
+            return;
+        }
+
+        // Fast-path: pure text with zero inline token delimiters needs no Inlines or Run allocations
+        if (text.AsSpan().IndexOfAny(InlineTokenStartChars) < 0)
+        {
+            tb.Text = text;
+            return;
+        }
+
         int i = 0;
         int len = text.Length;
 
@@ -539,21 +611,11 @@ public static class MarkdownRenderer
                 }
             }
 
-            // Plain text chunk until next token
-            int nextToken = len;
-            int nextBacktick = text.IndexOf('`', i);
-            int nextTilde = (i + 1 < len && text.IndexOf("~~", i, StringComparison.Ordinal) >= 0)
-                ? text.IndexOf("~~", i, StringComparison.Ordinal)
+            // Plain text chunk until next inline token candidate (SIMD-accelerated span scan)
+            int nextRel = i + 1 < len
+                ? text.AsSpan(i + 1).IndexOfAny(InlineTokenStartChars)
                 : -1;
-            int nextStar = text.IndexOf('*', i);
-            int nextBracket = text.IndexOf('[', i);
-
-            if (nextBacktick >= 0) nextToken = Math.Min(nextToken, nextBacktick);
-            if (nextTilde >= 0) nextToken = Math.Min(nextToken, nextTilde);
-            if (nextStar >= 0) nextToken = Math.Min(nextToken, nextStar);
-            if (nextBracket >= 0) nextToken = Math.Min(nextToken, nextBracket);
-
-            if (nextToken <= i) nextToken = i + 1;
+            int nextToken = nextRel >= 0 ? i + 1 + nextRel : len;
 
             var chunk = text.Substring(i, nextToken - i);
             tb.Inlines?.Add(new Run(chunk));

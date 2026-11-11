@@ -1,64 +1,120 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
-using CodeViewer.Services;
+using CodeViewer.Benchmarks.Benchmarks;
 
 namespace CodeViewer.Benchmarks;
 
-internal class Program
+internal static class Program
 {
-    private static async Task Main(string[] args)
+    private static async Task<int> Main(string[] args)
     {
-        Console.WriteLine("=================================================");
-        Console.WriteLine("  Code Viewer V1 - Performance Benchmark Harness ");
-        Console.WriteLine("=================================================");
-        Console.WriteLine();
+        bool quick = false;
+        string? filter = null;
+        string? mdOut = null;
+        string? jsonOut = null;
 
-        var tempDir = Path.Combine(Path.GetTempPath(), "CodeViewerBenchmarks");
-        if (!Directory.Exists(tempDir))
+        for (int i = 0; i < args.Length; i++)
         {
-            Directory.CreateDirectory(tempDir);
+            switch (args[i].ToLowerInvariant())
+            {
+                case "--quick":
+                case "-q":
+                    quick = true;
+                    break;
+                case "--filter":
+                case "-f":
+                    if (i + 1 < args.Length) filter = args[++i];
+                    break;
+                case "--md":
+                    if (i + 1 < args.Length) mdOut = args[++i];
+                    break;
+                case "--json":
+                    if (i + 1 < args.Length) jsonOut = args[++i];
+                    break;
+                case "--help":
+                case "-h":
+                    PrintUsage();
+                    return 0;
+            }
         }
 
-        var smallFilePath = Path.Combine(tempDir, "small_file.cs");
-        var mediumFilePath = Path.Combine(tempDir, "medium_1mb.dart");
-        var largeFilePath = Path.Combine(tempDir, "large_10mb.txt");
+        Console.WriteLine("====================================================================================");
+        Console.WriteLine("  CodeViewer V1 — Comprehensive Performance & Memory Profiling Suite");
+        Console.WriteLine($"  Mode: {(quick ? "Quick Smoke Run" : "Full Benchmark Run")}{(string.IsNullOrEmpty(filter) ? "" : $" | Filter: '{filter}'")}");
+        Console.WriteLine("====================================================================================");
+        Console.WriteLine();
+
+        var tempRoot = Path.Combine(Path.GetTempPath(), "CodeViewerBenchmarks_" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(tempRoot);
+
+        var totalSw = Stopwatch.StartNew();
+        var allResults = new List<BenchmarkResult>();
 
         try
         {
-            Console.WriteLine("Generating synthetic benchmark files...");
-            GenerateSourceFile(smallFilePath, 10 * 1024);         // 10 KB
-            GenerateSourceFile(mediumFilePath, 1024 * 1024);      // 1 MB
-            GenerateSourceFile(largeFilePath, 10 * 1024 * 1024);  // 10 MB
-            Console.WriteLine("Files generated successfully.");
-            Console.WriteLine();
+            if (MatchesFilter(filter, "file", "io", "encoding"))
+            {
+                Console.WriteLine("Running Suite 1/6: File I/O & Encoding Detection...");
+                allResults.AddRange(await FileIoBenchmarks.RunAsync(tempRoot, quick));
+            }
 
-            var fileService = new FileService();
-            var languageService = new LanguageService();
+            if (MatchesFilter(filter, "theme", "syntax", "language"))
+            {
+                Console.WriteLine("Running Suite 2/6: Themes & Syntax Highlighting...");
+                allResults.AddRange(ThemeAndSyntaxBenchmarks.Run(tempRoot, quick));
+            }
 
-            // 1. Benchmark Small File (10 KB)
-            await BenchmarkFileAsync("Small File (10 KB, C#)", smallFilePath, fileService, languageService);
+            if (MatchesFilter(filter, "symbol", "outline", "ast"))
+            {
+                Console.WriteLine("Running Suite 3/6: Document Symbol Extraction...");
+                allResults.AddRange(SymbolExtractionBenchmarks.Run(quick));
+            }
 
-            // 2. Benchmark Medium File (1 MB)
-            await BenchmarkFileAsync("Medium File (1 MB, Dart)", mediumFilePath, fileService, languageService);
+            if (MatchesFilter(filter, "markdown", "preview", "render"))
+            {
+                Console.WriteLine("Running Suite 4/6: Markdown Live Preview Rendering...");
+                allResults.AddRange(MarkdownRendererBenchmarks.Run(quick));
+            }
 
-            // 3. Benchmark Large File (10 MB)
-            await BenchmarkFileAsync("Large File (10 MB, Text)", largeFilePath, fileService, languageService);
+            if (MatchesFilter(filter, "diff", "search", "palette", "workspace"))
+            {
+                Console.WriteLine("Running Suite 5/6: Diff Engine & Workspace Search...");
+                allResults.AddRange(await DiffAndSearchBenchmarks.RunAsync(tempRoot, quick));
+            }
 
-            Console.WriteLine();
-            Console.WriteLine("=================================================");
-            Console.WriteLine("Benchmark completed.");
-            Console.WriteLine("=================================================");
+            if (MatchesFilter(filter, "git", "editor", "bracket", "document"))
+            {
+                Console.WriteLine("Running Suite 6/6: Git & Editor Pipeline...");
+                var repoDir = Directory.GetCurrentDirectory();
+                allResults.AddRange(await GitAndEditorBenchmarks.RunAsync(repoDir, quick));
+            }
+
+            totalSw.Stop();
+
+            BenchmarkRunner.PrintSummaryTable(allResults, totalSw.Elapsed);
+
+            if (!string.IsNullOrWhiteSpace(mdOut))
+            {
+                BenchmarkRunner.ExportMarkdownReport(mdOut, allResults, totalSw.Elapsed);
+                Console.WriteLine($"Markdown report written to: {Path.GetFullPath(mdOut)}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(jsonOut))
+            {
+                BenchmarkRunner.ExportJsonReport(jsonOut, allResults, totalSw.Elapsed);
+                Console.WriteLine($"JSON report written to: {Path.GetFullPath(jsonOut)}");
+            }
         }
         finally
         {
             try
             {
-                if (Directory.Exists(tempDir))
+                if (Directory.Exists(tempRoot))
                 {
-                    Directory.Delete(tempDir, true);
+                    Directory.Delete(tempRoot, true);
                 }
             }
             catch
@@ -66,75 +122,30 @@ internal class Program
                 // Best effort cleanup
             }
         }
+
+        return 0;
     }
 
-    private static async Task BenchmarkFileAsync(
-        string testName,
-        string filePath,
-        IFileService fileService,
-        ILanguageService languageService)
+    private static bool MatchesFilter(string? filter, params string[] tags)
     {
-        Console.WriteLine($"--- Testing: {testName} ---");
-
-        var fileInfo = new FileInfo(filePath);
-        Console.WriteLine($"Size on disk: {fileInfo.Length:N0} bytes");
-
-        // Force GC before measurement
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
-        var memBefore = GC.GetTotalMemory(true);
-
-        // Cold Read Measurement
-        var sw = Stopwatch.StartNew();
-        var doc = await fileService.OpenFileAsync(filePath);
-        sw.Stop();
-        var coldOpenMs = sw.ElapsedMilliseconds;
-
-        // Language Detection & Highlighting Resolution
-        sw.Restart();
-        var lang = languageService.DetectLanguage(filePath);
-        var def = languageService.GetHighlightingDefinition(lang);
-        sw.Stop();
-        var langDetectionMs = sw.Elapsed.TotalMilliseconds;
-
-        // Warm Read Measurement (cache / JIT warmed)
-        sw.Restart();
-        var warmDoc = await fileService.OpenFileAsync(filePath);
-        sw.Stop();
-        var warmOpenMs = sw.ElapsedMilliseconds;
-
-        var memAfter = GC.GetTotalMemory(false);
-        var memDelta = Math.Max(0, memAfter - memBefore);
-
-        Console.WriteLine($"Language: {lang} | Highlighting: {(def != null ? "Loaded" : "None")}");
-        Console.WriteLine($"Detected Encoding: {doc.EncodingInfo.DisplayName} (BOM: {doc.EncodingInfo.HasBom})");
-        Console.WriteLine($"Detected Line Endings: {doc.LineEnding}");
-        Console.WriteLine($"Cold Open Time: {coldOpenMs} ms");
-        Console.WriteLine($"Warm Open Time: {warmOpenMs} ms");
-        Console.WriteLine($"Language & Syntax Resolution: {langDetectionMs:F3} ms");
-        Console.WriteLine($"Allocated Memory: {memDelta / 1024.0 / 1024.0:F2} MB");
-        Console.WriteLine();
-    }
-
-    private static void GenerateSourceFile(string path, long targetBytes)
-    {
-        var linePattern = "    void ProcessItem(int index) => Console.WriteLine($\"Item: {index}\");\r\n";
-        var lineBytes = Encoding.UTF8.GetByteCount(linePattern);
-        var lineCount = targetBytes / lineBytes;
-
-        using var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 65536);
-        using var writer = new StreamWriter(fs, new UTF8Encoding(false));
-
-        writer.WriteLine("// Auto-generated benchmark code file");
-        writer.WriteLine("namespace BenchmarkNamespace;");
-        writer.WriteLine("public class BenchmarkClass {");
-
-        for (int i = 0; i < lineCount; i++)
+        if (string.IsNullOrWhiteSpace(filter)) return true;
+        foreach (var tag in tags)
         {
-            writer.Write(linePattern);
+            if (tag.Contains(filter, StringComparison.OrdinalIgnoreCase) ||
+                filter.Contains(tag, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
         }
+        return false;
+    }
 
-        writer.WriteLine("}");
+    private static void PrintUsage()
+    {
+        Console.WriteLine("Usage: CodeViewer.Benchmarks [options]");
+        Console.WriteLine("  --quick, -q           Run with fewer iterations for fast verification");
+        Console.WriteLine("  --filter, -f <term>   Filter suite (file, theme, symbol, markdown, diff, git)");
+        Console.WriteLine("  --md <filePath>       Export benchmark summary to Markdown");
+        Console.WriteLine("  --json <filePath>     Export raw benchmark metrics to JSON");
     }
 }

@@ -34,9 +34,8 @@ public class SymbolExtractionService : ISymbolExtractionService
     private static readonly Regex PowerShellFunctionRegex = new(@"^\s*(?:function|filter)\s+([A-Za-z0-9_\-:]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex BashFunctionRegex = new(@"^\s*(?:function\s+)?([A-Za-z0-9_]+)\s*\(\)\s*\{", RegexOptions.Compiled);
 
-    // YAML / JSON
+    // YAML
     private static readonly Regex YamlKeyRegex = new(@"^([ \t]*)([A-Za-z0-9_\-.]+)\s*:\s*(.*)$", RegexOptions.Compiled);
-    private static readonly Regex JsonKeyRegex = new(@"^([ \t]*)""([A-Za-z0-9_\-.]+)""\s*:\s*(.*)$", RegexOptions.Compiled);
 
     private static readonly HashSet<string> ControlKeywords = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -48,7 +47,7 @@ public class SymbolExtractionService : ISymbolExtractionService
         if (string.IsNullOrWhiteSpace(text)) return Array.Empty<SymbolItem>();
 
         var normalizedLang = NormalizeLanguage(languageOrExtension);
-        var lines = text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        var lines = SplitLinesFast(text);
         var results = new List<SymbolItem>();
 
         switch (normalizedLang)
@@ -116,11 +115,34 @@ public class SymbolExtractionService : ISymbolExtractionService
         };
     }
 
-    private static void ExtractMarkdown(string[] lines, List<SymbolItem> results)
+    private static List<string> SplitLinesFast(string text)
     {
-        for (int i = 0; i < lines.Length; i++)
+        var lines = new List<string>(Math.Max(16, text.Length / 40));
+        int start = 0;
+        int len = text.Length;
+        for (int i = 0; i < len; i++)
+        {
+            char c = text[i];
+            if (c == '\r' || c == '\n')
+            {
+                lines.Add(text.Substring(start, i - start));
+                if (c == '\r' && i + 1 < len && text[i + 1] == '\n')
+                {
+                    i++;
+                }
+                start = i + 1;
+            }
+        }
+        lines.Add(start < len ? text.Substring(start) : string.Empty);
+        return lines;
+    }
+
+    private static void ExtractMarkdown(List<string> lines, List<SymbolItem> results)
+    {
+        for (int i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
+            if (line.Length < 3 || line[0] != '#') continue;
             var match = MarkdownHeadingRegex.Match(line);
             if (match.Success)
             {
@@ -144,248 +166,283 @@ public class SymbolExtractionService : ISymbolExtractionService
         }
     }
 
-    private static void ExtractPython(string[] lines, List<SymbolItem> results)
+    private static void ExtractPython(List<string> lines, List<SymbolItem> results)
     {
-        for (int i = 0; i < lines.Length; i++)
+        for (int i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
-            if (string.IsNullOrWhiteSpace(line)) continue;
+            var span = line.AsSpan().TrimStart();
+            if (span.IsEmpty || span[0] == '#') continue;
 
-            var classMatch = PythonClassRegex.Match(line);
-            if (classMatch.Success)
+            if (span.StartsWith("class ", StringComparison.Ordinal))
             {
-                var indent = classMatch.Groups[1].Value;
-                var className = classMatch.Groups[2].Value;
-                var baseClass = classMatch.Groups[3].Value;
-                int level = CalculateIndentLevel(indent);
-                int col = line.IndexOf(className, StringComparison.Ordinal) + 1;
-
-                results.Add(new SymbolItem
+                var classMatch = PythonClassRegex.Match(line);
+                if (classMatch.Success)
                 {
-                    Name = className,
-                    Kind = SymbolKind.Class,
-                    LineNumber = i + 1,
-                    ColumnNumber = col,
-                    Level = level,
-                    IconGlyph = "🅲",
-                    Detail = string.IsNullOrEmpty(baseClass) ? null : $"({baseClass})"
-                });
-                continue;
-            }
-
-            var defMatch = PythonDefRegex.Match(line);
-            if (defMatch.Success)
-            {
-                var indent = defMatch.Groups[1].Value;
-                var funcName = defMatch.Groups[2].Value;
-                var args = defMatch.Groups[3].Value;
-                int level = CalculateIndentLevel(indent);
-                int col = line.IndexOf(funcName, StringComparison.Ordinal) + 1;
-                bool isMethod = level > 0;
-
-                results.Add(new SymbolItem
-                {
-                    Name = funcName,
-                    Kind = isMethod ? SymbolKind.Method : SymbolKind.Function,
-                    LineNumber = i + 1,
-                    ColumnNumber = col,
-                    Level = level,
-                    IconGlyph = isMethod ? "ⓜ" : "ƒ",
-                    Detail = $"({args})"
-                });
-            }
-        }
-    }
-
-    private static void ExtractCSharp(string[] lines, List<SymbolItem> results)
-    {
-        int currentTypeLevel = 0;
-
-        for (int i = 0; i < lines.Length; i++)
-        {
-            var line = lines[i];
-            var trimmed = line.TrimStart();
-            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("//") || trimmed.StartsWith("/*") || trimmed.StartsWith('*'))
-                continue;
-
-            // Type declaration (class, interface, struct, record, enum)
-            var typeMatch = CSharpTypeRegex.Match(line);
-            if (typeMatch.Success)
-            {
-                var kindKeyword = typeMatch.Groups[1].Value;
-                var typeName = typeMatch.Groups[2].Value;
-                var kind = kindKeyword switch
-                {
-                    "class" => SymbolKind.Class,
-                    "interface" => SymbolKind.Interface,
-                    "struct" => SymbolKind.Struct,
-                    "record" => SymbolKind.Record,
-                    "enum" => SymbolKind.Enum,
-                    _ => SymbolKind.Class
-                };
-                int col = line.IndexOf(typeName, StringComparison.Ordinal) + 1;
-
-                results.Add(new SymbolItem
-                {
-                    Name = typeName,
-                    Kind = kind,
-                    LineNumber = i + 1,
-                    ColumnNumber = col,
-                    Level = 0,
-                    IconGlyph = kind == SymbolKind.Interface ? "Ⓘ" : (kind == SymbolKind.Enum ? "Ⓔ" : "🅲"),
-                    Detail = kindKeyword
-                });
-                currentTypeLevel = 1;
-                continue;
-            }
-
-            // Method
-            var methodMatch = CSharpMethodRegex.Match(line);
-            if (methodMatch.Success)
-            {
-                var methodName = methodMatch.Groups[1].Value;
-                if (!ControlKeywords.Contains(methodName))
-                {
-                    int col = line.IndexOf(methodName, StringComparison.Ordinal) + 1;
-                    var args = methodMatch.Groups[2].Value;
+                    var className = classMatch.Groups[2].Value;
+                    var baseClass = classMatch.Groups[3].Value;
+                    int level = CalculateIndentLevelSpan(line.AsSpan(0, classMatch.Groups[1].Length));
+                    int col = line.IndexOf(className, StringComparison.Ordinal) + 1;
 
                     results.Add(new SymbolItem
                     {
-                        Name = methodName,
-                        Kind = SymbolKind.Method,
+                        Name = className,
+                        Kind = SymbolKind.Class,
                         LineNumber = i + 1,
                         ColumnNumber = col,
-                        Level = currentTypeLevel,
-                        IconGlyph = "ⓜ",
-                        Detail = $"({args})"
+                        Level = level,
+                        IconGlyph = "🅲",
+                        Detail = string.IsNullOrEmpty(baseClass) ? null : $"({baseClass})"
                     });
                     continue;
                 }
             }
 
-            // Property
-            var propMatch = CSharpPropertyRegex.Match(line);
-            if (propMatch.Success)
+            if (span.StartsWith("def ", StringComparison.Ordinal) || span.StartsWith("async ", StringComparison.Ordinal))
             {
-                var propType = propMatch.Groups[1].Value;
-                var propName = propMatch.Groups[2].Value;
-                if (!ControlKeywords.Contains(propName))
+                var defMatch = PythonDefRegex.Match(line);
+                if (defMatch.Success)
                 {
-                    int col = line.IndexOf(propName, StringComparison.Ordinal) + 1;
+                    var funcName = defMatch.Groups[2].Value;
+                    var args = defMatch.Groups[3].Value;
+                    int level = CalculateIndentLevelSpan(line.AsSpan(0, defMatch.Groups[1].Length));
+                    int col = line.IndexOf(funcName, StringComparison.Ordinal) + 1;
+                    bool isMethod = level > 0;
 
                     results.Add(new SymbolItem
                     {
-                        Name = propName,
-                        Kind = SymbolKind.Property,
+                        Name = funcName,
+                        Kind = isMethod ? SymbolKind.Method : SymbolKind.Function,
                         LineNumber = i + 1,
                         ColumnNumber = col,
-                        Level = currentTypeLevel,
-                        IconGlyph = "ⓟ",
-                        Detail = propType
+                        Level = level,
+                        IconGlyph = isMethod ? "ⓜ" : "ƒ",
+                        Detail = $"({args})"
                     });
                 }
             }
         }
     }
 
-    private static void ExtractJavaScript(string[] lines, List<SymbolItem> results)
+    private static void ExtractCSharp(List<string> lines, List<SymbolItem> results)
     {
-        for (int i = 0; i < lines.Length; i++)
+        int currentTypeLevel = 0;
+
+        for (int i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
-            var trimmed = line.TrimStart();
-            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("//") || trimmed.StartsWith("/*"))
+            var span = line.AsSpan().TrimStart();
+            if (span.IsEmpty || span.StartsWith("//") || span.StartsWith("/*") || span[0] == '*')
+                continue;
+
+            // Type declaration (class, interface, struct, record, enum)
+            if (span.Contains("class", StringComparison.Ordinal) ||
+                span.Contains("interface", StringComparison.Ordinal) ||
+                span.Contains("struct", StringComparison.Ordinal) ||
+                span.Contains("record", StringComparison.Ordinal) ||
+                span.Contains("enum", StringComparison.Ordinal))
+            {
+                var typeMatch = CSharpTypeRegex.Match(line);
+                if (typeMatch.Success)
+                {
+                    var kindKeyword = typeMatch.Groups[1].Value;
+                    var typeName = typeMatch.Groups[2].Value;
+                    var kind = kindKeyword switch
+                    {
+                        "class" => SymbolKind.Class,
+                        "interface" => SymbolKind.Interface,
+                        "struct" => SymbolKind.Struct,
+                        "record" => SymbolKind.Record,
+                        "enum" => SymbolKind.Enum,
+                        _ => SymbolKind.Class
+                    };
+                    int col = line.IndexOf(typeName, StringComparison.Ordinal) + 1;
+
+                    results.Add(new SymbolItem
+                    {
+                        Name = typeName,
+                        Kind = kind,
+                        LineNumber = i + 1,
+                        ColumnNumber = col,
+                        Level = 0,
+                        IconGlyph = kind == SymbolKind.Interface ? "Ⓘ" : (kind == SymbolKind.Enum ? "Ⓔ" : "🅲"),
+                        Detail = kindKeyword
+                    });
+                    currentTypeLevel = 1;
+                    continue;
+                }
+            }
+
+            // Method
+            if (span.Contains('('))
+            {
+                var methodMatch = CSharpMethodRegex.Match(line);
+                if (methodMatch.Success)
+                {
+                    var methodName = methodMatch.Groups[1].Value;
+                    if (!ControlKeywords.Contains(methodName))
+                    {
+                        int col = line.IndexOf(methodName, StringComparison.Ordinal) + 1;
+                        var args = methodMatch.Groups[2].Value;
+
+                        results.Add(new SymbolItem
+                        {
+                            Name = methodName,
+                            Kind = SymbolKind.Method,
+                            LineNumber = i + 1,
+                            ColumnNumber = col,
+                            Level = currentTypeLevel,
+                            IconGlyph = "ⓜ",
+                            Detail = $"({args})"
+                        });
+                        continue;
+                    }
+                }
+            }
+
+            // Property
+            if (span.Contains('{'))
+            {
+                var propMatch = CSharpPropertyRegex.Match(line);
+                if (propMatch.Success)
+                {
+                    var propType = propMatch.Groups[1].Value;
+                    var propName = propMatch.Groups[2].Value;
+                    if (!ControlKeywords.Contains(propName))
+                    {
+                        int col = line.IndexOf(propName, StringComparison.Ordinal) + 1;
+
+                        results.Add(new SymbolItem
+                        {
+                            Name = propName,
+                            Kind = SymbolKind.Property,
+                            LineNumber = i + 1,
+                            ColumnNumber = col,
+                            Level = currentTypeLevel,
+                            IconGlyph = "ⓟ",
+                            Detail = propType
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    private static void ExtractJavaScript(List<string> lines, List<SymbolItem> results)
+    {
+        for (int i = 0; i < lines.Count; i++)
+        {
+            var line = lines[i];
+            var span = line.AsSpan().TrimStart();
+            if (span.IsEmpty || span.StartsWith("//") || span.StartsWith("/*") || span[0] == '*')
                 continue;
 
             // Class
-            var classMatch = JsClassRegex.Match(line);
-            if (classMatch.Success)
+            if (span.Contains("class", StringComparison.Ordinal))
             {
-                var className = classMatch.Groups[1].Value;
-                int col = line.IndexOf(className, StringComparison.Ordinal) + 1;
-
-                results.Add(new SymbolItem
+                var classMatch = JsClassRegex.Match(line);
+                if (classMatch.Success)
                 {
-                    Name = className,
-                    Kind = SymbolKind.Class,
-                    LineNumber = i + 1,
-                    ColumnNumber = col,
-                    Level = 0,
-                    IconGlyph = "🅲",
-                    Detail = "class"
-                });
-                continue;
-            }
-
-            // Standard Function
-            var funcMatch = JsFunctionRegex.Match(line);
-            if (funcMatch.Success)
-            {
-                var funcName = funcMatch.Groups[1].Value;
-                int col = line.IndexOf(funcName, StringComparison.Ordinal) + 1;
-
-                results.Add(new SymbolItem
-                {
-                    Name = funcName,
-                    Kind = SymbolKind.Function,
-                    LineNumber = i + 1,
-                    ColumnNumber = col,
-                    Level = 0,
-                    IconGlyph = "ƒ",
-                    Detail = "function"
-                });
-                continue;
-            }
-
-            // Arrow function
-            var arrowMatch = JsArrowRegex.Match(line);
-            if (arrowMatch.Success)
-            {
-                var arrowName = arrowMatch.Groups[1].Value;
-                int col = line.IndexOf(arrowName, StringComparison.Ordinal) + 1;
-
-                results.Add(new SymbolItem
-                {
-                    Name = arrowName,
-                    Kind = SymbolKind.Function,
-                    LineNumber = i + 1,
-                    ColumnNumber = col,
-                    Level = 0,
-                    IconGlyph = "ƒ",
-                    Detail = "arrow function"
-                });
-                continue;
-            }
-
-            // Class method
-            var methodMatch = JsMethodRegex.Match(line);
-            if (methodMatch.Success)
-            {
-                var methodName = methodMatch.Groups[1].Value;
-                if (!ControlKeywords.Contains(methodName))
-                {
-                    int col = line.IndexOf(methodName, StringComparison.Ordinal) + 1;
+                    var className = classMatch.Groups[1].Value;
+                    int col = line.IndexOf(className, StringComparison.Ordinal) + 1;
 
                     results.Add(new SymbolItem
                     {
-                        Name = methodName,
-                        Kind = SymbolKind.Method,
+                        Name = className,
+                        Kind = SymbolKind.Class,
                         LineNumber = i + 1,
                         ColumnNumber = col,
-                        Level = 1,
-                        IconGlyph = "ⓜ",
-                        Detail = "method"
+                        Level = 0,
+                        IconGlyph = "🅲",
+                        Detail = "class"
                     });
+                    continue;
+                }
+            }
+
+            // Standard Function
+            if (span.Contains("function", StringComparison.Ordinal))
+            {
+                var funcMatch = JsFunctionRegex.Match(line);
+                if (funcMatch.Success)
+                {
+                    var funcName = funcMatch.Groups[1].Value;
+                    int col = line.IndexOf(funcName, StringComparison.Ordinal) + 1;
+
+                    results.Add(new SymbolItem
+                    {
+                        Name = funcName,
+                        Kind = SymbolKind.Function,
+                        LineNumber = i + 1,
+                        ColumnNumber = col,
+                        Level = 0,
+                        IconGlyph = "ƒ",
+                        Detail = "function"
+                    });
+                    continue;
+                }
+            }
+
+            // Arrow function
+            if (span.Contains("=>", StringComparison.Ordinal))
+            {
+                var arrowMatch = JsArrowRegex.Match(line);
+                if (arrowMatch.Success)
+                {
+                    var arrowName = arrowMatch.Groups[1].Value;
+                    int col = line.IndexOf(arrowName, StringComparison.Ordinal) + 1;
+
+                    results.Add(new SymbolItem
+                    {
+                        Name = arrowName,
+                        Kind = SymbolKind.Function,
+                        LineNumber = i + 1,
+                        ColumnNumber = col,
+                        Level = 0,
+                        IconGlyph = "ƒ",
+                        Detail = "arrow function"
+                    });
+                    continue;
+                }
+            }
+
+            // Class method
+            if (span.Contains('(') && span.Contains('{'))
+            {
+                var methodMatch = JsMethodRegex.Match(line);
+                if (methodMatch.Success)
+                {
+                    var methodName = methodMatch.Groups[1].Value;
+                    if (!ControlKeywords.Contains(methodName))
+                    {
+                        int col = line.IndexOf(methodName, StringComparison.Ordinal) + 1;
+
+                        results.Add(new SymbolItem
+                        {
+                            Name = methodName,
+                            Kind = SymbolKind.Method,
+                            LineNumber = i + 1,
+                            ColumnNumber = col,
+                            Level = 1,
+                            IconGlyph = "ⓜ",
+                            Detail = "method"
+                        });
+                    }
                 }
             }
         }
     }
 
-    private static void ExtractPowerShell(string[] lines, List<SymbolItem> results)
+    private static void ExtractPowerShell(List<string> lines, List<SymbolItem> results)
     {
-        for (int i = 0; i < lines.Length; i++)
+        for (int i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
+            if (!line.Contains("function", StringComparison.OrdinalIgnoreCase) &&
+                !line.Contains("filter", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
             var match = PowerShellFunctionRegex.Match(line);
             if (match.Success)
             {
@@ -406,11 +463,15 @@ public class SymbolExtractionService : ISymbolExtractionService
         }
     }
 
-    private static void ExtractBash(string[] lines, List<SymbolItem> results)
+    private static void ExtractBash(List<string> lines, List<SymbolItem> results)
     {
-        for (int i = 0; i < lines.Length; i++)
+        for (int i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
+            if (!line.Contains('(') && !line.Contains("function", StringComparison.Ordinal))
+            {
+                continue;
+            }
             var match = BashFunctionRegex.Match(line);
             if (match.Success)
             {
@@ -431,18 +492,20 @@ public class SymbolExtractionService : ISymbolExtractionService
         }
     }
 
-    private static void ExtractYaml(string[] lines, List<SymbolItem> results)
+    private static void ExtractYaml(List<string> lines, List<SymbolItem> results)
     {
-        for (int i = 0; i < lines.Length; i++)
+        for (int i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
+            var span = line.AsSpan().TrimStart();
+            if (span.IsEmpty || span[0] == '#' || !span.Contains(':')) continue;
+
             var match = YamlKeyRegex.Match(line);
             if (match.Success)
             {
-                var indent = match.Groups[1].Value;
                 var key = match.Groups[2].Value;
                 var value = match.Groups[3].Value.Trim();
-                int level = CalculateIndentLevel(indent);
+                int level = CalculateIndentLevelSpan(line.AsSpan(0, match.Groups[1].Length));
                 int col = line.IndexOf(key, StringComparison.Ordinal) + 1;
 
                 results.Add(new SymbolItem
@@ -459,37 +522,76 @@ public class SymbolExtractionService : ISymbolExtractionService
         }
     }
 
-    private static void ExtractJson(string[] lines, List<SymbolItem> results)
+    private static void ExtractJson(List<string> lines, List<SymbolItem> results)
     {
-        for (int i = 0; i < lines.Length; i++)
+        for (int i = 0; i < lines.Count; i++)
         {
             var line = lines[i];
-            var match = JsonKeyRegex.Match(line);
-            if (match.Success)
+            var span = line.AsSpan();
+            int indentEnd = 0;
+            while (indentEnd < span.Length && (span[indentEnd] == ' ' || span[indentEnd] == '\t'))
             {
-                var indent = match.Groups[1].Value;
-                var key = match.Groups[2].Value;
-                var rest = match.Groups[3].Value.Trim().TrimEnd(',');
-                int level = CalculateIndentLevel(indent);
-                int col = line.IndexOf(key, StringComparison.Ordinal) + 1;
-
-                results.Add(new SymbolItem
-                {
-                    Name = key,
-                    Kind = SymbolKind.Key,
-                    LineNumber = i + 1,
-                    ColumnNumber = col,
-                    Level = level,
-                    IconGlyph = "🔑",
-                    Detail = rest.StartsWith('{') || rest.StartsWith('[') ? null : rest
-                });
+                indentEnd++;
             }
+
+            if (indentEnd >= span.Length || span[indentEnd] != '"')
+                continue;
+
+            int keyStart = indentEnd + 1;
+            int closeQuoteRel = span[keyStart..].IndexOf('"');
+            if (closeQuoteRel <= 0)
+                continue;
+
+            var keySpan = span.Slice(keyStart, closeQuoteRel);
+            if (!IsValidJsonKeyToken(keySpan))
+                continue;
+
+            int afterQuote = keyStart + closeQuoteRel + 1;
+            while (afterQuote < span.Length && char.IsWhiteSpace(span[afterQuote]))
+            {
+                afterQuote++;
+            }
+
+            if (afterQuote >= span.Length || span[afterQuote] != ':')
+                continue;
+
+            var restSpan = span[(afterQuote + 1)..].Trim().TrimEnd(',');
+            int level = CalculateIndentLevelSpan(span[..indentEnd]);
+            string? detail = null;
+            if (!restSpan.IsEmpty && restSpan[0] != '{' && restSpan[0] != '[')
+            {
+                detail = restSpan.ToString();
+            }
+
+            results.Add(new SymbolItem
+            {
+                Name = keySpan.ToString(),
+                Kind = SymbolKind.Key,
+                LineNumber = i + 1,
+                ColumnNumber = keyStart + 1,
+                Level = level,
+                IconGlyph = "🔑",
+                Detail = detail
+            });
         }
     }
 
-    private static int CalculateIndentLevel(string indent)
+    private static bool IsValidJsonKeyToken(ReadOnlySpan<char> span)
     {
-        if (string.IsNullOrEmpty(indent)) return 0;
+        for (int i = 0; i < span.Length; i++)
+        {
+            char c = span[i];
+            if (!char.IsAsciiLetterOrDigit(c) && c != '_' && c != '-' && c != '.')
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static int CalculateIndentLevelSpan(ReadOnlySpan<char> indent)
+    {
+        if (indent.IsEmpty) return 0;
         int spaces = 0;
         foreach (char c in indent)
         {
