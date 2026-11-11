@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -25,6 +27,8 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
     private readonly SmoothCaretBlinkController _caretBlinkController;
     private readonly EditorSearchCoordinator _searchCoordinator;
     private AvaloniaEdit.TextEditor? _splitEditor;
+    private CancellationTokenSource? _markdownDebounceCts;
+    private bool _isSyncingScroll;
 
     public MainWindow()
     {
@@ -60,6 +64,13 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
         Editor.TextArea.Caret.PositionChanged += OnCaretPositionChanged;
         Editor.TextArea.SelectionChanged += (s, e) => OnCaretPositionChanged(s, EventArgs.Empty);
 
+        // Bi-directional scroll synchronization between Editor and Markdown preview
+        Editor.TextArea.TextView.ScrollOffsetChanged += OnEditorScrollChanged;
+        if (MarkdownScrollViewer != null)
+        {
+            MarkdownScrollViewer.ScrollChanged += OnMarkdownScrollViewerScrollChanged;
+        }
+
         // Ctrl + Mouse Wheel Zooming on Editor
         Editor.AddHandler(PointerWheelChangedEvent, (s, e) =>
         {
@@ -81,6 +92,8 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
         Closing += OnWindowClosing;
         Closed += (s, e) =>
         {
+            _markdownDebounceCts?.Cancel();
+            _markdownDebounceCts?.Dispose();
             _caretBlinkController?.Dispose();
             (DataContext as IDisposable)?.Dispose();
 
@@ -181,9 +194,10 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
 
             Editor.TextChanged += (s, e) =>
             {
-                if (DataContext is MainViewModel { IsMarkdownPreviewActive: true })
+                if (DataContext is MainViewModel { IsMarkdownPreviewActive: true } mvm)
                 {
-                    UpdateMarkdownPreview();
+                    mvm.RefreshMarkdownStats();
+                    RequestDebouncedMarkdownPreviewUpdate();
                 }
                 _wordOccurrenceRenderer.UpdateOccurrences();
                 Editor.TextArea?.TextView?.InvalidateVisual();
@@ -497,6 +511,11 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
                         _splitEditor.SyntaxHighlighting = null;
                         _splitEditor.SyntaxHighlighting = splitHighlight;
                         _splitEditor.TextArea?.TextView?.Redraw();
+                    }
+
+                    if (vm.IsMarkdownPreviewActive)
+                    {
+                        UpdateMarkdownPreview();
                     }
                 }
             }
@@ -873,11 +892,42 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
         }
     }
 
-    private void UpdateMarkdownPreview()
+    private void RequestDebouncedMarkdownPreviewUpdate()
+    {
+        _markdownDebounceCts?.Cancel();
+        _markdownDebounceCts?.Dispose();
+        _markdownDebounceCts = new CancellationTokenSource();
+        var token = _markdownDebounceCts.Token;
 
+        Task.Delay(180, token).ContinueWith(t =>
+        {
+            if (!t.IsCanceled)
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    if (!token.IsCancellationRequested)
+                    {
+                        UpdateMarkdownPreview();
+                    }
+                });
+            }
+        }, token);
+    }
+
+    private void UpdateMarkdownPreview()
     {
         if (DataContext is not MainViewModel vm || !vm.IsMarkdownPreviewActive || MarkdownScrollViewer == null) return;
-        var text = vm.ActiveDocument?.TextDocument.Text ?? string.Empty;
+
+        string text;
+        try
+        {
+            text = vm.ActiveDocument?.TextDocument.Text ?? vm.ActiveDocument?.Model.Text ?? string.Empty;
+        }
+        catch (InvalidOperationException)
+        {
+            text = vm.ActiveDocument?.Model.Text ?? string.Empty;
+        }
+
         IBrush? fg = null;
         IBrush? border = null;
         IBrush? codeBg = null;
@@ -889,7 +939,83 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
         }
         catch { }
 
+        var currentOffset = MarkdownScrollViewer.Offset;
         MarkdownScrollViewer.Content = MarkdownRenderer.Render(text, fg, border, codeBg);
+
+        // Preserve scroll offset or sync with current editor position
+        if (vm.IsMarkdownScrollSyncEnabled)
+        {
+            SyncMarkdownScrollFromEditor();
+        }
+        else
+        {
+            MarkdownScrollViewer.Offset = currentOffset;
+        }
+    }
+
+    private void OnEditorScrollChanged(object? sender, EventArgs e)
+    {
+        if (_isSyncingScroll) return;
+        if (DataContext is not MainViewModel vm || !vm.IsMarkdownPreviewActive || !vm.IsMarkdownScrollSyncEnabled) return;
+        SyncMarkdownScrollFromEditor();
+    }
+
+    private void SyncMarkdownScrollFromEditor()
+    {
+        if (MarkdownScrollViewer == null || Editor?.TextArea?.TextView == null) return;
+
+        var textView = Editor.TextArea.TextView;
+        var scrollY = textView.ScrollOffset.Y;
+        var viewportH = textView.Bounds.Height;
+        var totalH = Math.Max(viewportH, Editor.ExtentHeight > 0 ? Editor.ExtentHeight : (Editor.Document?.LineCount ?? 0) * 18.0);
+        var maxEditorScroll = Math.Max(1.0, totalH - viewportH);
+        var ratio = Math.Clamp(scrollY / maxEditorScroll, 0.0, 1.0);
+
+        var mdExtent = MarkdownScrollViewer.Extent.Height;
+        var mdViewport = MarkdownScrollViewer.Viewport.Height;
+        var maxMdScroll = Math.Max(0.0, mdExtent - mdViewport);
+
+        if (maxMdScroll > 0)
+        {
+            _isSyncingScroll = true;
+            try
+            {
+                MarkdownScrollViewer.Offset = new Avalonia.Vector(MarkdownScrollViewer.Offset.X, ratio * maxMdScroll);
+            }
+            finally
+            {
+                _isSyncingScroll = false;
+            }
+        }
+    }
+
+    private void OnMarkdownScrollViewerScrollChanged(object? sender, ScrollChangedEventArgs e)
+    {
+        if (_isSyncingScroll) return;
+        if (DataContext is not MainViewModel vm || !vm.IsMarkdownPreviewActive || !vm.IsMarkdownScrollSyncEnabled) return;
+        if (MarkdownScrollViewer == null || Editor?.TextArea?.TextView == null) return;
+
+        var mdExtent = MarkdownScrollViewer.Extent.Height;
+        var mdViewport = MarkdownScrollViewer.Viewport.Height;
+        var maxMdScroll = Math.Max(0.0, mdExtent - mdViewport);
+        if (maxMdScroll <= 0) return;
+
+        var ratio = Math.Clamp(MarkdownScrollViewer.Offset.Y / maxMdScroll, 0.0, 1.0);
+
+        var textView = Editor.TextArea.TextView;
+        var viewportH = textView.Bounds.Height;
+        var totalH = Math.Max(viewportH, Editor.ExtentHeight > 0 ? Editor.ExtentHeight : (Editor.Document?.LineCount ?? 0) * 18.0);
+        var maxEditorScroll = Math.Max(0.0, totalH - viewportH);
+
+        _isSyncingScroll = true;
+        try
+        {
+            Editor.ScrollToVerticalOffset(ratio * maxEditorScroll);
+        }
+        finally
+        {
+            _isSyncingScroll = false;
+        }
     }
 
     #endregion

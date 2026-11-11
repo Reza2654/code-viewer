@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
@@ -35,8 +36,9 @@ public static class MarkdownRenderer
         bool inCodeBlock = false;
         var codeBlockLines = new List<string>();
 
-        foreach (var rawLine in lines)
+        for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++)
         {
+            var rawLine = lines[lineIndex];
             var line = rawLine;
 
             // Handle fenced code blocks
@@ -44,7 +46,6 @@ public static class MarkdownRenderer
             {
                 if (inCodeBlock)
                 {
-                    // Finish code block
                     panel.Children.Add(CreateCodeBlock(string.Join(Environment.NewLine, codeBlockLines), codeBackground, borderBrush));
                     codeBlockLines.Clear();
                     inCodeBlock = false;
@@ -99,11 +100,47 @@ public static class MarkdownRenderer
                 panel.Children.Add(CreateHeading(line[5..], 13, FontWeight.SemiBold, foreground, new Thickness(0, 4, 0, 2)));
                 continue;
             }
+            if (line.StartsWith("##### "))
+            {
+                panel.Children.Add(CreateHeading(line[6..], 12, FontWeight.SemiBold, foreground, new Thickness(0, 3, 0, 1)));
+                continue;
+            }
+            if (line.StartsWith("###### "))
+            {
+                panel.Children.Add(CreateHeading(line[7..], 11, FontWeight.SemiBold, foreground, new Thickness(0, 2, 0, 1)));
+                continue;
+            }
+
+            // Tables: begins and ends with |
+            if (trimmed.StartsWith('|') && trimmed.EndsWith('|') && trimmed.Length > 2)
+            {
+                var tableLines = new List<string> { line };
+                while (lineIndex + 1 < lines.Length && lines[lineIndex + 1].Trim().StartsWith('|') && lines[lineIndex + 1].Trim().EndsWith('|'))
+                {
+                    lineIndex++;
+                    tableLines.Add(lines[lineIndex]);
+                }
+
+                panel.Children.Add(CreateTable(tableLines, foreground, borderBrush, codeBackground));
+                continue;
+            }
 
             // Blockquote
             if (line.StartsWith("> "))
             {
                 panel.Children.Add(CreateBlockquote(line[2..], foreground, borderBrush));
+                continue;
+            }
+
+            // Task list item
+            if (trimmed.StartsWith("- [ ] ") || trimmed.StartsWith("* [ ] "))
+            {
+                panel.Children.Add(CreateTaskListItem(false, trimmed[6..], foreground));
+                continue;
+            }
+            if (trimmed.StartsWith("- [x] ", StringComparison.OrdinalIgnoreCase) || trimmed.StartsWith("* [x] ", StringComparison.OrdinalIgnoreCase))
+            {
+                panel.Children.Add(CreateTaskListItem(true, trimmed[6..], foreground));
                 continue;
             }
 
@@ -238,6 +275,131 @@ public static class MarkdownRenderer
         return grid;
     }
 
+    private static Grid CreateTaskListItem(bool isChecked, string text, IBrush? fg)
+    {
+        bool isRtl = IsRtlText(text);
+        var grid = new Grid
+        {
+            ColumnDefinitions = isRtl ? new ColumnDefinitions("*,22") : new ColumnDefinitions("22,*"),
+            Margin = new Thickness(4, 2, 0, 2)
+        };
+
+        var checkBlock = new TextBlock
+        {
+            Text = isChecked ? "☑" : "☐",
+            FontWeight = FontWeight.Bold,
+            Foreground = isChecked ? Brushes.LimeGreen : (fg ?? Brushes.Gray),
+            VerticalAlignment = VerticalAlignment.Center,
+            FontSize = 13,
+            TextAlignment = isRtl ? TextAlignment.Right : TextAlignment.Left
+        };
+        Grid.SetColumn(checkBlock, isRtl ? 1 : 0);
+
+        var contentBlock = new TextBlock
+        {
+            TextWrapping = TextWrapping.Wrap,
+            VerticalAlignment = VerticalAlignment.Center,
+            FlowDirection = isRtl ? FlowDirection.RightToLeft : FlowDirection.LeftToRight,
+            TextAlignment = isRtl ? TextAlignment.Right : TextAlignment.Left,
+            Opacity = isChecked ? 0.7 : 1.0
+        };
+        if (fg != null) contentBlock.Foreground = fg;
+        AddFormattedInlines(contentBlock, text);
+        if (isChecked)
+        {
+            contentBlock.TextDecorations = TextDecorations.Strikethrough;
+        }
+        Grid.SetColumn(contentBlock, isRtl ? 0 : 1);
+
+        grid.Children.Add(checkBlock);
+        grid.Children.Add(contentBlock);
+        return grid;
+    }
+
+    private static Control CreateTable(List<string> tableLines, IBrush? fg, IBrush? borderBrush, IBrush? headerBg)
+    {
+        if (tableLines.Count == 0) return new Border();
+
+        var parsedRows = new List<string[]>();
+        int colCount = 0;
+
+        foreach (var line in tableLines)
+        {
+            var trimmed = line.Trim();
+            if (trimmed.StartsWith('|')) trimmed = trimmed[1..];
+            if (trimmed.EndsWith('|')) trimmed = trimmed[..^1];
+
+            // If line is separator like ---|---|---, skip adding as data row
+            var stripped = trimmed.Replace("-", "").Replace("|", "").Replace(":", "").Replace(" ", "");
+            if (stripped.Length == 0)
+            {
+                continue;
+            }
+
+            var cells = trimmed.Split('|').Select(c => c.Trim()).ToArray();
+            colCount = Math.Max(colCount, cells.Length);
+            parsedRows.Add(cells);
+        }
+
+        if (parsedRows.Count == 0 || colCount == 0) return new Border();
+
+        var grid = new Grid
+        {
+            Margin = new Thickness(0, 4, 0, 8)
+        };
+
+        for (int c = 0; c < colCount; c++)
+        {
+            grid.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
+        }
+
+        for (int r = 0; r < parsedRows.Count; r++)
+        {
+            grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            var rowCells = parsedRows[r];
+            bool isHeader = (r == 0);
+
+            for (int c = 0; c < colCount; c++)
+            {
+                var cellText = c < rowCells.Length ? rowCells[c] : string.Empty;
+
+                var tb = new TextBlock
+                {
+                    TextWrapping = TextWrapping.Wrap,
+                    FontWeight = isHeader ? FontWeight.Bold : FontWeight.Normal,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    FontSize = isHeader ? 12.5 : 12
+                };
+                if (fg != null) tb.Foreground = fg;
+                AddFormattedInlines(tb, cellText);
+
+                var cellBorder = new Border
+                {
+                    Background = isHeader
+                        ? (headerBg ?? new SolidColorBrush(Color.FromArgb(40, 128, 128, 128)))
+                        : (r % 2 == 1 ? new SolidColorBrush(Color.FromArgb(15, 128, 128, 128)) : Brushes.Transparent),
+                    BorderBrush = borderBrush ?? Brushes.Gray,
+                    BorderThickness = new Thickness(0, 0, c < colCount - 1 ? 1 : 0, r < parsedRows.Count - 1 ? 1 : 0),
+                    Padding = new Thickness(8, 5),
+                    Child = tb
+                };
+
+                Grid.SetRow(cellBorder, r);
+                Grid.SetColumn(cellBorder, c);
+                grid.Children.Add(cellBorder);
+            }
+        }
+
+        return new Border
+        {
+            BorderBrush = borderBrush ?? Brushes.Gray,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+            ClipToBounds = true,
+            Child = grid
+        };
+    }
+
     private static Border CreateCodeBlock(string code, IBrush? background, IBrush? borderBrush)
     {
         var tb = new TextBlock
@@ -284,7 +446,6 @@ public static class MarkdownRenderer
 
     private static void AddFormattedInlines(TextBlock tb, string text)
     {
-        // Simple inline parser supporting **bold**, *italic*, and `code`
         int i = 0;
         int len = text.Length;
 
@@ -304,6 +465,23 @@ public static class MarkdownRenderer
                         Foreground = Brushes.SandyBrown
                     });
                     i = end + 1;
+                    continue;
+                }
+            }
+
+            // Strikethrough ~~strike~~
+            if (i + 1 < len && text[i] == '~' && text[i + 1] == '~')
+            {
+                int end = text.IndexOf("~~", i + 2, StringComparison.Ordinal);
+                if (end > i + 1)
+                {
+                    var snippet = text.Substring(i + 2, end - i - 2);
+                    tb.Inlines?.Add(new Run(snippet)
+                    {
+                        TextDecorations = TextDecorations.Strikethrough,
+                        Foreground = Brushes.Gray
+                    });
+                    i = end + 2;
                     continue;
                 }
             }
@@ -340,13 +518,42 @@ public static class MarkdownRenderer
                 }
             }
 
+            // Link [text](url)
+            if (text[i] == '[')
+            {
+                int closeBracket = text.IndexOf(']', i + 1);
+                if (closeBracket > i && closeBracket + 1 < len && text[closeBracket + 1] == '(')
+                {
+                    int closeParen = text.IndexOf(')', closeBracket + 2);
+                    if (closeParen > closeBracket + 1)
+                    {
+                        var linkText = text.Substring(i + 1, closeBracket - i - 1);
+                        tb.Inlines?.Add(new Run(linkText)
+                        {
+                            Foreground = Brushes.DeepSkyBlue,
+                            TextDecorations = TextDecorations.Underline
+                        });
+                        i = closeParen + 1;
+                        continue;
+                    }
+                }
+            }
+
             // Plain text chunk until next token
             int nextToken = len;
             int nextBacktick = text.IndexOf('`', i);
+            int nextTilde = (i + 1 < len && text.IndexOf("~~", i, StringComparison.Ordinal) >= 0)
+                ? text.IndexOf("~~", i, StringComparison.Ordinal)
+                : -1;
             int nextStar = text.IndexOf('*', i);
+            int nextBracket = text.IndexOf('[', i);
 
             if (nextBacktick >= 0) nextToken = Math.Min(nextToken, nextBacktick);
+            if (nextTilde >= 0) nextToken = Math.Min(nextToken, nextTilde);
             if (nextStar >= 0) nextToken = Math.Min(nextToken, nextStar);
+            if (nextBracket >= 0) nextToken = Math.Min(nextToken, nextBracket);
+
+            if (nextToken <= i) nextToken = i + 1;
 
             var chunk = text.Substring(i, nextToken - i);
             tb.Inlines?.Add(new Run(chunk));

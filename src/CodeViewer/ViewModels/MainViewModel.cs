@@ -196,6 +196,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty]
     private bool _isMarkdownPreviewActive;
 
+    [ObservableProperty]
+    private bool _isMarkdownScrollSyncEnabled = true;
+
     // ▶ Runner, 🔍 Diff & 📑 Outline ViewModels
     [ObservableProperty]
     private RunnerViewModel _runnerViewModel = new();
@@ -398,6 +401,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 }
                 UpdateBreadcrumbs();
                 OutlineViewModel.AttachDocument(ActiveDocument);
+                OnPropertyChanged(nameof(MarkdownStatsDisplay));
             }
             else if (e.PropertyName == nameof(TabManager.HasDocuments))
                 OnPropertyChanged(nameof(HasDocuments));
@@ -1804,6 +1808,62 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             return;
         }
         IsMarkdownPreviewActive = !IsMarkdownPreviewActive;
+        if (IsMarkdownPreviewActive)
+        {
+            OnPropertyChanged(nameof(MarkdownStatsDisplay));
+        }
+    }
+
+    [RelayCommand]
+    public void ToggleMarkdownScrollSync()
+    {
+        IsMarkdownScrollSyncEnabled = !IsMarkdownScrollSyncEnabled;
+    }
+
+    [RelayCommand]
+    public async Task CopyMarkdownPreviewAsync()
+    {
+        if (ActiveDocument == null) return;
+        string text;
+        try
+        {
+            text = ActiveDocument.TextDocument.Text;
+        }
+        catch (InvalidOperationException)
+        {
+            text = ActiveDocument.Model.Text ?? string.Empty;
+        }
+        if (RequestSetClipboardText != null)
+        {
+            await RequestSetClipboardText(text);
+            _ = ShowTemporaryStatusAsync("Markdown content copied to clipboard.");
+        }
+    }
+
+    public string MarkdownStatsDisplay
+    {
+        get
+        {
+            if (ActiveDocument == null) return string.Empty;
+            string text;
+            try
+            {
+                text = ActiveDocument.TextDocument.Text;
+            }
+            catch (InvalidOperationException)
+            {
+                text = ActiveDocument.Model.Text ?? string.Empty;
+            }
+            if (string.IsNullOrWhiteSpace(text)) return "0 words";
+            var words = text.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Length;
+            var lines = text.Split('\n').Length;
+            return $"{words:N0} words • {lines} lines";
+        }
+    }
+
+    public void RefreshMarkdownStats()
+    {
+        OnPropertyChanged(nameof(MarkdownStatsDisplay));
     }
 
     #endregion
@@ -1990,6 +2050,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         CommandPalette.RegisterCommand(new CommandPaletteItem("view.focusOutline", "Focus Document Outline", "View", "", "📑", () => ShowOutlineSidebar()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleSplit", "Toggle Split View", "View", "Ctrl+\\", "🔀", () => ToggleSplitView()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleMarkdown", "Toggle Markdown Live Preview", "View", "Ctrl+Shift+M", "📝", () => ToggleMarkdownPreview()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("markdown.toggleScrollSync", "Markdown: Toggle Synchronized Scrolling", "View", "", "🔗", () => ToggleMarkdownScrollSync()));
+        CommandPalette.RegisterCommand(new CommandPaletteItem("markdown.copyText", "Markdown: Copy Preview Content as Text", "Edit", "", "📋", () => _ = CopyMarkdownPreviewAsync()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("view.toggleRtl", "Toggle RTL / LTR Direction (Persian/Arabic)", "View", "Ctrl+Alt+R", "⇄", () => ToggleRtl()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("view.zoomIn", "Zoom In", "View", "Ctrl++", "🔍", () => ZoomIn()));
         CommandPalette.RegisterCommand(new CommandPaletteItem("view.zoomOut", "Zoom Out", "View", "Ctrl+-", "🔍", () => ZoomOut()));
