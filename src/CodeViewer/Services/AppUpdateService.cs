@@ -61,7 +61,7 @@ public class AppUpdateService : IAppUpdateService
             // Fallback handled
         }
 
-        return "1.2.0-beta.20";
+        return "1.2.0-rc.1";
     }
 
     public async Task<AppUpdateInfo> CheckForUpdatesAsync(bool isManualCheck = false, CancellationToken cancellationToken = default)
@@ -300,7 +300,14 @@ public class AppUpdateService : IAppUpdateService
             return -1;
         }
 
-        // Both are pre-releases (e.g. beta.11 vs beta.10)
+        // Both are pre-releases (e.g. rc.1 vs beta.20, or beta.11 vs beta.10)
+        var rank1 = GetPrereleaseRank(parsed1.Prerelease);
+        var rank2 = GetPrereleaseRank(parsed2.Prerelease);
+        if (rank1 != rank2 && rank1 > 0 && rank2 > 0)
+        {
+            return rank1.CompareTo(rank2);
+        }
+
         var preCompare = string.Compare(parsed1.Prerelease, parsed2.Prerelease, StringComparison.OrdinalIgnoreCase);
         if (preCompare != 0)
         {
@@ -309,6 +316,15 @@ public class AppUpdateService : IAppUpdateService
 
         return parsed1.PrereleaseNum.CompareTo(parsed2.PrereleaseNum);
     }
+
+    private static int GetPrereleaseRank(string pre) => pre.ToLowerInvariant() switch
+    {
+        "alpha" => 1,
+        "beta" => 2,
+        "preview" => 3,
+        "rc" => 4,
+        _ => 0
+    };
 
     private static (int Major, int Minor, int Patch, int Build, string Prerelease, int PrereleaseNum) ParseVersion(string raw)
     {
@@ -328,7 +344,7 @@ public class AppUpdateService : IAppUpdateService
 
         if (!string.IsNullOrEmpty(prePart))
         {
-            var match = Regex.Match(prePart, @"^([a-zA-Z]+)(?:\.(\d+))?");
+            var match = Regex.Match(prePart, @"^([a-zA-Z]+)(?:\.?(\d+))?");
             if (match.Success)
             {
                 prerelease = match.Groups[1].Value.ToLowerInvariant();

@@ -79,6 +79,15 @@
   - **Animated Status Message Pill**: Status notifications appear in a centered pill badge with smooth entrance animation and hover states on all status controls.
   - **Modern Windows 11 Glass Chrome**: Native support for Mica and Acrylic blur window transparency hints.
   - **Theme Gallery & Interactive Cards**: Fluid hover elevation, scale (`1.03x`), and accent border glow on theme cards, with an `EnableAnimations` preference toggle in Settings.
+- 🚀 **Release Candidate 1 (v1.2.0-rc.1)**:
+  - **Hardened Architecture & Clean Coordinators**: High cohesion across `TabManager`, `WorkspaceCoordinator`, `CommandPaletteCoordinator`, `BuiltInThemes`, `WindowKeyboardRouter`, and `EditorSearchCoordinator`.
+  - **Git Status Indicators in Explorer (`Ctrl+Shift+G`)**: Real-time non-blocking status badges (`M`, `U`, `A`, `D`, `R`, `!`) with folder bubbling and fast filesystem pre-checks.
+  - **Interactive Code Minimap (`Ctrl+Alt+M`)**: High-performance birds-eye document overview with interactive drag scrolling and real-time line positioning.
+  - **Multi-Shell Terminal Console (`` Ctrl+` `` / `F5`)**: Seamless shell switching (`PowerShell`, `CMD`, `WSL/Bash`, `Python`, `Node.js`) with input history, interactive stdin, and robust quote escaping.
+  - **Document Symbol Outline (`Ctrl+Alt+O`)**: Multi-language symbol navigation supporting C#, Java, Dart, Python, JavaScript/TypeScript, PowerShell, Bash, Markdown, YAML, and JSON.
+  - **Synchronized Markdown Split Preview (`Ctrl+Shift+M`)**: Debounced live preview with table formatting, task lists, RTL language detection, and bi-directional scroll synchronization.
+  - **Extensive Benchmarking Suite & Profiling**: Documented in [`BENCHMARK_REPORT.md`](tests/CodeViewer.Benchmarks/BENCHMARK_REPORT.md) across 28 scenarios with sub-millisecond hot paths.
+  - **Rock-Solid Test Coverage**: 320+ unit tests passing with 100% success rate.
 - 🧩 **Workspace Intelligence, Terminal & Architecture Overhaul (v1.2.0-beta.20)**:
   - **Modular Architecture**: Decomposed monolithic viewmodels/views into focused coordinators (`WorkspaceCoordinator`, `TabManager`, `CommandPaletteCoordinator`, `BuiltInThemes`, `WindowKeyboardRouter`, `SmartBracketEditHandler`).
   - **Git Explorer Badges & Outline**: Non-blocking workspace Git status decorations (`Ctrl+Shift+G`), Document Symbol Outline (`Ctrl+Alt+O`), and synchronized Code Minimap (`Ctrl+Alt+M`).
@@ -95,7 +104,7 @@
   - **Unblocked Standard Native Mouse Wheel Scrolling**: Removed custom pointer wheel tunneling and interception; AvaloniaEdit's high-performance native `ScrollViewer` now handles all mouse wheel operations directly.
   - **Flawless Multi-Wheel Support**: Standard vertical wheel scrolling, `Shift + Wheel` horizontal panning, tilt wheels, high-precision wheels, and precision touchpad scrolling all function natively and effortlessly.
   - **Clean & Streamlined Settings UI**: Removed unused scroll toggles and re-aligned Editor Preferences for a cleaner, balanced layout.
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-beta.20-Setup.exe`) and portable standalone `.zip` archive.
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-rc.1-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---
@@ -151,7 +160,7 @@
 ## Installation & Packaging
 
 ### Option 1: Installer (Recommended)
-Download and run `CodeViewer-v1.2.0-beta.20-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
+Download and run `CodeViewer-v1.2.0-rc.1-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
 - Installs Code Viewer to your system.
 - Creates Start Menu and Desktop shortcuts.
 - Optionally installs and registers Google Sans Code & Roboto Mono fonts system-wide.
@@ -159,7 +168,7 @@ Download and run `CodeViewer-v1.2.0-beta.20-Setup.exe` from the [Releases](https
 - Automatically registers the modern Windows 11 right-click context menu.
 
 ### Option 2: Portable ZIP
-Download `CodeViewer-v1.2.0-beta.20-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
+Download `CodeViewer-v1.2.0-rc.1-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
 
 To enable the modern Windows 11 context menu for portable use, right-click `scripts\register-windows11-context-menu.ps1` and select **Run with PowerShell**.
 
@@ -212,8 +221,8 @@ To generate both the portable ZIP and the Inno Setup executable installer:
 powershell -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
 ```
 Output artifacts are saved in `dist/`:
-- `CodeViewer-v1.2.0-beta.20-Setup.exe`
-- `CodeViewer-v1.2.0-beta.20-win-x64-portable.zip`
+- `CodeViewer-v1.2.0-rc.1-Setup.exe`
+- `CodeViewer-v1.2.0-rc.1-win-x64-portable.zip`
 - `checksums.sha256`
 
 ---

@@ -16,7 +16,7 @@ public class Beta16FeatureTests
     public void AppUpdateService_GetCurrentAppVersion_ReportsBetaVersion()
     {
         var version = AppUpdateService.GetCurrentAppVersion();
-        StringAssert.StartsWith(version, "1.2.0-beta.");
+        StringAssert.StartsWith(version, "1.2.0");
 
         var cmp = AppUpdateService.CompareVersions(version, "1.2.0-beta.15");
         Assert.IsTrue(cmp > 0, "Current version must be recognized as newer than v1.2.0-beta.15");

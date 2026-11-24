@@ -163,8 +163,8 @@ public class Beta14FeatureTests
     public void AppUpdateService_GetCurrentAppVersion_ReportsCurrentVersion()
     {
         var version = AppUpdateService.GetCurrentAppVersion();
-        Assert.IsTrue(version.StartsWith("1.2.0-beta.", StringComparison.OrdinalIgnoreCase),
-            $"Expected version to start with 1.2.0-beta, but got: {version}");
+        Assert.IsTrue(version.StartsWith("1.2.0", StringComparison.OrdinalIgnoreCase),
+            $"Expected version to start with 1.2.0, but got: {version}");
     }
 
     [TestMethod]

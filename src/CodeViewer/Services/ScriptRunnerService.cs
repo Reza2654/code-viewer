@@ -199,7 +199,8 @@ public class ScriptRunnerService : IScriptRunnerService
         {
             case ShellType.PowerShell:
                 fileName = ResolvePowerShell();
-                arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}\"";
+                var escapedPs = command.Replace("\"", "\\\"");
+                arguments = $"-NoProfile -ExecutionPolicy Bypass -Command \"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {escapedPs}\"";
                 break;
             case ShellType.CommandPrompt:
                 fileName = "cmd.exe";
