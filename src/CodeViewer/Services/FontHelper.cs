@@ -13,6 +13,10 @@ namespace CodeViewer.Services;
 public static class FontHelper
 {
     public const string DefaultFontName = "Google Sans Code";
+    public const string UiFontName = "Google Sans Flex";
+
+    public const string UiFontFamilyString = "Google Sans Flex, avares://CodeViewer/Assets/Fonts#Google Sans Flex, Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif";
+    public static readonly FontFamily UiFontFamily = new(UiFontFamilyString);
 
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, FontFamily> FontCache = new(StringComparer.OrdinalIgnoreCase);
 

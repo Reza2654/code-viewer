@@ -37,13 +37,16 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "win11contextmenu"; Description: "Integrate with Windows 11 right-click context menu"; GroupDescription: "Explorer Integration:"; Flags: checkedonce
-Name: "installfont"; Description: "Install Google Sans Code font"; GroupDescription: "Additional Tasks:"; Flags: checkedonce
-Name: "installrobotomono"; Description: "Install Roboto Mono font"; GroupDescription: "Additional Tasks:"; Flags: checkedonce
+Name: "installgooglesansflex"; Description: "Install Google Sans Flex UI font"; GroupDescription: "Additional Tasks:"; Flags: checkedonce
+Name: "installfont"; Description: "Install Google Sans Code coding font"; GroupDescription: "Additional Tasks:"; Flags: checkedonce
+Name: "installrobotomono"; Description: "Install Roboto Mono coding font"; GroupDescription: "Additional Tasks:"; Flags: checkedonce
 Name: "startwithwindows"; Description: "Pre-warm in background on Windows startup (Instant 0ms launch)"; GroupDescription: "Additional Tasks:"; Flags: unchecked
 
 [Files]
 ; Primary application executable - explicitly installed to ensure it is always present
 Source: "..\dist\CodeViewer.exe"; DestDir: "{app}"; Flags: ignoreversion
+; Google Sans Flex font files (Application UI font)
+Source: "..\fonts\GoogleSansFlex*.ttf"; DestDir: "{autofonts}"; FontInstall: "Google Sans Flex"; Flags: onlyifdoesntexist uninsneveruninstall; Tasks: installgooglesansflex
 ; Google Sans Code font files
 Source: "..\fonts\GoogleSansCode*.ttf"; DestDir: "{autofonts}"; FontInstall: "Google Sans Code"; Flags: onlyifdoesntexist uninsneveruninstall; Tasks: installfont
 ; Roboto Mono font files

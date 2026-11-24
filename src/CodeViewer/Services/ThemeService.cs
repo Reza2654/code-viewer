@@ -347,9 +347,22 @@ public class ThemeService : IThemeService
         {
             if (!isDark)
             {
-                var targetId = !string.IsNullOrWhiteSpace(settings.LightPresetId) && !string.Equals(settings.LightPresetId, "default-light", StringComparison.OrdinalIgnoreCase)
-                    ? settings.LightPresetId
-                    : (!string.IsNullOrWhiteSpace(settings.ThemeId) ? settings.ThemeId : (!string.IsNullOrWhiteSpace(settings.LightPresetId) ? settings.LightPresetId : "default-light"));
+                string targetId;
+                if (!string.IsNullOrWhiteSpace(settings.ThemeId) &&
+                    !string.Equals(settings.ThemeId, "default-light", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(settings.ThemeId, "dark-plus", StringComparison.OrdinalIgnoreCase) &&
+                    _themes.Any(t => !t.IsDark && (string.Equals(t.Id, settings.ThemeId, StringComparison.OrdinalIgnoreCase) || string.Equals(t.Name, settings.ThemeId, StringComparison.OrdinalIgnoreCase))))
+                {
+                    targetId = settings.ThemeId;
+                }
+                else if (!string.IsNullOrWhiteSpace(settings.LightPresetId))
+                {
+                    targetId = settings.LightPresetId;
+                }
+                else
+                {
+                    targetId = !string.IsNullOrWhiteSpace(settings.ThemeId) ? settings.ThemeId : "default-light";
+                }
 
                 baseTheme = _themes.FirstOrDefault(t => !t.IsDark && (string.Equals(t.Id, targetId, StringComparison.OrdinalIgnoreCase) || string.Equals(t.Name, targetId, StringComparison.OrdinalIgnoreCase)))
                             ?? _themes.FirstOrDefault(t => !t.IsDark)
@@ -357,9 +370,22 @@ public class ThemeService : IThemeService
             }
             else
             {
-                var targetId = !string.IsNullOrWhiteSpace(settings.DarkPresetId) && !string.Equals(settings.DarkPresetId, "default-dark", StringComparison.OrdinalIgnoreCase)
-                    ? settings.DarkPresetId
-                    : (!string.IsNullOrWhiteSpace(settings.ThemeId) ? settings.ThemeId : (!string.IsNullOrWhiteSpace(settings.DarkPresetId) ? settings.DarkPresetId : "default-dark"));
+                string targetId;
+                if (!string.IsNullOrWhiteSpace(settings.ThemeId) &&
+                    !string.Equals(settings.ThemeId, "default-dark", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(settings.ThemeId, "dark-plus", StringComparison.OrdinalIgnoreCase) &&
+                    _themes.Any(t => t.IsDark && (string.Equals(t.Id, settings.ThemeId, StringComparison.OrdinalIgnoreCase) || string.Equals(t.Name, settings.ThemeId, StringComparison.OrdinalIgnoreCase))))
+                {
+                    targetId = settings.ThemeId;
+                }
+                else if (!string.IsNullOrWhiteSpace(settings.DarkPresetId))
+                {
+                    targetId = settings.DarkPresetId;
+                }
+                else
+                {
+                    targetId = !string.IsNullOrWhiteSpace(settings.ThemeId) ? settings.ThemeId : "default-dark";
+                }
 
                 baseTheme = _themes.FirstOrDefault(t => t.IsDark && (string.Equals(t.Id, targetId, StringComparison.OrdinalIgnoreCase) || string.Equals(t.Name, targetId, StringComparison.OrdinalIgnoreCase)))
                             ?? _themes.FirstOrDefault(t => t.IsDark)
@@ -371,26 +397,49 @@ public class ThemeService : IThemeService
 
         if (!isDark)
         {
-            var isCustomTheme = !string.Equals(baseTheme.Id, "default-light", StringComparison.OrdinalIgnoreCase);
-            if (IsValidHexColor(settings.LightBackgroundHex) && (!isCustomTheme || !string.Equals(NormalizeHex(settings.LightBackgroundHex), "#F9F9F9", StringComparison.OrdinalIgnoreCase)))
+            var isDefaultLight = string.Equals(baseTheme.Id, "default-light", StringComparison.OrdinalIgnoreCase);
+            var isPresetMatch = string.Equals(settings.LightPresetId, baseTheme.Id, StringComparison.OrdinalIgnoreCase);
+
+            if (IsValidHexColor(settings.LightBackgroundHex))
             {
                 var bg = NormalizeHex(settings.LightBackgroundHex);
-                effective.WindowBackground = bg;
-                effective.EditorBackground = bg;
-                effective.TabItemActiveBackground = bg;
+                bool shouldApply = isDefaultLight
+                    ? !string.Equals(bg, "#F9F9F9", StringComparison.OrdinalIgnoreCase)
+                    : isPresetMatch && !string.Equals(bg, "#F9F9F9", StringComparison.OrdinalIgnoreCase) && !string.Equals(bg, NormalizeHex(baseTheme.WindowBackground), StringComparison.OrdinalIgnoreCase);
+
+                if (shouldApply)
+                {
+                    effective.WindowBackground = bg;
+                    effective.EditorBackground = bg;
+                    effective.TabItemActiveBackground = bg;
+                }
             }
-            if (IsValidHexColor(settings.LightForegroundHex) && (!isCustomTheme || !string.Equals(NormalizeHex(settings.LightForegroundHex), "#101010", StringComparison.OrdinalIgnoreCase)))
+            if (IsValidHexColor(settings.LightForegroundHex))
             {
                 var fg = NormalizeHex(settings.LightForegroundHex);
-                effective.Foreground = fg;
-                effective.EditorForeground = fg;
-                effective.TabItemActiveForeground = fg;
+                bool shouldApply = isDefaultLight
+                    ? !string.Equals(fg, "#101010", StringComparison.OrdinalIgnoreCase)
+                    : isPresetMatch && !string.Equals(fg, "#101010", StringComparison.OrdinalIgnoreCase) && !string.Equals(fg, NormalizeHex(baseTheme.Foreground), StringComparison.OrdinalIgnoreCase);
+
+                if (shouldApply)
+                {
+                    effective.Foreground = fg;
+                    effective.EditorForeground = fg;
+                    effective.TabItemActiveForeground = fg;
+                }
             }
-            if (IsValidHexColor(settings.LightAccentHex) && (!isCustomTheme || !string.Equals(NormalizeHex(settings.LightAccentHex), "#007ACC", StringComparison.OrdinalIgnoreCase)))
+            if (IsValidHexColor(settings.LightAccentHex))
             {
                 var acc = NormalizeHex(settings.LightAccentHex);
-                effective.AccentColor = acc;
-                effective.StatusBarBackground = acc;
+                bool shouldApply = isDefaultLight
+                    ? !string.Equals(acc, "#007ACC", StringComparison.OrdinalIgnoreCase)
+                    : isPresetMatch && !string.Equals(acc, "#007ACC", StringComparison.OrdinalIgnoreCase) && !string.Equals(acc, NormalizeHex(baseTheme.AccentColor), StringComparison.OrdinalIgnoreCase);
+
+                if (shouldApply)
+                {
+                    effective.AccentColor = acc;
+                    effective.StatusBarBackground = acc;
+                }
             }
 
             if (string.Equals(settings.ContrastMode, "Strong", StringComparison.OrdinalIgnoreCase))
@@ -407,26 +456,49 @@ public class ThemeService : IThemeService
         }
         else
         {
-            var isCustomTheme = !string.Equals(baseTheme.Id, "default-dark", StringComparison.OrdinalIgnoreCase);
-            if (IsValidHexColor(settings.DarkBackgroundHex) && (!isCustomTheme || !string.Equals(NormalizeHex(settings.DarkBackgroundHex), "#101010", StringComparison.OrdinalIgnoreCase)))
+            var isDefaultDark = string.Equals(baseTheme.Id, "default-dark", StringComparison.OrdinalIgnoreCase);
+            var isPresetMatch = string.Equals(settings.DarkPresetId, baseTheme.Id, StringComparison.OrdinalIgnoreCase);
+
+            if (IsValidHexColor(settings.DarkBackgroundHex))
             {
                 var bg = NormalizeHex(settings.DarkBackgroundHex);
-                effective.WindowBackground = bg;
-                effective.EditorBackground = bg;
-                effective.TabItemActiveBackground = bg;
+                bool shouldApply = isDefaultDark
+                    ? !string.Equals(bg, "#101010", StringComparison.OrdinalIgnoreCase)
+                    : isPresetMatch && !string.Equals(bg, "#101010", StringComparison.OrdinalIgnoreCase) && !string.Equals(bg, NormalizeHex(baseTheme.WindowBackground), StringComparison.OrdinalIgnoreCase);
+
+                if (shouldApply)
+                {
+                    effective.WindowBackground = bg;
+                    effective.EditorBackground = bg;
+                    effective.TabItemActiveBackground = bg;
+                }
             }
-            if (IsValidHexColor(settings.DarkForegroundHex) && (!isCustomTheme || !string.Equals(NormalizeHex(settings.DarkForegroundHex), "#CCCCCC", StringComparison.OrdinalIgnoreCase)))
+            if (IsValidHexColor(settings.DarkForegroundHex))
             {
                 var fg = NormalizeHex(settings.DarkForegroundHex);
-                effective.Foreground = fg;
-                effective.EditorForeground = fg;
-                effective.TabItemActiveForeground = fg;
+                bool shouldApply = isDefaultDark
+                    ? !string.Equals(fg, "#CCCCCC", StringComparison.OrdinalIgnoreCase)
+                    : isPresetMatch && !string.Equals(fg, "#CCCCCC", StringComparison.OrdinalIgnoreCase) && !string.Equals(fg, NormalizeHex(baseTheme.Foreground), StringComparison.OrdinalIgnoreCase);
+
+                if (shouldApply)
+                {
+                    effective.Foreground = fg;
+                    effective.EditorForeground = fg;
+                    effective.TabItemActiveForeground = fg;
+                }
             }
-            if (IsValidHexColor(settings.DarkAccentHex) && (!isCustomTheme || !string.Equals(NormalizeHex(settings.DarkAccentHex), "#007ACC", StringComparison.OrdinalIgnoreCase)))
+            if (IsValidHexColor(settings.DarkAccentHex))
             {
                 var acc = NormalizeHex(settings.DarkAccentHex);
-                effective.AccentColor = acc;
-                effective.StatusBarBackground = acc;
+                bool shouldApply = isDefaultDark
+                    ? !string.Equals(acc, "#007ACC", StringComparison.OrdinalIgnoreCase)
+                    : isPresetMatch && !string.Equals(acc, "#007ACC", StringComparison.OrdinalIgnoreCase) && !string.Equals(acc, NormalizeHex(baseTheme.AccentColor), StringComparison.OrdinalIgnoreCase);
+
+                if (shouldApply)
+                {
+                    effective.AccentColor = acc;
+                    effective.StatusBarBackground = acc;
+                }
             }
 
             if (string.Equals(settings.ContrastMode, "Strong", StringComparison.OrdinalIgnoreCase))

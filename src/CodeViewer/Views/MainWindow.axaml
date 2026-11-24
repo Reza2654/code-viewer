@@ -536,7 +536,7 @@
                   <StackPanel Orientation="Horizontal" Spacing="4">
                     <TextBlock Text="📁" FontSize="11"/>
                     <TextBlock Text="FILES" FontSize="10" FontWeight="Bold"
-                               Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                               Foreground="{DynamicResource ThemeWindowForeground}"/>
                   </StackPanel>
                 </Button>
                 <Button Grid.Column="1" Command="{Binding ShowOutlineSidebarCommand}"
@@ -545,7 +545,7 @@
                   <StackPanel Orientation="Horizontal" Spacing="4">
                     <TextBlock Text="📑" FontSize="11"/>
                     <TextBlock Text="OUTLINE" FontSize="10" FontWeight="Bold"
-                               Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                               Foreground="{DynamicResource ThemeWindowForeground}"/>
                   </StackPanel>
                 </Button>
 
@@ -574,7 +574,7 @@
 
                 <!-- Close Sidebar Button -->
                 <Button Grid.Column="4" Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="Hide Sidebar (Ctrl+B)" Background="Transparent" BorderThickness="0" Padding="3,2" Margin="4,0,0,0">
-                  <TextBlock Text="✕" FontSize="10" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                  <TextBlock Text="✕" FontSize="10" Foreground="{DynamicResource ThemeWindowForeground}"/>
                 </Button>
               </Grid>
             </Border>
@@ -587,7 +587,7 @@
                 <StackPanel IsVisible="{Binding RootFolder, Converter={x:Static ObjectConverters.IsNull}}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="16">
                   <TextBlock Text="📁" FontSize="36" HorizontalAlignment="Center" Opacity="0.4"/>
                   <TextBlock Text="No Folder Opened" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="{DynamicResource ThemeWindowForeground}"/>
-                  <TextBlock Text="Open a folder or project workspace" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" Opacity="0.6" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                  <TextBlock Text="Open a folder or project workspace" FontSize="11" TextWrapping="Wrap" TextAlignment="Center" Opacity="0.6" Foreground="{DynamicResource ThemeWindowForeground}"/>
                   <Button Content="Open Folder" Command="{Binding OpenFolderCommand}" HorizontalAlignment="Center" Padding="12,5" Margin="0,6,0,0" CornerRadius="4"/>
                 </StackPanel>
 
@@ -672,7 +672,7 @@
                       <StackPanel IsVisible="{Binding IsEmpty}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="6" Margin="16">
                         <TextBlock Text="📑" FontSize="32" HorizontalAlignment="Center" Opacity="0.35"/>
                         <TextBlock Text="No Symbols Found" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" Foreground="{DynamicResource ThemeWindowForeground}"/>
-                        <TextBlock Text="Functions, classes, methods, and markdown headings will appear here." FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" Opacity="0.6" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                        <TextBlock Text="Functions, classes, methods, and markdown headings will appear here." FontSize="10.5" TextWrapping="Wrap" TextAlignment="Center" Opacity="0.6" Foreground="{DynamicResource ThemeWindowForeground}"/>
                       </StackPanel>
 
                       <!-- Symbol List Items -->
@@ -712,8 +712,7 @@
                                              TextTrimming="CharacterEllipsis"/>
                                   <TextBlock Text="{Binding Detail}"
                                              FontSize="10"
-                                             Opacity="0.5"
-                                             Foreground="{DynamicResource ThemeStatusBarForeground}"
+                                             Foreground="{DynamicResource ThemeTabItemInactiveForeground}"
                                              TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
 
@@ -721,8 +720,7 @@
                                 <TextBlock Grid.Column="2"
                                            Text="{Binding LineNumber, StringFormat=':\{0\}'}"
                                            FontSize="10"
-                                           Opacity="0.5"
-                                           Foreground="{DynamicResource ThemeStatusBarForeground}"
+                                           Foreground="{DynamicResource ThemeTabItemInactiveForeground}"
                                            VerticalAlignment="Center"
                                            Margin="6,0,4,0"/>
                               </Grid>
@@ -846,7 +844,7 @@
                                    FontSize="13"
                                    Opacity="0.75"
                                    HorizontalAlignment="Center"
-                                   Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                                   Foreground="{DynamicResource ThemeWindowForeground}"/>
                       </StackPanel>
 
                       <!-- Quick Start Actions Grid -->
@@ -874,7 +872,7 @@
                                     HorizontalAlignment="Stretch">
                               <StackPanel Spacing="4">
                                 <TextBlock Text="📄 New File" FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}"/>
-                                <TextBlock Text="Ctrl+N" FontSize="10" Opacity="0.6" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                                <TextBlock Text="Ctrl+N" FontSize="10" Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
                               </StackPanel>
                             </Button>
                             <Button Grid.Column="1"
@@ -890,7 +888,7 @@
                                     HorizontalAlignment="Stretch">
                               <StackPanel Spacing="4">
                                 <TextBlock Text="📂 Open File..." FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}"/>
-                                <TextBlock Text="Ctrl+O" FontSize="10" Opacity="0.6" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                                <TextBlock Text="Ctrl+O" FontSize="10" Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
                               </StackPanel>
                             </Button>
                             <Button Grid.Column="2"
@@ -906,7 +904,7 @@
                                     HorizontalAlignment="Stretch">
                               <StackPanel Spacing="4">
                                 <TextBlock Text="📁 Open Workspace..." FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}"/>
-                                <TextBlock Text="Ctrl+Shift+O" FontSize="10" Opacity="0.6" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                                <TextBlock Text="Ctrl+Shift+O" FontSize="10" Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
                               </StackPanel>
                             </Button>
                           </Grid>
@@ -943,8 +941,7 @@
 
                             <TextBlock Text="No recent workspaces opened yet."
                                        FontSize="11"
-                                       Opacity="0.6"
-                                       Foreground="{DynamicResource ThemeStatusBarForeground}"
+                                       Foreground="{DynamicResource ThemeTabItemInactiveForeground}"
                                        IsVisible="{Binding !HasRecentWorkspaces}"/>
 
                             <ItemsControl ItemsSource="{Binding RecentWorkspaces}"
@@ -1072,7 +1069,7 @@
                     <Grid ColumnDefinitions="Auto,*,Auto">
                       <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                         <TextBlock Text="📝 Markdown Live Preview" FontSize="11" FontWeight="Bold" Foreground="{DynamicResource ThemeWindowForeground}"/>
-                        <TextBlock Text="{Binding MarkdownStatsDisplay}" FontSize="10.5" Opacity="0.6" Foreground="{DynamicResource ThemeStatusBarForeground}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding MarkdownStatsDisplay}" FontSize="10.5" Foreground="{DynamicResource ThemeTabItemInactiveForeground}" VerticalAlignment="Center"/>
                       </StackPanel>
                       <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                         <ToggleButton IsChecked="{Binding IsMarkdownScrollSyncEnabled, Mode=TwoWay}"
@@ -1081,16 +1078,16 @@
                           <StackPanel Orientation="Horizontal" Spacing="4">
                             <TextBlock Text="🔗" FontSize="10"/>
                             <TextBlock Text="Sync Scroll" FontSize="10.5"
-                                       Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                                       Foreground="{DynamicResource ThemeWindowForeground}"/>
                           </StackPanel>
                         </ToggleButton>
                         <Button Command="{Binding CopyMarkdownPreviewCommand}"
                                 ToolTip.Tip="Copy Markdown Content"
                                 Padding="6,2" Background="Transparent" BorderThickness="0" CornerRadius="3">
-                          <TextBlock Text="📋" FontSize="11" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                          <TextBlock Text="📋" FontSize="11" Foreground="{DynamicResource ThemeWindowForeground}"/>
                         </Button>
                         <Button Command="{Binding ToggleMarkdownPreviewCommand}" ToolTip.Tip="Close Preview (Ctrl+Shift+M)" Padding="6,2" Background="Transparent" BorderThickness="0" CornerRadius="3">
-                          <TextBlock Text="✕" FontSize="10" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                          <TextBlock Text="✕" FontSize="10" Foreground="{DynamicResource ThemeWindowForeground}"/>
                         </Button>
                       </StackPanel>
                     </Grid>
@@ -1141,7 +1138,7 @@
                       <Grid ColumnDefinitions="*,Auto" Margin="4,2">
                         <StackPanel Grid.Column="0" Orientation="Vertical">
                           <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource ThemeWindowForeground}"/>
-                          <TextBlock Text="{Binding RelativeOrFullPath}" FontSize="11" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.75" TextTrimming="CharacterEllipsis"/>
+                          <TextBlock Text="{Binding RelativeOrFullPath}" FontSize="11" Foreground="{DynamicResource ThemeTabItemInactiveForeground}" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
                         <TextBlock Grid.Column="1"
                                    Text="{Binding TabBadge}"
@@ -1228,7 +1225,7 @@
                           <TextBlock Text="{Binding Title}" FontSize="12" Foreground="{DynamicResource ThemeWindowForeground}"/>
                         </StackPanel>
                         <Border Grid.Column="2" Background="{DynamicResource ThemeSelectionBackground}" CornerRadius="3" Padding="5,1" IsVisible="{Binding ShortcutText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                          <TextBlock Text="{Binding ShortcutText}" FontSize="10" Foreground="{DynamicResource ThemeStatusBarForeground}" Opacity="0.85"/>
+                          <TextBlock Text="{Binding ShortcutText}" FontSize="10" Foreground="{DynamicResource ThemeWindowForeground}"/>
                         </Border>
                       </Grid>
                     </DataTemplate>
@@ -1283,7 +1280,7 @@
                           Padding="8,4"
                           Background="Transparent"
                           BorderThickness="0">
-                    <TextBlock Text="✕" FontSize="10" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                    <TextBlock Text="✕" FontSize="10" Foreground="{DynamicResource ThemeWindowForeground}"/>
                   </Button>
                 </Grid>
 
@@ -1291,8 +1288,7 @@
                 <Border Grid.Row="1" Padding="10,2,10,4">
                   <TextBlock Text="{Binding GlobalSearchStatus}"
                              FontSize="11"
-                             Foreground="{DynamicResource ThemeStatusBarForeground}"
-                             Opacity="0.85"/>
+                             Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
                 </Border>
 
                 <!-- Search Results List -->
@@ -1317,7 +1313,7 @@
                                    Text="{Binding LineContent}"
                                    FontFamily="Cascadia Code, Consolas, Segoe UI, monospace"
                                    FontSize="11"
-                                   Foreground="{DynamicResource ThemeStatusBarForeground}"
+                                   Foreground="{DynamicResource ThemeEditorForeground}"
                                    Margin="16,2,0,0"
                                    TextTrimming="CharacterEllipsis"/>
                       </Grid>
@@ -1369,13 +1365,13 @@
                       </ComboBox.ItemTemplate>
                     </ComboBox>
                     <Button Command="{Binding ClearOutputCommand}" ToolTip.Tip="Clear Console (Ctrl+K)" Padding="6,2" Background="Transparent" BorderThickness="0" CornerRadius="3">
-                      <TextBlock Text="🧹 Clear" FontSize="11" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                      <TextBlock Text="🧹 Clear" FontSize="11" Foreground="{DynamicResource ThemeWindowForeground}"/>
                     </Button>
                     <Button Command="{Binding CancelCommand}" IsEnabled="{Binding IsRunning}" ToolTip.Tip="Stop Execution (Shift+F5)" Padding="6,2" Background="Transparent" BorderThickness="0" CornerRadius="3">
-                      <TextBlock Text="⏹ Stop" FontSize="11" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                      <TextBlock Text="⏹ Stop" FontSize="11" Foreground="{DynamicResource ThemeWindowForeground}"/>
                     </Button>
                     <Button Command="{Binding CloseCommand}" ToolTip.Tip="Close Console" Padding="6,2" Background="Transparent" BorderThickness="0" CornerRadius="3">
-                      <TextBlock Text="✕" FontSize="11" Foreground="{DynamicResource ThemeStatusBarForeground}"/>
+                      <TextBlock Text="✕" FontSize="11" Foreground="{DynamicResource ThemeWindowForeground}"/>
                     </Button>
                   </StackPanel>
                 </Grid>
@@ -1519,7 +1515,7 @@
                                    Text="Language Mode"
                                    FontSize="11"
                                    Opacity="0.7"
-                                   Foreground="{DynamicResource ThemeStatusBarForeground}"
+                                   Foreground="{DynamicResource ThemeWindowForeground}"
                                    VerticalAlignment="Center"/>
                         <Button Grid.Column="1"
                                 Content="Check Updates 🔄"

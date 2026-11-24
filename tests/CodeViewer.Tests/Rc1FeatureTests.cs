@@ -62,4 +62,57 @@ public class Rc1FeatureTests
             Assert.IsTrue(theme.AccentColor.StartsWith("#"));
         }
     }
+
+    [TestMethod]
+    public void FontHelper_UiFontFamily_ConfiguredWithGoogleSansFlex()
+    {
+        Assert.AreEqual("Google Sans Flex", FontHelper.UiFontName);
+        Assert.IsTrue(FontHelper.UiFontFamilyString.StartsWith("Google Sans Flex,"));
+        Assert.IsNotNull(FontHelper.UiFontFamily);
+        Assert.IsTrue(FontHelper.UiFontFamily.Name.Contains("Google Sans Flex"));
+    }
+
+    [TestMethod]
+    public void BuiltInThemes_SolarizedLight_HasAccessibleBorderAndSelection()
+    {
+        var theme = System.Linq.Enumerable.First(BuiltInThemes.GetAll(), t => t.Id == "solarized-light");
+        Assert.IsNotNull(theme);
+        Assert.IsFalse(theme.IsDark);
+        // Border must not be harsh magenta (#D33682)
+        Assert.AreNotEqual("#D33682", theme.BorderColor);
+        Assert.AreEqual("#D6D0BA", theme.BorderColor);
+        // Selection must have visible contrast against EditorBackground
+        Assert.AreNotEqual(theme.EditorBackground, theme.SelectionBackground);
+    }
+
+    [TestMethod]
+    public void ThemeService_ResolveEffectiveTheme_DoesNotLeakHexAcrossPresets()
+    {
+        var tempDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "CV_ThemeTest_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var themeService = new ThemeService(tempDir);
+            var settings = new AppSettings
+            {
+                ThemeMode = "Dark",
+                DarkPresetId = "solarized-dark",
+                LightPresetId = "solarized-light"
+            };
+
+            var resolvedDark = themeService.ResolveEffectiveTheme(settings);
+            var solarizedDark = System.Linq.Enumerable.First(BuiltInThemes.GetAll(), t => t.Id == "solarized-dark");
+            Assert.AreEqual(solarizedDark.EditorBackground, resolvedDark.EditorBackground,
+                "Solarized Dark preset should preserve its native background and not leak #101010");
+
+            settings.ThemeMode = "Light";
+            var resolvedLight = themeService.ResolveEffectiveTheme(settings);
+            var solarizedLight = System.Linq.Enumerable.First(BuiltInThemes.GetAll(), t => t.Id == "solarized-light");
+            Assert.AreEqual(solarizedLight.EditorBackground, resolvedLight.EditorBackground,
+                "Solarized Light preset should preserve its native background and not leak #F9F9F9");
+        }
+        finally
+        {
+            if (System.IO.Directory.Exists(tempDir)) System.IO.Directory.Delete(tempDir, true);
+        }
+    }
 }

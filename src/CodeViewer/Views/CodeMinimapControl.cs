@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using AvaloniaEdit;
+using CodeViewer.Models;
 
 namespace CodeViewer.Views;
 
@@ -16,14 +17,33 @@ public class CodeMinimapControl : Control
     private bool _isDragging;
     private bool _isHovered;
 
-    private static readonly IBrush NormalThumbBrush = new SolidColorBrush(Color.FromArgb(40, 200, 200, 200));
-    private static readonly IBrush HoverThumbBrush = new SolidColorBrush(Color.FromArgb(65, 200, 200, 200));
-    private static readonly IPen ThumbPen = new Pen(new SolidColorBrush(Color.FromArgb(90, 220, 220, 220)), 1);
+    private IBrush _normalThumbBrush = new SolidColorBrush(Color.FromArgb(40, 200, 200, 200));
+    private IBrush _hoverThumbBrush = new SolidColorBrush(Color.FromArgb(65, 200, 200, 200));
+    private IPen _thumbPen = new Pen(new SolidColorBrush(Color.FromArgb(90, 220, 220, 220)), 1);
 
     public CodeMinimapControl()
     {
         ClipToBounds = true;
         Cursor = new Cursor(StandardCursorType.Hand);
+    }
+
+    public void UpdateTheme(ColorTheme? theme)
+    {
+        if (theme == null) return;
+        bool isLight = !theme.IsDark;
+        if (isLight)
+        {
+            _normalThumbBrush = new SolidColorBrush(Color.FromArgb(50, 60, 60, 60));
+            _hoverThumbBrush = new SolidColorBrush(Color.FromArgb(85, 30, 30, 30));
+            _thumbPen = new Pen(new SolidColorBrush(Color.FromArgb(120, 70, 70, 70)), 1);
+        }
+        else
+        {
+            _normalThumbBrush = new SolidColorBrush(Color.FromArgb(40, 200, 200, 200));
+            _hoverThumbBrush = new SolidColorBrush(Color.FromArgb(65, 200, 200, 200));
+            _thumbPen = new Pen(new SolidColorBrush(Color.FromArgb(90, 220, 220, 220)), 1);
+        }
+        InvalidateVisual();
     }
 
     public void Attach(TextEditor? editor)
@@ -183,10 +203,10 @@ public class CodeMinimapControl : Control
             }
 
             var thumbRect = new Rect(2, thumbTop, w - 4, thumbHeight);
-            var thumbBrush = (_isDragging || _isHovered) ? HoverThumbBrush : NormalThumbBrush;
+            var thumbBrush = (_isDragging || _isHovered) ? _hoverThumbBrush : _normalThumbBrush;
 
             context.FillRectangle(thumbBrush, thumbRect, 3);
-            context.DrawRectangle(ThumbPen, thumbRect, 3);
+            context.DrawRectangle(_thumbPen, thumbRect, 3);
         }
     }
 }

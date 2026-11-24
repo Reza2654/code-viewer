@@ -14,6 +14,7 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        Resources["UiFontFamily"] = FontHelper.UiFontFamily;
     }
 
     public override async void OnFrameworkInitializationCompleted()

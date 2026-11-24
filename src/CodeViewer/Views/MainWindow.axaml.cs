@@ -485,12 +485,17 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
                 if (Editor.TextArea != null)
                 {
                     Editor.TextArea.Foreground = editorFg;
+                    if (!string.IsNullOrEmpty(theme.SelectionBackground))
+                    {
+                        Editor.TextArea.SelectionBrush = new SolidColorBrush(Color.Parse(theme.SelectionBackground));
+                    }
                 }
                 Editor.LineNumbersForeground = lineNumbersFg;
 
                 if (StatusBarBorder != null) StatusBarBorder.Background = statusBg;
                 if (TabBarBorder != null) TabBarBorder.Background = tabBg;
 
+                Minimap?.UpdateTheme(theme);
                 _currentLineHighlighter?.UpdateTheme(theme.IsDark);
                 _bracketMatchingRenderer?.UpdateTheme(theme);
                 _wordOccurrenceRenderer?.UpdateTheme(theme);
@@ -507,6 +512,17 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
 
                     if (_splitEditor != null)
                     {
+                        _splitEditor.Background = editorBg;
+                        _splitEditor.Foreground = editorFg;
+                        if (_splitEditor.TextArea != null)
+                        {
+                            _splitEditor.TextArea.Foreground = editorFg;
+                            if (!string.IsNullOrEmpty(theme.SelectionBackground))
+                            {
+                                _splitEditor.TextArea.SelectionBrush = new SolidColorBrush(Color.Parse(theme.SelectionBackground));
+                            }
+                        }
+                        _splitEditor.LineNumbersForeground = lineNumbersFg;
                         var splitHighlight = _splitEditor.SyntaxHighlighting;
                         _splitEditor.SyntaxHighlighting = null;
                         _splitEditor.SyntaxHighlighting = splitHighlight;
@@ -933,9 +949,18 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
         IBrush? codeBg = null;
         try
         {
-            if (Resources.TryGetResource("ThemeEditorForeground", null, out var fgRes) && fgRes is IBrush fgBrush) fg = fgBrush;
-            if (Resources.TryGetResource("ThemeBorderBrush", null, out var bRes) && bRes is IBrush bBrush) border = bBrush;
-            if (Resources.TryGetResource("ThemeTabBarBackground", null, out var cRes) && cRes is IBrush cBrush) codeBg = cBrush;
+            if (vm.CurrentTheme != null)
+            {
+                fg = new SolidColorBrush(Color.Parse(vm.CurrentTheme.EditorForeground));
+                border = new SolidColorBrush(Color.Parse(vm.CurrentTheme.BorderColor));
+                codeBg = new SolidColorBrush(Color.Parse(vm.CurrentTheme.TabBarBackground));
+            }
+            else
+            {
+                if (Resources.TryGetResource("ThemeEditorForeground", null, out var fgRes) && fgRes is IBrush fgBrush) fg = fgBrush;
+                if (Resources.TryGetResource("ThemeBorderBrush", null, out var bRes) && bRes is IBrush bBrush) border = bBrush;
+                if (Resources.TryGetResource("ThemeTabBarBackground", null, out var cRes) && cRes is IBrush cBrush) codeBg = cBrush;
+            }
         }
         catch { }
 
@@ -1123,6 +1148,14 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
 
     private async void OnAboutClick(object? sender, RoutedEventArgs e)
     {
+        var vm = DataContext as MainViewModel;
+        var theme = vm?.CurrentTheme;
+        IBrush winBg = theme != null ? new SolidColorBrush(Color.Parse(theme.WindowBackground)) : new SolidColorBrush(Color.Parse("#1E1E1E"));
+        IBrush winFg = theme != null ? new SolidColorBrush(Color.Parse(theme.Foreground)) : Avalonia.Media.Brushes.White;
+        IBrush subFg = theme != null ? new SolidColorBrush(Color.Parse(theme.TabItemInactiveForeground)) : Avalonia.Media.Brushes.Gray;
+        IBrush accentBg = theme != null ? new SolidColorBrush(Color.Parse(theme.StatusBarBackground)) : new SolidColorBrush(Color.Parse("#007ACC"));
+        IBrush accentFg = theme != null ? new SolidColorBrush(Color.Parse(theme.StatusBarForeground)) : Avalonia.Media.Brushes.White;
+
         var aboutDialog = new Window
         {
             Title = "About Code Viewer",
@@ -1130,7 +1163,8 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
             Height = 310,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             CanResize = false,
-            Background = new SolidColorBrush(Color.Parse("#1E1E1E")),
+            Background = winBg,
+            FontFamily = FontHelper.UiFontFamily,
             ShowInTaskbar = false
         };
 
@@ -1155,12 +1189,11 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
             // Fallback if asset stream not present
         }
 
-        panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = Avalonia.Media.Brushes.White, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = $"Version {AppUpdateService.GetCurrentAppVersion()} (Windows Native & Open Source)", FontSize = 12, Foreground = Avalonia.Media.Brushes.Gray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center });
-        panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = Avalonia.Media.Brushes.LightGray, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 8, 0, 10) });
+        panel.Children.Add(new TextBlock { Text = "Code Viewer", FontSize = 20, FontWeight = Avalonia.Media.FontWeight.Bold, Foreground = winFg, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, FontFamily = FontHelper.UiFontFamily });
+        panel.Children.Add(new TextBlock { Text = $"Version {AppUpdateService.GetCurrentAppVersion()} (Windows Native & Open Source)", FontSize = 12, Foreground = subFg, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, FontFamily = FontHelper.UiFontFamily });
+        panel.Children.Add(new TextBlock { Text = "Fast, lightweight code viewer and editor with themes and plugins.", FontSize = 12, Foreground = subFg, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, Margin = new Avalonia.Thickness(0, 8, 0, 10), FontFamily = FontHelper.UiFontFamily });
 
-
-        var okBtn = new Button { Content = "OK", Width = 80, CornerRadius = new Avalonia.CornerRadius(4), Background = new SolidColorBrush(Color.Parse("#007ACC")), Foreground = Avalonia.Media.Brushes.White, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
+        var okBtn = new Button { Content = "OK", Width = 80, CornerRadius = new Avalonia.CornerRadius(4), Background = accentBg, Foreground = accentFg, HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, FontFamily = FontHelper.UiFontFamily };
         okBtn.Click += (_, _) => aboutDialog.Close();
         panel.Children.Add(okBtn);
 

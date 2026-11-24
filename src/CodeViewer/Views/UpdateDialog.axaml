@@ -66,7 +66,7 @@
                    Foreground="#DDDDDD"
                    FontSize="12"
                    TextWrapping="Wrap"
-                   FontFamily="Segoe UI, -apple-system, sans-serif"/>
+                   FontFamily="{StaticResource UiFontFamily}"/>
       </ScrollViewer>
     </Border>
 

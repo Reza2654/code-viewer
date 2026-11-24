@@ -119,7 +119,7 @@
 
         <TextBlock Text="{Binding StatusText}"
                    FontSize="11"
-                   Foreground="{DynamicResource ThemeStatusBarForeground}"
+                   Foreground="{DynamicResource ThemeMenuForeground}"
                    Opacity="0.8"
                    VerticalAlignment="Center"
                    Margin="4,0"

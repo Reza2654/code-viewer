@@ -137,9 +137,9 @@
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource ThemeWindowForeground}"
                            FontSize="14"/>
-                <TextBlock Text="Select a coding font or type any custom font installed on your operating system."
+                <TextBlock Text="Select between Google Sans Code and Roboto Mono for code editing. The app UI is fixed to Google Sans Flex."
                            FontSize="11"
-                           Foreground="#888888"/>
+                           Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
 
                 <!-- Quick Preset Font Buttons -->
                 <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,2,0,4">
