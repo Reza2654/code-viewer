@@ -34,6 +34,12 @@
     <Style Selector="Button.search-btn:pressed, ToggleButton.search-btn:pressed">
       <Setter Property="RenderTransform" Value="scale(0.95)"/>
     </Style>
+    <Style Selector="ToggleButton.search-btn:checked">
+      <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
+    </Style>
+    <Style Selector="ToggleButton.search-btn:checked TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource ThemeAccentForeground}"/>
+    </Style>
   </UserControl.Styles>
 
   <Border Classes="search-panel"
@@ -54,7 +60,7 @@
                       Padding="0"
                       CornerRadius="3"
                       Background="Transparent">
-          <TextBlock Text="{Binding IsReplaceOpen, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue='▶'}"
+          <TextBlock Text="{Binding ReplaceToggleGlyph}"
                      TextAlignment="Center"
                      FontSize="9"
                      Foreground="{DynamicResource ThemeMenuForeground}"
@@ -84,7 +90,7 @@
           <TextBlock Text="Aa"
                      FontSize="12"
                      FontWeight="Bold"
-                     Foreground="{Binding MatchCase, Converter={x:Static ObjectConverters.IsNotNull}}"
+                     Foreground="{DynamicResource ThemeMenuForeground}"
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center"/>
         </ToggleButton>

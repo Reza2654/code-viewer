@@ -24,6 +24,13 @@ public static class WindowKeyboardRouter
         // Escape: Close any open palette/overlay
         if (e.Key == Key.Escape)
         {
+            if (vm.IsCommandPaletteOpen)
+            {
+                vm.CloseCommandPalette();
+                target.FocusEditor();
+                e.Handled = true;
+                return true;
+            }
             if (vm.IsQuickOpenOpen)
             {
                 vm.CloseQuickOpen();
@@ -48,6 +55,13 @@ public static class WindowKeyboardRouter
             if (vm.SearchViewModel.IsOpen)
             {
                 vm.SearchViewModel.Close();
+                target.FocusEditor();
+                e.Handled = true;
+                return true;
+            }
+            if (vm.DiffViewModel.IsActive)
+            {
+                vm.DiffViewModel.CloseDiff();
                 target.FocusEditor();
                 e.Handled = true;
                 return true;

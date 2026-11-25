@@ -12,15 +12,63 @@ namespace CodeViewer.Rendering;
 
 public static class MarkdownRenderer
 {
-    private static readonly FontFamily MonospaceFamily = new("Google Sans Code, Cascadia Code, Consolas, Courier New, monospace");
+    private readonly record struct MarkdownPalette(
+        IBrush InlineCode,
+        IBrush Link,
+        IBrush CheckedTask,
+        IBrush BlockquoteAccent,
+        IBrush StrikeText,
+        IBrush MutedText,
+        IBrush CodeBackground,
+        IBrush CodeBorder);
+
+    private static readonly FontFamily MonospaceFamily = new("Google Sans Code, avares://CodeViewer/Assets/Fonts#Google Sans Code, Roboto Mono, avares://CodeViewer/Assets/Fonts#Roboto Mono, Cascadia Code, Consolas, Courier New, monospace");
     private static readonly SearchValues<char> InlineTokenStartChars = SearchValues.Create(['`', '~', '*', '[']);
     private static readonly IBrush DefaultTableHeaderBg = new SolidColorBrush(Color.FromArgb(40, 128, 128, 128));
     private static readonly IBrush DefaultTableAltRowBg = new SolidColorBrush(Color.FromArgb(15, 128, 128, 128));
     private static readonly IBrush DefaultCodeBg = new SolidColorBrush(Color.FromArgb(50, 0, 0, 0));
     private static readonly IBrush DefaultCodeBorder = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255));
 
+    private static readonly MarkdownPalette DarkPalette = new(
+        InlineCode: Brushes.SandyBrown,
+        Link: Brushes.DeepSkyBlue,
+        CheckedTask: Brushes.LimeGreen,
+        BlockquoteAccent: Brushes.CornflowerBlue,
+        StrikeText: Brushes.Gray,
+        MutedText: Brushes.Gray,
+        CodeBackground: DefaultCodeBg,
+        CodeBorder: DefaultCodeBorder);
+
+    private static readonly MarkdownPalette LightPalette = new(
+        InlineCode: new SolidColorBrush(Color.Parse("#A31515")),
+        Link: new SolidColorBrush(Color.Parse("#0550AE")),
+        CheckedTask: new SolidColorBrush(Color.Parse("#1B7F37")),
+        BlockquoteAccent: new SolidColorBrush(Color.Parse("#0969DA")),
+        StrikeText: new SolidColorBrush(Color.Parse("#57606A")),
+        MutedText: new SolidColorBrush(Color.Parse("#57606A")),
+        CodeBackground: new SolidColorBrush(Color.FromArgb(20, 0, 0, 0)),
+        CodeBorder: new SolidColorBrush(Color.FromArgb(40, 0, 0, 0)));
+
+    private static MarkdownPalette ResolvePalette(IBrush? foreground, IBrush? codeBackground)
+    {
+        if (foreground is ISolidColorBrush fgSolid)
+        {
+            var fgLuma = (0.2126 * fgSolid.Color.R + 0.7152 * fgSolid.Color.G + 0.0722 * fgSolid.Color.B) / 255.0;
+            return fgLuma < 0.50 ? LightPalette : DarkPalette;
+        }
+
+        if (codeBackground is ISolidColorBrush bgSolid && bgSolid.Color.A > 100)
+        {
+            var bgLuma = (0.2126 * bgSolid.Color.R + 0.7152 * bgSolid.Color.G + 0.0722 * bgSolid.Color.B) / 255.0;
+            if (bgLuma > 0.50) return LightPalette;
+        }
+
+        return DarkPalette;
+    }
+
     public static Control Render(string markdown, IBrush? foreground = null, IBrush? borderBrush = null, IBrush? codeBackground = null)
     {
+        var palette = ResolvePalette(foreground, codeBackground);
         var panel = new StackPanel
         {
             Spacing = 6,
@@ -32,7 +80,7 @@ public static class MarkdownRenderer
             panel.Children.Add(new TextBlock
             {
                 Text = "(Empty Markdown Document)",
-                Foreground = Brushes.Gray,
+                Foreground = palette.MutedText,
                 FontStyle = FontStyle.Italic
             });
             return panel;
@@ -51,7 +99,7 @@ public static class MarkdownRenderer
             {
                 if (inCodeBlock)
                 {
-                    panel.Children.Add(CreateCodeBlock(string.Join(Environment.NewLine, codeBlockLines), codeBackground, borderBrush));
+                    panel.Children.Add(CreateCodeBlock(string.Join(Environment.NewLine, codeBlockLines), foreground, codeBackground, borderBrush, palette));
                     codeBlockLines.Clear();
                     inCodeBlock = false;
                 }
@@ -77,7 +125,7 @@ public static class MarkdownRenderer
                 panel.Children.Add(new Border
                 {
                     Height = 1,
-                    Background = borderBrush ?? Brushes.Gray,
+                    Background = borderBrush ?? palette.MutedText,
                     Opacity = 0.4,
                     Margin = new Thickness(0, 8, 0, 8)
                 });
@@ -87,32 +135,32 @@ public static class MarkdownRenderer
             // Headings
             if (line.StartsWith("# ", StringComparison.Ordinal))
             {
-                panel.Children.Add(CreateHeading(line[2..], 22, FontWeight.Bold, foreground, new Thickness(0, 10, 0, 4)));
+                panel.Children.Add(CreateHeading(line[2..], 22, FontWeight.Bold, foreground, new Thickness(0, 10, 0, 4), palette));
                 continue;
             }
             if (line.StartsWith("## ", StringComparison.Ordinal))
             {
-                panel.Children.Add(CreateHeading(line[3..], 18, FontWeight.Bold, foreground, new Thickness(0, 8, 0, 3)));
+                panel.Children.Add(CreateHeading(line[3..], 18, FontWeight.Bold, foreground, new Thickness(0, 8, 0, 3), palette));
                 continue;
             }
             if (line.StartsWith("### ", StringComparison.Ordinal))
             {
-                panel.Children.Add(CreateHeading(line[4..], 15, FontWeight.SemiBold, foreground, new Thickness(0, 6, 0, 2)));
+                panel.Children.Add(CreateHeading(line[4..], 15, FontWeight.SemiBold, foreground, new Thickness(0, 6, 0, 2), palette));
                 continue;
             }
             if (line.StartsWith("#### ", StringComparison.Ordinal))
             {
-                panel.Children.Add(CreateHeading(line[5..], 13, FontWeight.SemiBold, foreground, new Thickness(0, 4, 0, 2)));
+                panel.Children.Add(CreateHeading(line[5..], 13, FontWeight.SemiBold, foreground, new Thickness(0, 4, 0, 2), palette));
                 continue;
             }
             if (line.StartsWith("##### ", StringComparison.Ordinal))
             {
-                panel.Children.Add(CreateHeading(line[6..], 12, FontWeight.SemiBold, foreground, new Thickness(0, 3, 0, 1)));
+                panel.Children.Add(CreateHeading(line[6..], 12, FontWeight.SemiBold, foreground, new Thickness(0, 3, 0, 1), palette));
                 continue;
             }
             if (line.StartsWith("###### ", StringComparison.Ordinal))
             {
-                panel.Children.Add(CreateHeading(line[7..], 11, FontWeight.SemiBold, foreground, new Thickness(0, 2, 0, 1)));
+                panel.Children.Add(CreateHeading(line[7..], 11, FontWeight.SemiBold, foreground, new Thickness(0, 2, 0, 1), palette));
                 continue;
             }
 
@@ -134,33 +182,33 @@ public static class MarkdownRenderer
                     }
                 }
 
-                panel.Children.Add(CreateTable(tableLines, foreground, borderBrush, codeBackground));
+                panel.Children.Add(CreateTable(tableLines, foreground, borderBrush, codeBackground, palette));
                 continue;
             }
 
             // Blockquote
             if (line.StartsWith("> ", StringComparison.Ordinal))
             {
-                panel.Children.Add(CreateBlockquote(line[2..], foreground, borderBrush));
+                panel.Children.Add(CreateBlockquote(line[2..], foreground, borderBrush, palette));
                 continue;
             }
 
             // Task list item
             if (trimmedSpan.StartsWith("- [ ] ") || trimmedSpan.StartsWith("* [ ] "))
             {
-                panel.Children.Add(CreateTaskListItem(false, trimmedSpan[6..].ToString(), foreground));
+                panel.Children.Add(CreateTaskListItem(false, trimmedSpan[6..].ToString(), foreground, palette));
                 continue;
             }
             if (trimmedSpan.StartsWith("- [x] ", StringComparison.OrdinalIgnoreCase) || trimmedSpan.StartsWith("* [x] ", StringComparison.OrdinalIgnoreCase))
             {
-                panel.Children.Add(CreateTaskListItem(true, trimmedSpan[6..].ToString(), foreground));
+                panel.Children.Add(CreateTaskListItem(true, trimmedSpan[6..].ToString(), foreground, palette));
                 continue;
             }
 
             // Bullet list
             if (trimmedSpan.StartsWith("- ") || trimmedSpan.StartsWith("* "))
             {
-                panel.Children.Add(CreateListItem("•", trimmedSpan[2..].ToString(), foreground));
+                panel.Children.Add(CreateListItem("•", trimmedSpan[2..].ToString(), foreground, palette));
                 continue;
             }
 
@@ -170,7 +218,7 @@ public static class MarkdownRenderer
                 int dotIdx = trimmedSpan.IndexOf('.');
                 var num = trimmedSpan[..(dotIdx + 1)].ToString();
                 var itemText = trimmedSpan[(dotIdx + 1)..].TrimStart().ToString();
-                panel.Children.Add(CreateListItem(num, itemText, foreground));
+                panel.Children.Add(CreateListItem(num, itemText, foreground, palette));
                 continue;
             }
 
@@ -182,13 +230,13 @@ public static class MarkdownRenderer
             }
 
             // Regular paragraph
-            panel.Children.Add(CreateParagraph(line, foreground));
+            panel.Children.Add(CreateParagraph(line, foreground, palette));
         }
 
         // Unclosed code block fallback
         if (inCodeBlock && codeBlockLines.Count > 0)
         {
-            panel.Children.Add(CreateCodeBlock(string.Join(Environment.NewLine, codeBlockLines), codeBackground, borderBrush));
+            panel.Children.Add(CreateCodeBlock(string.Join(Environment.NewLine, codeBlockLines), foreground, codeBackground, borderBrush, palette));
         }
 
         return panel;
@@ -234,7 +282,7 @@ public static class MarkdownRenderer
         return false;
     }
 
-    private static TextBlock CreateHeading(string text, double fontSize, FontWeight weight, IBrush? fg, Thickness margin)
+    private static TextBlock CreateHeading(string text, double fontSize, FontWeight weight, IBrush? fg, Thickness margin, MarkdownPalette palette)
     {
         bool isRtl = IsRtlText(text);
         var tb = new TextBlock
@@ -247,11 +295,11 @@ public static class MarkdownRenderer
             TextAlignment = isRtl ? TextAlignment.Right : TextAlignment.Left
         };
         if (fg != null) tb.Foreground = fg;
-        AddFormattedInlines(tb, text);
+        AddFormattedInlines(tb, text, palette);
         return tb;
     }
 
-    private static Border CreateBlockquote(string text, IBrush? fg, IBrush? borderBrush)
+    private static Border CreateBlockquote(string text, IBrush? fg, IBrush? borderBrush, MarkdownPalette palette)
     {
         bool isRtl = IsRtlText(text);
         var tb = new TextBlock
@@ -263,12 +311,12 @@ public static class MarkdownRenderer
             TextAlignment = isRtl ? TextAlignment.Right : TextAlignment.Left
         };
         if (fg != null) tb.Foreground = fg;
-        AddFormattedInlines(tb, text);
+        AddFormattedInlines(tb, text, palette);
 
         return new Border
         {
             BorderThickness = isRtl ? new Thickness(0, 0, 3, 0) : new Thickness(3, 0, 0, 0),
-            BorderBrush = borderBrush ?? Brushes.CornflowerBlue,
+            BorderBrush = borderBrush ?? palette.BlockquoteAccent,
             Padding = isRtl ? new Thickness(4, 4, 10, 4) : new Thickness(10, 4, 4, 4),
             Margin = new Thickness(0, 2, 0, 4),
             Child = tb
@@ -280,7 +328,7 @@ public static class MarkdownRenderer
             ? new ColumnDefinitions { new ColumnDefinition(1, GridUnitType.Star), new ColumnDefinition(fixedWidth, GridUnitType.Pixel) }
             : new ColumnDefinitions { new ColumnDefinition(fixedWidth, GridUnitType.Pixel), new ColumnDefinition(1, GridUnitType.Star) };
 
-    private static Grid CreateListItem(string bullet, string text, IBrush? fg)
+    private static Grid CreateListItem(string bullet, string text, IBrush? fg, MarkdownPalette palette)
     {
         bool isRtl = IsRtlText(text);
         var grid = new Grid
@@ -293,7 +341,7 @@ public static class MarkdownRenderer
         {
             Text = bullet,
             FontWeight = FontWeight.Bold,
-            Foreground = fg ?? Brushes.CornflowerBlue,
+            Foreground = fg ?? palette.BlockquoteAccent,
             VerticalAlignment = VerticalAlignment.Top,
             TextAlignment = isRtl ? TextAlignment.Right : TextAlignment.Left
         };
@@ -307,7 +355,7 @@ public static class MarkdownRenderer
             TextAlignment = isRtl ? TextAlignment.Right : TextAlignment.Left
         };
         if (fg != null) contentBlock.Foreground = fg;
-        AddFormattedInlines(contentBlock, text);
+        AddFormattedInlines(contentBlock, text, palette);
         Grid.SetColumn(contentBlock, isRtl ? 0 : 1);
 
         grid.Children.Add(bulletBlock);
@@ -315,7 +363,7 @@ public static class MarkdownRenderer
         return grid;
     }
 
-    private static Grid CreateTaskListItem(bool isChecked, string text, IBrush? fg)
+    private static Grid CreateTaskListItem(bool isChecked, string text, IBrush? fg, MarkdownPalette palette)
     {
         bool isRtl = IsRtlText(text);
         var grid = new Grid
@@ -328,7 +376,7 @@ public static class MarkdownRenderer
         {
             Text = isChecked ? "☑" : "☐",
             FontWeight = FontWeight.Bold,
-            Foreground = isChecked ? Brushes.LimeGreen : (fg ?? Brushes.Gray),
+            Foreground = isChecked ? palette.CheckedTask : (fg ?? palette.MutedText),
             VerticalAlignment = VerticalAlignment.Center,
             FontSize = 13,
             TextAlignment = isRtl ? TextAlignment.Right : TextAlignment.Left
@@ -344,7 +392,7 @@ public static class MarkdownRenderer
             Opacity = isChecked ? 0.7 : 1.0
         };
         if (fg != null) contentBlock.Foreground = fg;
-        AddFormattedInlines(contentBlock, text);
+        AddFormattedInlines(contentBlock, text, palette);
         if (isChecked)
         {
             contentBlock.TextDecorations = TextDecorations.Strikethrough;
@@ -369,7 +417,7 @@ public static class MarkdownRenderer
         return true;
     }
 
-    private static Control CreateTable(List<string> tableLines, IBrush? fg, IBrush? borderBrush, IBrush? headerBg)
+    private static Control CreateTable(List<string> tableLines, IBrush? fg, IBrush? borderBrush, IBrush? headerBg, MarkdownPalette palette)
     {
         if (tableLines.Count == 0) return new Border();
 
@@ -400,7 +448,7 @@ public static class MarkdownRenderer
         if (parsedRows.Count == 0 || colCount == 0) return new Border();
 
         var resolvedHeaderBg = headerBg ?? DefaultTableHeaderBg;
-        var resolvedBorder = borderBrush ?? Brushes.Gray;
+        var resolvedBorder = borderBrush ?? palette.MutedText;
 
         var grid = new Grid
         {
@@ -430,7 +478,7 @@ public static class MarkdownRenderer
                     FontSize = isHeader ? 12.5 : 12
                 };
                 if (fg != null) tb.Foreground = fg;
-                AddFormattedInlines(tb, cellText);
+                AddFormattedInlines(tb, cellText, palette);
 
                 var cellBorder = new Border
                 {
@@ -459,7 +507,7 @@ public static class MarkdownRenderer
         };
     }
 
-    private static Border CreateCodeBlock(string code, IBrush? background, IBrush? borderBrush)
+    private static Border CreateCodeBlock(string code, IBrush? fg, IBrush? background, IBrush? borderBrush, MarkdownPalette palette)
     {
         var tb = new TextBlock
         {
@@ -468,6 +516,7 @@ public static class MarkdownRenderer
             FontSize = 12,
             TextWrapping = TextWrapping.NoWrap
         };
+        if (fg != null) tb.Foreground = fg;
 
         var scroller = new ScrollViewer
         {
@@ -478,8 +527,8 @@ public static class MarkdownRenderer
 
         return new Border
         {
-            Background = background ?? DefaultCodeBg,
-            BorderBrush = borderBrush ?? DefaultCodeBorder,
+            Background = background ?? palette.CodeBackground,
+            BorderBrush = borderBrush ?? palette.CodeBorder,
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(10, 8),
@@ -488,7 +537,7 @@ public static class MarkdownRenderer
         };
     }
 
-    private static TextBlock CreateParagraph(string line, IBrush? fg)
+    private static TextBlock CreateParagraph(string line, IBrush? fg, MarkdownPalette palette)
     {
         bool isRtl = IsRtlText(line);
         var tb = new TextBlock
@@ -499,11 +548,11 @@ public static class MarkdownRenderer
             TextAlignment = isRtl ? TextAlignment.Right : TextAlignment.Left
         };
         if (fg != null) tb.Foreground = fg;
-        AddFormattedInlines(tb, line);
+        AddFormattedInlines(tb, line, palette);
         return tb;
     }
 
-    private static void AddFormattedInlines(TextBlock tb, string text)
+    private static void AddFormattedInlines(TextBlock tb, string text, MarkdownPalette palette)
     {
         if (string.IsNullOrEmpty(text))
         {
@@ -534,7 +583,7 @@ public static class MarkdownRenderer
                     {
                         FontFamily = MonospaceFamily,
                         FontSize = tb.FontSize * 0.92,
-                        Foreground = Brushes.SandyBrown
+                        Foreground = palette.InlineCode
                     });
                     i = end + 1;
                     continue;
@@ -551,7 +600,7 @@ public static class MarkdownRenderer
                     tb.Inlines?.Add(new Run(snippet)
                     {
                         TextDecorations = TextDecorations.Strikethrough,
-                        Foreground = Brushes.Gray
+                        Foreground = palette.StrikeText
                     });
                     i = end + 2;
                     continue;
@@ -602,7 +651,7 @@ public static class MarkdownRenderer
                         var linkText = text.Substring(i + 1, closeBracket - i - 1);
                         tb.Inlines?.Add(new Run(linkText)
                         {
-                            Foreground = Brushes.DeepSkyBlue,
+                            Foreground = palette.Link,
                             TextDecorations = TextDecorations.Underline
                         });
                         i = closeParen + 1;

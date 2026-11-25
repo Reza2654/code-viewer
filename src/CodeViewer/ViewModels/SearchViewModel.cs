@@ -28,10 +28,13 @@ public partial class SearchViewModel : ViewModelBase
     private int _currentMatchIndex = 0;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ReplaceToggleGlyph))]
     private bool _isReplaceOpen = false;
 
     [ObservableProperty]
     private string _replaceText = string.Empty;
+
+    public string ReplaceToggleGlyph => IsReplaceOpen ? "▼" : "▶";
 
     public event Action? RequestFindNext;
     public event Action? RequestFindPrevious;

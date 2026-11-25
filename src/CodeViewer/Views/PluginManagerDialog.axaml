@@ -17,7 +17,7 @@
                  Foreground="{DynamicResource ThemeWindowForeground}"/>
       <TextBlock Text="Built-in developer utilities and dynamically imported assemblies."
                  FontSize="12"
-                 Foreground="#888888"
+                 Foreground="{DynamicResource ThemeTabItemInactiveForeground}"
                  Margin="0,4,0,0"/>
     </StackPanel>
 
@@ -37,19 +37,19 @@
                 <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Spacing="8">
                   <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="13"/>
                   <Border Background="{DynamicResource ThemeAccentBrush}" CornerRadius="3" Padding="5,1">
-                    <TextBlock Text="{Binding Category}" FontSize="10" Foreground="#FFFFFF"/>
+                    <TextBlock Text="{Binding Category}" FontSize="10" Foreground="{DynamicResource ThemeAccentForeground}"/>
                   </Border>
                 </StackPanel>
 
                 <TextBlock Grid.Row="0" Grid.Column="1"
                            Text="{Binding Version, StringFormat='v{0}'}"
                            FontSize="11"
-                           Foreground="#888888"/>
+                           Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                            Text="{Binding Description}"
                            FontSize="11"
-                           Foreground="#AAAAAA"
+                           Foreground="{DynamicResource ThemeTabItemInactiveForeground}"
                            TextWrapping="Wrap"
                            Margin="0,4,0,0"/>
               </Grid>
@@ -64,8 +64,10 @@
       <Button Grid.Column="0"
               Content="Open Plugins Folder"
               Click="OnOpenFolderClick"
-              Background="#3C3C3C"
+              Background="{DynamicResource ThemeTabItemInactiveBackground}"
               Foreground="{DynamicResource ThemeWindowForeground}"
+              BorderBrush="{DynamicResource ThemeBorderBrush}"
+              BorderThickness="1"
               Padding="12,6"/>
 
       <Button Grid.Column="2"
@@ -73,7 +75,7 @@
               Click="OnCloseClick"
               Width="80"
               Background="{DynamicResource ThemeAccentBrush}"
-              Foreground="#FFFFFF"
+              Foreground="{DynamicResource ThemeAccentForeground}"
               HorizontalContentAlignment="Center"
               Padding="12,6"/>
     </Grid>

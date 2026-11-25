@@ -9,10 +9,10 @@
     <RootNamespace>CodeViewer</RootNamespace>
     <AssemblyName>CodeViewer</AssemblyName>
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
-    <Version>1.2.0-rc.1</Version>
-    <AssemblyVersion>1.2.0.100</AssemblyVersion>
-    <FileVersion>1.2.0.100</FileVersion>
-    <InformationalVersion>1.2.0-rc.1</InformationalVersion>
+    <Version>1.2.0-rc.2</Version>
+    <AssemblyVersion>1.2.0.200</AssemblyVersion>
+    <FileVersion>1.2.0.200</FileVersion>
+    <InformationalVersion>1.2.0-rc.2</InformationalVersion>
 
     <!-- Startup & Performance Optimizations -->
     <PublishReadyToRun>true</PublishReadyToRun>

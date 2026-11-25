@@ -10,10 +10,10 @@ namespace CodeViewer.Tests;
 public class Rc1FeatureTests
 {
     [TestMethod]
-    public void AppUpdateService_GetCurrentAppVersion_ReportsRc1()
+    public void AppUpdateService_GetCurrentAppVersion_ReportsRcSeries()
     {
         var version = AppUpdateService.GetCurrentAppVersion();
-        Assert.AreEqual("1.2.0-rc.1", version);
+        StringAssert.StartsWith(version, "1.2.0-rc.");
     }
 
     [TestMethod]

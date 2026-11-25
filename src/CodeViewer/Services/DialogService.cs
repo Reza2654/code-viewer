@@ -110,17 +110,7 @@ public class DialogService : IDialogService
         if (_ownerWindow == null) return ConfirmResult.Cancel;
 
         var tcs = new TaskCompletionSource<ConfirmResult>();
-
-        var dialog = new Window
-        {
-            Title = "Unsaved Changes",
-            Width = 420,
-            Height = 170,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            CanResize = false,
-            Background = new SolidColorBrush(Color.Parse("#1E1E1E")),
-            ShowInTaskbar = false
-        };
+        var dialog = CreateThemedModalWindow("Unsaved Changes", 420, 170);
 
         var panel = new StackPanel
         {
@@ -128,13 +118,7 @@ public class DialogService : IDialogService
             Spacing = 16
         };
 
-        var message = new TextBlock
-        {
-            Text = $"Do you want to save changes to \"{documentTitle}\"?",
-            Foreground = Brushes.White,
-            FontSize = 14,
-            TextWrapping = TextWrapping.Wrap
-        };
+        var message = CreateThemedBodyText($"Do you want to save changes to \"{documentTitle}\"?", 14);
 
         var buttonsPanel = new StackPanel
         {
@@ -143,34 +127,13 @@ public class DialogService : IDialogService
             Spacing = 10
         };
 
-        var btnSave = new Button
-        {
-            Content = "Save",
-            Width = 80,
-            Background = new SolidColorBrush(Color.Parse("#007ACC")),
-            Foreground = Brushes.White,
-            HorizontalContentAlignment = HorizontalAlignment.Center
-        };
+        var btnSave = CreateModalButton("Save", 80, isPrimary: true);
         btnSave.Click += (_, _) => { tcs.TrySetResult(ConfirmResult.Save); dialog.Close(); };
 
-        var btnDontSave = new Button
-        {
-            Content = "Don't Save",
-            Width = 90,
-            Background = new SolidColorBrush(Color.Parse("#3C3C3C")),
-            Foreground = Brushes.White,
-            HorizontalContentAlignment = HorizontalAlignment.Center
-        };
+        var btnDontSave = CreateModalButton("Don't Save", 90);
         btnDontSave.Click += (_, _) => { tcs.TrySetResult(ConfirmResult.DontSave); dialog.Close(); };
 
-        var btnCancel = new Button
-        {
-            Content = "Cancel",
-            Width = 80,
-            Background = new SolidColorBrush(Color.Parse("#2D2D2D")),
-            Foreground = Brushes.White,
-            HorizontalContentAlignment = HorizontalAlignment.Center
-        };
+        var btnCancel = CreateModalButton("Cancel", 80);
         btnCancel.Click += (_, _) => { tcs.TrySetResult(ConfirmResult.Cancel); dialog.Close(); };
 
         buttonsPanel.Children.Add(btnSave);
@@ -191,16 +154,7 @@ public class DialogService : IDialogService
     {
         if (_ownerWindow == null) return;
 
-        var dialog = new Window
-        {
-            Title = title,
-            Width = 420,
-            Height = 180,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            CanResize = false,
-            Background = new SolidColorBrush(Color.Parse("#1E1E1E")),
-            ShowInTaskbar = false
-        };
+        var dialog = CreateThemedModalWindow(title, 420, 180);
 
         var panel = new StackPanel
         {
@@ -208,23 +162,10 @@ public class DialogService : IDialogService
             Spacing = 16
         };
 
-        var textBlock = new TextBlock
-        {
-            Text = message,
-            Foreground = Brushes.White,
-            FontSize = 13,
-            TextWrapping = TextWrapping.Wrap
-        };
+        var textBlock = CreateThemedBodyText(message, 13);
 
-        var btnOk = new Button
-        {
-            Content = "OK",
-            Width = 80,
-            HorizontalAlignment = HorizontalAlignment.Right,
-            Background = new SolidColorBrush(Color.Parse("#007ACC")),
-            Foreground = Brushes.White,
-            HorizontalContentAlignment = HorizontalAlignment.Center
-        };
+        var btnOk = CreateModalButton("OK", 80, isPrimary: true);
+        btnOk.HorizontalAlignment = HorizontalAlignment.Right;
         btnOk.Click += (_, _) => dialog.Close();
 
         panel.Children.Add(textBlock);
@@ -239,16 +180,7 @@ public class DialogService : IDialogService
         if (_ownerWindow == null) return false;
 
         var tcs = new TaskCompletionSource<bool>();
-        var dialog = new Window
-        {
-            Title = title,
-            Width = 440,
-            Height = 190,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            CanResize = false,
-            Background = new SolidColorBrush(Color.Parse("#1E1E1E")),
-            ShowInTaskbar = false
-        };
+        var dialog = CreateThemedModalWindow(title, 440, 190);
 
         var panel = new StackPanel
         {
@@ -256,13 +188,7 @@ public class DialogService : IDialogService
             Spacing = 16
         };
 
-        var textBlock = new TextBlock
-        {
-            Text = message,
-            Foreground = Brushes.White,
-            FontSize = 13,
-            TextWrapping = TextWrapping.Wrap
-        };
+        var textBlock = CreateThemedBodyText(message, 13);
 
         var buttonsPanel = new StackPanel
         {
@@ -271,24 +197,10 @@ public class DialogService : IDialogService
             Spacing = 10
         };
 
-        var btnConfirm = new Button
-        {
-            Content = confirmText,
-            Width = 80,
-            Background = new SolidColorBrush(Color.Parse("#007ACC")),
-            Foreground = Brushes.White,
-            HorizontalContentAlignment = HorizontalAlignment.Center
-        };
+        var btnConfirm = CreateModalButton(confirmText, 80, isPrimary: true);
         btnConfirm.Click += (_, _) => { tcs.TrySetResult(true); dialog.Close(); };
 
-        var btnCancel = new Button
-        {
-            Content = cancelText,
-            Width = 80,
-            Background = new SolidColorBrush(Color.Parse("#2D2D2D")),
-            Foreground = Brushes.White,
-            HorizontalContentAlignment = HorizontalAlignment.Center
-        };
+        var btnCancel = CreateModalButton(cancelText, 80);
         btnCancel.Click += (_, _) => { tcs.TrySetResult(false); dialog.Close(); };
 
         buttonsPanel.Children.Add(btnConfirm);
@@ -309,16 +221,7 @@ public class DialogService : IDialogService
         if (_ownerWindow == null) return null;
 
         var tcs = new TaskCompletionSource<string?>();
-        var dialog = new Window
-        {
-            Title = title,
-            Width = 440,
-            Height = 200,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            CanResize = false,
-            Background = new SolidColorBrush(Color.Parse("#1E1E1E")),
-            ShowInTaskbar = false
-        };
+        var dialog = CreateThemedModalWindow(title, 440, 200);
 
         var panel = new StackPanel
         {
@@ -326,20 +229,18 @@ public class DialogService : IDialogService
             Spacing = 12
         };
 
-        var textBlock = new TextBlock
-        {
-            Text = message,
-            Foreground = Brushes.White,
-            FontSize = 13,
-            TextWrapping = TextWrapping.Wrap
-        };
+        var textBlock = CreateThemedBodyText(message, 13);
 
         var textBox = new TextBox
         {
             Text = defaultValue,
             Watermark = watermark,
+            FontFamily = FontHelper.UiFontFamily,
             FontSize = 13,
             CornerRadius = new CornerRadius(4),
+            Background = ResolveThemeBrush("ThemeEditorBackground", "#1E1E1E"),
+            Foreground = ResolveThemeBrush("ThemeWindowForeground", "#D4D4D4"),
+            BorderBrush = ResolveThemeBrush("ThemeBorderBrush", "#454545"),
             Margin = new Thickness(0, 4, 0, 4)
         };
 
@@ -350,14 +251,7 @@ public class DialogService : IDialogService
             Spacing = 10
         };
 
-        var btnOk = new Button
-        {
-            Content = "OK",
-            Width = 80,
-            Background = new SolidColorBrush(Color.Parse("#007ACC")),
-            Foreground = Brushes.White,
-            HorizontalContentAlignment = HorizontalAlignment.Center
-        };
+        var btnOk = CreateModalButton("OK", 80, isPrimary: true);
 
         void Confirm()
         {
@@ -373,14 +267,7 @@ public class DialogService : IDialogService
 
         btnOk.Click += (_, _) => Confirm();
 
-        var btnCancel = new Button
-        {
-            Content = "Cancel",
-            Width = 80,
-            Background = new SolidColorBrush(Color.Parse("#2D2D2D")),
-            Foreground = Brushes.White,
-            HorizontalContentAlignment = HorizontalAlignment.Center
-        };
+        var btnCancel = CreateModalButton("Cancel", 80);
         btnCancel.Click += (_, _) => Cancel();
 
         textBox.KeyDown += (_, e) =>
@@ -428,6 +315,70 @@ public class DialogService : IDialogService
         var vm = new ViewModels.UpdateViewModel(updateInfo, updateService);
         var dialog = new Views.UpdateDialog(vm);
         await dialog.ShowDialog(_ownerWindow);
+    }
+
+    private static IBrush ResolveThemeBrush(string key, string fallbackHex)
+    {
+        if (Application.Current?.Resources.TryGetResource(key, Application.Current.ActualThemeVariant, out var res) == true
+            && res is IBrush brush)
+        {
+            return brush;
+        }
+
+        return new SolidColorBrush(Color.Parse(fallbackHex));
+    }
+
+    private static Window CreateThemedModalWindow(string title, double width, double height)
+    {
+        return new Window
+        {
+            Title = title,
+            Width = width,
+            Height = height,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            Background = ResolveThemeBrush("ThemeWindowBackground", "#1E1E1E"),
+            Foreground = ResolveThemeBrush("ThemeWindowForeground", "#D4D4D4"),
+            FontFamily = FontHelper.UiFontFamily,
+            ShowInTaskbar = false
+        };
+    }
+
+    private static TextBlock CreateThemedBodyText(string text, double fontSize = 13)
+    {
+        return new TextBlock
+        {
+            Text = text,
+            Foreground = ResolveThemeBrush("ThemeWindowForeground", "#D4D4D4"),
+            FontFamily = FontHelper.UiFontFamily,
+            FontSize = fontSize,
+            TextWrapping = TextWrapping.Wrap
+        };
+    }
+
+    private static Button CreateModalButton(string content, double width, bool isPrimary = false)
+    {
+        var button = new Button
+        {
+            Content = content,
+            Width = width,
+            FontFamily = FontHelper.UiFontFamily,
+            HorizontalContentAlignment = HorizontalAlignment.Center,
+            Background = isPrimary
+                ? ResolveThemeBrush("ThemeAccentBrush", "#007ACC")
+                : ResolveThemeBrush("ThemeTabItemInactiveBackground", "#2D2D2D"),
+            Foreground = isPrimary
+                ? ResolveThemeBrush("ThemeAccentForeground", "#FFFFFF")
+                : ResolveThemeBrush("ThemeWindowForeground", "#D4D4D4")
+        };
+
+        if (!isPrimary)
+        {
+            button.BorderBrush = ResolveThemeBrush("ThemeBorderBrush", "#454545");
+            button.BorderThickness = new Thickness(1);
+        }
+
+        return button;
     }
 }
 

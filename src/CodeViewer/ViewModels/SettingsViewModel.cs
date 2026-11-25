@@ -201,6 +201,15 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private IBrush _variableBrush = new SolidColorBrush(Colors.LightSkyBlue);
 
+    [ObservableProperty]
+    private IBrush _previewEditorBackgroundBrush = new SolidColorBrush(Color.Parse("#1E1E1E"));
+
+    [ObservableProperty]
+    private IBrush _previewEditorForegroundBrush = new SolidColorBrush(Color.Parse("#D4D4D4"));
+
+    [ObservableProperty]
+    private IBrush _previewBorderBrush = new SolidColorBrush(Color.Parse("#333333"));
+
     // Theme Gallery
     [ObservableProperty]
     private string _themeFilterMode = "All";
@@ -431,6 +440,7 @@ public partial class SettingsViewModel : ViewModelBase
                 CustomCodeMethod = CustomCodeMethod,
                 CustomCodePreprocessor = CustomCodePreprocessor,
                 CustomCodePunctuation = CustomCodePunctuation,
+                CustomCodeVariable = CustomCodeVariable,
             };
             SelectedTheme = _themeService.ResolveEffectiveTheme(temp);
             UpdateSyntaxBrushes();
@@ -552,7 +562,10 @@ public partial class SettingsViewModel : ViewModelBase
         MethodBrush = TryParseBrush(CustomCodeMethod, theme?.CodeMethod ?? "#DCDCAA");
         PreprocessorBrush = TryParseBrush(CustomCodePreprocessor, theme?.CodePreprocessor ?? "#9B9B9B");
         PunctuationBrush = TryParseBrush(CustomCodePunctuation, theme?.CodePunctuation ?? "#D4D4D4");
-        VariableBrush = TryParseBrush(CustomCodeVariable, theme?.CodeVariable ?? (theme?.IsDark ?? true ? "#9CDCFE" : "#001080"));
+        VariableBrush = TryParseBrush(CustomCodeVariable, theme?.GetEffectiveCodeVariable() ?? (theme?.IsDark ?? true ? "#9CDCFE" : "#001080"));
+        PreviewEditorBackgroundBrush = TryParseBrush(null, theme?.EditorBackground ?? "#1E1E1E");
+        PreviewEditorForegroundBrush = TryParseBrush(null, theme?.EditorForeground ?? "#D4D4D4");
+        PreviewBorderBrush = TryParseBrush(null, theme?.BorderColor ?? "#333333");
     }
 
     private void UpdateFilteredThemes()
@@ -856,8 +869,22 @@ public partial class SettingsViewModel : ViewModelBase
 
         StartupRegistrationService.SetRunOnStartup(RunInBackgroundOnStartup);
 
-        await _settingsService.SaveAsync(settings);
-        _themeService.ApplyTheme(settings);
+        var themeAppliedByListener = false;
+        void OnThemeApplied(ColorTheme _) => themeAppliedByListener = true;
+        _themeService.ThemeChanged += OnThemeApplied;
+        try
+        {
+            await _settingsService.SaveAsync(settings);
+        }
+        finally
+        {
+            _themeService.ThemeChanged -= OnThemeApplied;
+        }
+
+        if (!themeAppliedByListener)
+        {
+            _themeService.ApplyTheme(settings);
+        }
 
         IsSaved = true;
         RequestClose?.Invoke();
@@ -944,23 +971,31 @@ public partial class SettingsViewModel : ViewModelBase
         RunInBackgroundOnStartup = defaults.RunInBackgroundOnStartup;
         MinimizeToTrayOnClose = defaults.MinimizeToTrayOnClose;
 
-        ThemeMode = defaults.ThemeMode;
-        ContrastMode = defaults.ContrastMode;
+        _isUpdatingTheme = true;
+        try
+        {
+            ThemeMode = defaults.ThemeMode;
+            ContrastMode = defaults.ContrastMode;
 
-        SelectedLightPreset = AvailableLightThemes.FirstOrDefault(t => string.Equals(t.Id, defaults.LightPresetId, StringComparison.OrdinalIgnoreCase))
-                              ?? AvailableLightThemes.FirstOrDefault()!;
-        LightBackgroundHex = defaults.LightBackgroundHex;
-        LightForegroundHex = defaults.LightForegroundHex;
-        LightAccentHex = defaults.LightAccentHex;
+            SelectedLightPreset = AvailableLightThemes.FirstOrDefault(t => string.Equals(t.Id, defaults.LightPresetId, StringComparison.OrdinalIgnoreCase))
+                                  ?? AvailableLightThemes.FirstOrDefault()!;
+            LightBackgroundHex = defaults.LightBackgroundHex;
+            LightForegroundHex = defaults.LightForegroundHex;
+            LightAccentHex = defaults.LightAccentHex;
 
-        SelectedDarkPreset = AvailableDarkThemes.FirstOrDefault(t => string.Equals(t.Id, defaults.DarkPresetId, StringComparison.OrdinalIgnoreCase))
-                             ?? AvailableDarkThemes.FirstOrDefault()!;
-        DarkBackgroundHex = defaults.DarkBackgroundHex;
-        DarkForegroundHex = defaults.DarkForegroundHex;
-        DarkAccentHex = defaults.DarkAccentHex;
+            SelectedDarkPreset = AvailableDarkThemes.FirstOrDefault(t => string.Equals(t.Id, defaults.DarkPresetId, StringComparison.OrdinalIgnoreCase))
+                                 ?? AvailableDarkThemes.FirstOrDefault()!;
+            DarkBackgroundHex = defaults.DarkBackgroundHex;
+            DarkForegroundHex = defaults.DarkForegroundHex;
+            DarkAccentHex = defaults.DarkAccentHex;
 
-        var defaultTheme = AvailableThemes.FirstOrDefault(t => t.Id == defaults.ThemeId) ?? AvailableThemes[0];
-        SelectedTheme = defaultTheme;
+            var defaultTheme = AvailableThemes.FirstOrDefault(t => t.Id == defaults.ThemeId) ?? AvailableThemes[0];
+            SelectedTheme = defaultTheme;
+        }
+        finally
+        {
+            _isUpdatingTheme = false;
+        }
         UpdateEffectivePreviewTheme();
     }
 }

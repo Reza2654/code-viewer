@@ -423,6 +423,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             OnPropertyChanged(nameof(HasDocuments));
             OnPropertyChanged(nameof(HasNoDocuments));
+            if (IsSplitViewActive && (Documents.Count == 0 || (SecondaryDocument != null && !Documents.Contains(SecondaryDocument))))
+            {
+                CloseSplitView();
+            }
             UpdateBreadcrumbs();
         };
 
@@ -895,15 +899,17 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     public async Task ShowTemporaryStatusAsync(string message, int durationMs = 2500)
     {
-        _statusCts?.Cancel();
-        _statusCts = new CancellationTokenSource();
-        var token = _statusCts.Token;
+        var newCts = new CancellationTokenSource();
+        var oldCts = Interlocked.Exchange(ref _statusCts, newCts);
+        oldCts?.Cancel();
+        oldCts?.Dispose();
+        var token = newCts.Token;
 
         StatusMessage = message;
         try
         {
             await Task.Delay(durationMs, token);
-            if (!token.IsCancellationRequested)
+            if (!token.IsCancellationRequested && ReferenceEquals(_statusCts, newCts))
             {
                 StatusMessage = null;
             }
@@ -912,7 +918,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         {
             // Ignored
         }
+        catch (ObjectDisposedException)
+        {
+            // Ignored when replaced or shut down
+        }
     }
+
+    public Task<bool> ResolveModifiedDocumentBeforeCloseAsync(DocumentViewModel doc) =>
+        TabManager.ResolveModifiedDocumentBeforeCloseAsync(doc);
 
     [RelayCommand]
     public Task OpenRecentFileAsync(string? filePath) => TabManager.OpenRecentFileAsync(filePath);

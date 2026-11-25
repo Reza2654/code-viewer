@@ -840,7 +840,7 @@
                                    FontWeight="Bold"
                                    HorizontalAlignment="Center"
                                    Foreground="{DynamicResource ThemeWindowForeground}"/>
-                        <TextBlock Text="Fast, lightweight modern code viewer &amp; editor — v1.2.0-rc.1"
+                        <TextBlock Text="Fast, lightweight modern code viewer &amp; editor — v1.2.0-rc.2"
                                    FontSize="13"
                                    Opacity="0.75"
                                    HorizontalAlignment="Center"
@@ -1311,7 +1311,7 @@
                         </Grid>
                         <TextBlock Grid.Row="1"
                                    Text="{Binding LineContent}"
-                                   FontFamily="Cascadia Code, Consolas, Segoe UI, monospace"
+                                   FontFamily="{DynamicResource CodeFontFamily}"
                                    FontSize="11"
                                    Foreground="{DynamicResource ThemeEditorForeground}"
                                    Margin="16,2,0,0"
@@ -1382,7 +1382,7 @@
                        Grid.Row="1"
                        Text="{Binding OutputText}"
                        IsReadOnly="True"
-                       FontFamily="Cascadia Code, Consolas, Segoe UI, Tahoma, Vazirmatn, Arial, monospace"
+                       FontFamily="{DynamicResource CodeFontFamily}"
                        FontSize="12"
                        Background="{DynamicResource ThemeEditorBackground}"
                        Foreground="{DynamicResource ThemeEditorForeground}"
@@ -1405,7 +1405,7 @@
                            Text="{Binding CurrentInput, Mode=TwoWay}"
                            Watermark="{Binding InputPlaceholder}"
                            FontSize="12"
-                           FontFamily="Cascadia Code, Consolas, Segoe UI, monospace"
+                           FontFamily="{DynamicResource CodeFontFamily}"
                            KeyDown="OnRunnerInputKeyDown"
                            CornerRadius="4"
                            Padding="6,3"/>

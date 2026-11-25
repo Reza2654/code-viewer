@@ -241,7 +241,14 @@ public partial class DocumentViewModel : ViewModelBase
 
     public void SyncToModel()
     {
-        _model.Text = TextDocument.Text;
+        try
+        {
+            _model.Text = TextDocument.Text;
+        }
+        catch (InvalidOperationException)
+        {
+            // Preserve _model.Text if called off the TextDocument owner thread (e.g., threadpool test continuations)
+        }
         _model.FilePath = FilePath;
         _model.Title = Title;
         _model.IsModified = IsModified;

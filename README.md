@@ -79,6 +79,10 @@
   - **Animated Status Message Pill**: Status notifications appear in a centered pill badge with smooth entrance animation and hover states on all status controls.
   - **Modern Windows 11 Glass Chrome**: Native support for Mica and Acrylic blur window transparency hints.
   - **Theme Gallery & Interactive Cards**: Fluid hover elevation, scale (`1.03x`), and accent border glow on theme cards, with an `EnableAnimations` preference toggle in Settings.
+- 🚀 **Release Candidate 2 (v1.2.0-rc.2)**:
+  - **WCAG Theme & Light Mode Contrast Fixes**: Fixed pale light-theme variable colors (`#9CDCFE` fallback), balanced all 20+ built-in themes for WCAG contrast, added adaptive `ThemeAccentForeground`, and eliminated hardcoded dark colors in Settings, Updater, Plugins, and modal dialogs.
+  - **Markdown & Overlay Fixes**: Adapted `MarkdownRenderer` inline links, code snippets, and checked task badges for light themes, fixed Find/Replace chevron & Match Case bindings, and wired `Esc` closing for Command Palette and Diff View.
+  - **Editor, Tab & Exit Flow Fixes**: Preserved user font size preferences on new/opened tabs, kept saved tabs in `session.json` on window exit, ensured `MinimizeToTrayOnClose` works cleanly with zero modified docs, and synchronized Split View theming & settings.
 - 🚀 **Release Candidate 1 (v1.2.0-rc.1)**:
   - **Hardened Architecture & Clean Coordinators**: High cohesion across `TabManager`, `WorkspaceCoordinator`, `CommandPaletteCoordinator`, `BuiltInThemes`, `WindowKeyboardRouter`, and `EditorSearchCoordinator`.
   - **Git Status Indicators in Explorer (`Ctrl+Shift+G`)**: Real-time non-blocking status badges (`M`, `U`, `A`, `D`, `R`, `!`) with folder bubbling and fast filesystem pre-checks.
@@ -104,7 +108,7 @@
   - **Unblocked Standard Native Mouse Wheel Scrolling**: Removed custom pointer wheel tunneling and interception; AvaloniaEdit's high-performance native `ScrollViewer` now handles all mouse wheel operations directly.
   - **Flawless Multi-Wheel Support**: Standard vertical wheel scrolling, `Shift + Wheel` horizontal panning, tilt wheels, high-precision wheels, and precision touchpad scrolling all function natively and effortlessly.
   - **Clean & Streamlined Settings UI**: Removed unused scroll toggles and re-aligned Editor Preferences for a cleaner, balanced layout.
-- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-rc.1-Setup.exe`) and portable standalone `.zip` archive.
+- 📦 **Professional Installer & Portable Package**: One-click Inno Setup installer (`CodeViewer-v1.2.0-rc.2-Setup.exe`) and portable standalone `.zip` archive.
 - 🔓 **100% Free, Local & Open Source**: No accounts, no telemetry, no network calls, fully MIT-licensed.
 
 ---
@@ -160,7 +164,7 @@
 ## Installation & Packaging
 
 ### Option 1: Installer (Recommended)
-Download and run `CodeViewer-v1.2.0-rc.1-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
+Download and run `CodeViewer-v1.2.0-rc.2-Setup.exe` from the [Releases](https://github.com/Reza2654/code-viewer/releases) page.
 - Installs Code Viewer to your system.
 - Creates Start Menu and Desktop shortcuts.
 - Optionally installs and registers Google Sans Code & Roboto Mono fonts system-wide.
@@ -168,7 +172,7 @@ Download and run `CodeViewer-v1.2.0-rc.1-Setup.exe` from the [Releases](https://
 - Automatically registers the modern Windows 11 right-click context menu.
 
 ### Option 2: Portable ZIP
-Download `CodeViewer-v1.2.0-rc.1-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
+Download `CodeViewer-v1.2.0-rc.2-win-x64-portable.zip`, extract anywhere, and run `CodeViewer.exe`.
 
 To enable the modern Windows 11 context menu for portable use, right-click `scripts\register-windows11-context-menu.ps1` and select **Run with PowerShell**.
 
@@ -221,8 +225,8 @@ To generate both the portable ZIP and the Inno Setup executable installer:
 powershell -ExecutionPolicy Bypass -File .\scripts\package-release.ps1
 ```
 Output artifacts are saved in `dist/`:
-- `CodeViewer-v1.2.0-rc.1-Setup.exe`
-- `CodeViewer-v1.2.0-rc.1-win-x64-portable.zip`
+- `CodeViewer-v1.2.0-rc.2-Setup.exe`
+- `CodeViewer-v1.2.0-rc.2-win-x64-portable.zip`
 - `checksums.sha256`
 
 ---

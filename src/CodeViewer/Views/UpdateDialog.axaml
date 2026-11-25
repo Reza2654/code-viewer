@@ -7,48 +7,49 @@
         Width="540" Height="480"
         WindowStartupLocation="CenterOwner"
         CanResize="false"
-        Background="#1E1E1E"
+        Background="{DynamicResource ThemeWindowBackground}"
+        Foreground="{DynamicResource ThemeWindowForeground}"
         ShowInTaskbar="false">
 
   <Grid Margin="24" RowDefinitions="Auto,*,Auto">
     <!-- Header Section -->
     <StackPanel Grid.Row="0" Spacing="8">
       <StackPanel Orientation="Horizontal" Spacing="12">
-        <Border Width="40" Height="40" CornerRadius="8" Background="#007ACC" VerticalAlignment="Center">
-          <TextBlock Text="🚀" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <Border Width="40" Height="40" CornerRadius="8" Background="{DynamicResource ThemeAccentBrush}" VerticalAlignment="Center">
+          <TextBlock Text="🚀" FontSize="20" Foreground="{DynamicResource ThemeAccentForeground}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Border>
         <StackPanel VerticalAlignment="Center" Spacing="2">
           <TextBlock Text="A new update is available!"
                      FontSize="17"
                      FontWeight="Bold"
-                     Foreground="#FFFFFF"/>
+                     Foreground="{DynamicResource ThemeWindowForeground}"/>
           <TextBlock Text="{Binding ReleaseTitle}"
                      FontSize="12"
-                     Foreground="#AAAAAA"/>
+                     Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
         </StackPanel>
       </StackPanel>
 
       <!-- Version Badges -->
       <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-        <Border Background="#252526" BorderBrush="#333333" BorderThickness="1" CornerRadius="4" Padding="8,4">
+        <Border Background="{DynamicResource ThemeTabBarBackground}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="8,4">
           <StackPanel Orientation="Horizontal" Spacing="4">
-            <TextBlock Text="Installed:" FontSize="11" Foreground="#888888"/>
-            <TextBlock Text="{Binding CurrentVersion}" FontSize="11" FontWeight="SemiBold" Foreground="#CCCCCC"/>
+            <TextBlock Text="Installed:" FontSize="11" Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
+            <TextBlock Text="{Binding CurrentVersion}" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource ThemeWindowForeground}"/>
           </StackPanel>
         </Border>
 
-        <TextBlock Text="➜" FontSize="12" Foreground="#888888" VerticalAlignment="Center"/>
+        <TextBlock Text="➜" FontSize="12" Foreground="{DynamicResource ThemeTabItemInactiveForeground}" VerticalAlignment="Center"/>
 
-        <Border Background="#1F4B2C" BorderBrush="#2EA043" BorderThickness="1" CornerRadius="4" Padding="8,4">
+        <Border Background="#1B7F37" BorderBrush="#2EA043" BorderThickness="1" CornerRadius="4" Padding="8,4">
           <StackPanel Orientation="Horizontal" Spacing="4">
-            <TextBlock Text="Latest:" FontSize="11" Foreground="#85E89D"/>
+            <TextBlock Text="Latest:" FontSize="11" Foreground="#DCFCE7"/>
             <TextBlock Text="{Binding LatestVersion}" FontSize="11" FontWeight="Bold" Foreground="#FFFFFF"/>
           </StackPanel>
         </Border>
 
-        <Border Background="#252526" BorderBrush="#333333" BorderThickness="1" CornerRadius="4" Padding="8,4"
+        <Border Background="{DynamicResource ThemeTabBarBackground}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" CornerRadius="4" Padding="8,4"
                 IsVisible="{Binding SizeFormatted, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-          <TextBlock Text="{Binding SizeFormatted}" FontSize="11" Foreground="#AAAAAA"/>
+          <TextBlock Text="{Binding SizeFormatted}" FontSize="11" Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
         </Border>
       </StackPanel>
     </StackPanel>
@@ -56,14 +57,14 @@
     <!-- Release Notes ScrollArea -->
     <Border Grid.Row="1"
             Margin="0,16"
-            Background="#252526"
-            BorderBrush="#333333"
+            Background="{DynamicResource ThemeEditorBackground}"
+            BorderBrush="{DynamicResource ThemeBorderBrush}"
             BorderThickness="1"
             CornerRadius="6"
             Padding="14">
       <ScrollViewer VerticalScrollBarVisibility="Auto">
         <TextBlock Text="{Binding ReleaseNotes}"
-                   Foreground="#DDDDDD"
+                   Foreground="{DynamicResource ThemeEditorForeground}"
                    FontSize="12"
                    TextWrapping="Wrap"
                    FontFamily="{StaticResource UiFontFamily}"/>
@@ -74,13 +75,13 @@
     <StackPanel Grid.Row="2" Spacing="10">
       <!-- Download Progress Bar -->
       <StackPanel Spacing="4" IsVisible="{Binding IsDownloading}">
-        <ProgressBar Minimum="0" Maximum="100" Value="{Binding DownloadProgress}" Height="6" CornerRadius="3" Foreground="#007ACC" Background="#333333"/>
-        <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="#888888" HorizontalAlignment="Right"/>
+        <ProgressBar Minimum="0" Maximum="100" Value="{Binding DownloadProgress}" Height="6" CornerRadius="3" Foreground="{DynamicResource ThemeAccentBrush}" Background="{DynamicResource ThemeTabItemInactiveBackground}"/>
+        <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="{DynamicResource ThemeTabItemInactiveForeground}" HorizontalAlignment="Right"/>
       </StackPanel>
 
       <!-- Error indicator -->
       <TextBlock Text="{Binding ErrorMessage}"
-                 Foreground="#F85149"
+                 Foreground="#E53935"
                  FontSize="11"
                  TextWrapping="Wrap"
                  IsVisible="{Binding HasError}"/>
@@ -91,7 +92,7 @@
                 Content="View on GitHub"
                 Command="{Binding OpenReleasePageCommand}"
                 Background="Transparent"
-                Foreground="#58A6FF"
+                Foreground="{DynamicResource ThemeAccentBrush}"
                 BorderThickness="0"
                 HorizontalAlignment="Left"
                 Cursor="Hand"
@@ -103,8 +104,10 @@
                 Width="80"
                 Margin="0,0,8,0"
                 HorizontalContentAlignment="Center"
-                Background="#2D2D2D"
-                Foreground="#CCCCCC"
+                Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                Foreground="{DynamicResource ThemeWindowForeground}"
+                BorderBrush="{DynamicResource ThemeBorderBrush}"
+                BorderThickness="1"
                 CornerRadius="4"/>
 
         <Button Grid.Column="2"
@@ -113,8 +116,8 @@
                 IsEnabled="{Binding !IsDownloading}"
                 MinWidth="110"
                 HorizontalContentAlignment="Center"
-                Background="#007ACC"
-                Foreground="#FFFFFF"
+                Background="{DynamicResource ThemeAccentBrush}"
+                Foreground="{DynamicResource ThemeAccentForeground}"
                 FontWeight="SemiBold"
                 CornerRadius="4"/>
       </Grid>

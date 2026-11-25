@@ -273,6 +273,7 @@ public class ThemeService : IThemeService
             SetColorResource("ThemeStatusBarBackground", theme.StatusBarBackground);
             SetColorResource("ThemeStatusBarForeground", theme.StatusBarForeground);
             SetColorResource("ThemeAccentBrush", theme.AccentColor);
+            SetColorResource("ThemeAccentForeground", GetContrastingForegroundHex(theme.AccentColor));
             SetColorResource("ThemeBorderBrush", theme.BorderColor);
 
             // Code Syntax Highlight Resources
@@ -284,7 +285,7 @@ public class ThemeService : IThemeService
             SetColorResource("ThemeCodeMethod", theme.CodeMethod);
             SetColorResource("ThemeCodePreprocessor", theme.CodePreprocessor);
             SetColorResource("ThemeCodePunctuation", theme.CodePunctuation);
-            SetColorResource("ThemeCodeVariable", theme.CodeVariable);
+            SetColorResource("ThemeCodeVariable", theme.GetEffectiveCodeVariable());
         }
 
         ApplyThemeToAllHighlightings(theme);
@@ -394,6 +395,7 @@ public class ThemeService : IThemeService
         }
 
         var effective = baseTheme.Clone();
+        effective.CodeVariable = effective.GetEffectiveCodeVariable();
 
         if (!isDark)
         {
@@ -439,6 +441,7 @@ public class ThemeService : IThemeService
                 {
                     effective.AccentColor = acc;
                     effective.StatusBarBackground = acc;
+                    effective.StatusBarForeground = GetContrastingForegroundHex(acc);
                 }
             }
 
@@ -448,9 +451,15 @@ public class ThemeService : IThemeService
                 effective.EditorBackground = "#FFFFFF";
                 effective.Foreground = "#000000";
                 effective.EditorForeground = "#000000";
+                effective.MenuBackground = "#F0F0F0";
+                effective.MenuForeground = "#000000";
+                effective.TabBarBackground = "#EAEAEA";
+                effective.TabItemActiveBackground = "#FFFFFF";
+                effective.TabItemInactiveBackground = "#DCDCDC";
+                effective.TabItemActiveForeground = "#000000";
+                effective.TabItemInactiveForeground = "#222222";
                 effective.BorderColor = "#000000";
                 effective.LineNumbersForeground = "#000000";
-                effective.TabItemActiveForeground = "#000000";
                 effective.SelectionBackground = "#99CCFF";
             }
         }
@@ -498,6 +507,7 @@ public class ThemeService : IThemeService
                 {
                     effective.AccentColor = acc;
                     effective.StatusBarBackground = acc;
+                    effective.StatusBarForeground = GetContrastingForegroundHex(acc);
                 }
             }
 
@@ -507,9 +517,15 @@ public class ThemeService : IThemeService
                 effective.EditorBackground = "#000000";
                 effective.Foreground = "#FFFFFF";
                 effective.EditorForeground = "#FFFFFF";
-                effective.BorderColor = "#555555";
-                effective.LineNumbersForeground = "#FFFFFF";
+                effective.MenuBackground = "#0A0A0A";
+                effective.MenuForeground = "#FFFFFF";
+                effective.TabBarBackground = "#0A0A0A";
+                effective.TabItemActiveBackground = "#000000";
+                effective.TabItemInactiveBackground = "#161616";
                 effective.TabItemActiveForeground = "#FFFFFF";
+                effective.TabItemInactiveForeground = "#DCDCDC";
+                effective.BorderColor = "#888888";
+                effective.LineNumbersForeground = "#FFFFFF";
                 effective.SelectionBackground = "#1B4F8B";
             }
         }
@@ -566,6 +582,41 @@ public class ThemeService : IThemeService
         return "#" + clean.ToUpperInvariant();
     }
 
+    /// <summary>
+    /// Selects a WCAG-compliant foreground color (#FFFFFF or #101010) against a solid background hex.
+    /// </summary>
+    public static string GetContrastingForegroundHex(string? backgroundHex)
+    {
+        if (string.IsNullOrWhiteSpace(backgroundHex) || !Color.TryParse(backgroundHex, out var bg))
+        {
+            return "#FFFFFF";
+        }
+
+        var bgLum = CalculateRelativeLuminance(bg);
+        var whiteContrast = (1.0 + 0.05) / (bgLum + 0.05);
+        if (whiteContrast >= 4.5)
+        {
+            return "#FFFFFF";
+        }
+
+        var darkLum = CalculateRelativeLuminance(Color.Parse("#101010"));
+        var darkContrast = (Math.Max(bgLum, darkLum) + 0.05) / (Math.Min(bgLum, darkLum) + 0.05);
+        return darkContrast >= whiteContrast ? "#101010" : "#FFFFFF";
+    }
+
+    private static double CalculateRelativeLuminance(Color color)
+    {
+        static double Linearize(double channel)
+        {
+            var srgb = channel / 255.0;
+            return srgb <= 0.03928 ? srgb / 12.92 : Math.Pow((srgb + 0.055) / 1.055, 2.4);
+        }
+
+        return 0.2126 * Linearize(color.R) +
+               0.7152 * Linearize(color.G) +
+               0.0722 * Linearize(color.B);
+    }
+
     public void ApplyCodeColorsToHighlighting(IHighlightingDefinition? definition, ColorTheme? theme = null)
     {
         var target = theme ?? _currentTheme ?? _themes.FirstOrDefault();
@@ -618,6 +669,10 @@ public class ThemeService : IThemeService
         if (string.IsNullOrWhiteSpace(theme.Name))
         {
             theme.Name = Path.GetFileNameWithoutExtension(jsonFilePath);
+        }
+        if (!theme.IsDark && !json.Contains("codeVariable", StringComparison.OrdinalIgnoreCase))
+        {
+            theme.CodeVariable = theme.GetEffectiveCodeVariable();
         }
 
         GetThemesDirectory();

@@ -61,7 +61,7 @@ public class AppUpdateService : IAppUpdateService
             // Fallback handled
         }
 
-        return "1.2.0-rc.1";
+        return "1.2.0-rc.2";
     }
 
     public async Task<AppUpdateInfo> CheckForUpdatesAsync(bool isManualCheck = false, CancellationToken cancellationToken = default)

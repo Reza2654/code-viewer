@@ -70,7 +70,7 @@
             Margin="0,16,0,0"
             HorizontalAlignment="Right"
             Background="{DynamicResource ThemeAccentBrush}"
-            Foreground="#FFFFFF"
+            Foreground="{DynamicResource ThemeAccentForeground}"
             HorizontalContentAlignment="Center"
             CornerRadius="4"
             Click="OnCloseClick"/>

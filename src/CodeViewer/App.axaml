@@ -25,6 +25,7 @@
     <SolidColorBrush x:Key="ThemeStatusBarBackground" Color="#007ACC"/>
     <SolidColorBrush x:Key="ThemeStatusBarForeground" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="ThemeAccentBrush" Color="#007ACC"/>
+    <SolidColorBrush x:Key="ThemeAccentForeground" Color="#FFFFFF"/>
     <SolidColorBrush x:Key="ThemeBorderBrush" Color="#181818"/>
     <FontFamily x:Key="UiFontFamily">Google Sans Flex, avares://CodeViewer/Assets/Fonts#Google Sans Flex, Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif</FontFamily>
     <FontFamily x:Key="CodeFontFamily">Google Sans Code, avares://CodeViewer/Assets/Fonts#Google Sans Code, Roboto Mono, avares://CodeViewer/Assets/Fonts#Roboto Mono, Cascadia Code, Consolas, Segoe UI, sans-serif</FontFamily>

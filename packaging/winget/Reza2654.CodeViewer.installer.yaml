@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 
 PackageIdentifier: Reza2654.CodeViewer
-PackageVersion: 1.2.0-rc.1
+PackageVersion: 1.2.0-rc.2
 MinimumOSVersion: 10.0.17763.0
 InstallerType: inno
 Scope: user
@@ -11,8 +11,8 @@ InstallModes:
 - silentWithProgress
 Installers:
 - Architecture: x64
-  InstallerUrl: https://github.com/Reza2654/code-viewer/releases/download/v1.2.0-rc.1/CodeViewer-v1.2.0-rc.1-Setup.exe
-  InstallerSha256: B790BCE7CD75F840063D2217EA47AFE659871361C7B2A03C6BD2B783A0B73B76
+  InstallerUrl: https://github.com/Reza2654/code-viewer/releases/download/v1.2.0-rc.2/CodeViewer-v1.2.0-rc.2-Setup.exe
+  InstallerSha256: 38EEEDD85DB4990FA607AA3489A22E5EDF89E15AF622DDFF294557D81FC54522
   ProductCode: '{D37F2C0B-9799-4A9B-B1D2-8A73DC88235A}'
   UpgradeBehavior: install
 ManifestType: installer

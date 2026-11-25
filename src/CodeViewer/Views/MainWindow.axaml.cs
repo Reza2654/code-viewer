@@ -92,8 +92,9 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
         Closing += OnWindowClosing;
         Closed += (s, e) =>
         {
-            _markdownDebounceCts?.Cancel();
-            _markdownDebounceCts?.Dispose();
+            var cts = Interlocked.Exchange(ref _markdownDebounceCts, null);
+            cts?.Cancel();
+            cts?.Dispose();
             _caretBlinkController?.Dispose();
             (DataContext as IDisposable)?.Dispose();
 
@@ -237,6 +238,10 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
                     var settings = vm.SettingsService.CurrentSettings;
                     var fontSize = vm.ActiveDocument?.FontSize ?? settings.FontSize;
                     FontHelper.ApplyToEditor(Editor, vm.CurrentFontFamily, fontSize);
+                    if (_splitEditor != null)
+                    {
+                        FontHelper.ApplyToEditor(_splitEditor, vm.CurrentFontFamily, vm.SecondaryDocument?.FontSize ?? settings.FontSize);
+                    }
                 }
                 else if (args.PropertyName == nameof(MainViewModel.IsQuickOpenOpen))
                 {
@@ -336,21 +341,57 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
         }
     }
 
+    private static void ApplySettingsToTextEditor(AvaloniaEdit.TextEditor targetEditor, double fontSize, AppSettings settings)
+    {
+        FontHelper.ApplyToEditor(targetEditor, settings.FontFamily, fontSize);
+        targetEditor.WordWrap = settings.WordWrap;
+        targetEditor.ShowLineNumbers = settings.ShowLineNumbers;
+        if (targetEditor.Options != null)
+        {
+            targetEditor.Options.IndentationSize = settings.TabSize;
+            targetEditor.Options.ShowSpaces = settings.ShowWhitespace;
+            targetEditor.Options.ShowTabs = settings.ShowWhitespace;
+        }
+    }
+
+    private static void ApplyThemeToTextEditor(AvaloniaEdit.TextEditor targetEditor, ColorTheme theme)
+    {
+        var editorBg = new SolidColorBrush(Color.Parse(theme.EditorBackground));
+        var editorFg = new SolidColorBrush(Color.Parse(theme.EditorForeground));
+        var lineNumbersFg = new SolidColorBrush(Color.Parse(theme.LineNumbersForeground));
+
+        targetEditor.Background = editorBg;
+        targetEditor.Foreground = editorFg;
+        if (targetEditor.TextArea != null)
+        {
+            targetEditor.TextArea.Foreground = editorFg;
+            if (!string.IsNullOrEmpty(theme.SelectionBackground))
+            {
+                targetEditor.TextArea.SelectionBrush = new SolidColorBrush(Color.Parse(theme.SelectionBackground));
+            }
+        }
+        targetEditor.LineNumbersForeground = lineNumbersFg;
+
+        var highlight = targetEditor.SyntaxHighlighting;
+        targetEditor.SyntaxHighlighting = null;
+        targetEditor.SyntaxHighlighting = highlight;
+        targetEditor.TextArea?.TextView?.Redraw();
+    }
+
     private void OnSettingsChanged(AppSettings settings)
     {
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             try
             {
-                FontHelper.ApplyToEditor(Editor, settings.FontFamily, settings.FontSize);
-                Editor.WordWrap = settings.WordWrap;
-                Editor.ShowLineNumbers = settings.ShowLineNumbers;
-                Editor.Options.IndentationSize = settings.TabSize;
+                var vm = DataContext as MainViewModel;
+                var primaryFontSize = vm?.ActiveDocument?.FontSize ?? settings.FontSize;
+                ApplySettingsToTextEditor(Editor, primaryFontSize, settings);
 
-                if (Editor.Options != null)
+                if (_splitEditor != null)
                 {
-                    Editor.Options.ShowSpaces = settings.ShowWhitespace;
-                    Editor.Options.ShowTabs = settings.ShowWhitespace;
+                    var splitFontSize = vm?.SecondaryDocument?.FontSize ?? settings.FontSize;
+                    ApplySettingsToTextEditor(_splitEditor, splitFontSize, settings);
                 }
 
                 if (_currentLineHighlighter != null)
@@ -396,22 +437,14 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
         {
             _splitEditor = splitEditor;
             var settings = vm.SettingsService.CurrentSettings;
-            FontHelper.ApplyToEditor(splitEditor, settings.FontFamily, settings.FontSize);
+            var fontSize = vm.SecondaryDocument?.FontSize ?? settings.FontSize;
+            ApplySettingsToTextEditor(splitEditor, fontSize, settings);
             var theme = vm.CurrentTheme;
             if (theme != null)
             {
                 try
                 {
-                    var editorBg = new SolidColorBrush(Color.Parse(theme.EditorBackground));
-                    var editorFg = new SolidColorBrush(Color.Parse(theme.EditorForeground));
-                    var lineNumbersFg = new SolidColorBrush(Color.Parse(theme.LineNumbersForeground));
-                    splitEditor.Background = editorBg;
-                    splitEditor.Foreground = editorFg;
-                    if (splitEditor.TextArea != null)
-                    {
-                        splitEditor.TextArea.Foreground = editorFg;
-                    }
-                    splitEditor.LineNumbersForeground = lineNumbersFg;
+                    ApplyThemeToTextEditor(splitEditor, theme);
                 }
                 catch { }
             }
@@ -473,25 +506,10 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
             try
             {
                 var winBg = new SolidColorBrush(Color.Parse(theme.WindowBackground));
-                var editorBg = new SolidColorBrush(Color.Parse(theme.EditorBackground));
-                var editorFg = new SolidColorBrush(Color.Parse(theme.EditorForeground));
-                var lineNumbersFg = new SolidColorBrush(Color.Parse(theme.LineNumbersForeground));
                 var statusBg = new SolidColorBrush(Color.Parse(theme.StatusBarBackground));
                 var tabBg = new SolidColorBrush(Color.Parse(theme.TabBarBackground));
 
                 Background = winBg;
-                Editor.Background = editorBg;
-                Editor.Foreground = editorFg;
-                if (Editor.TextArea != null)
-                {
-                    Editor.TextArea.Foreground = editorFg;
-                    if (!string.IsNullOrEmpty(theme.SelectionBackground))
-                    {
-                        Editor.TextArea.SelectionBrush = new SolidColorBrush(Color.Parse(theme.SelectionBackground));
-                    }
-                }
-                Editor.LineNumbersForeground = lineNumbersFg;
-
                 if (StatusBarBorder != null) StatusBarBorder.Background = statusBg;
                 if (TabBarBorder != null) TabBarBorder.Background = tabBg;
 
@@ -504,35 +522,17 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
                 if (DataContext is MainViewModel vm)
                 {
                     vm.ApplyCodeColorsToAllDocuments(theme);
-                    // Force AvaloniaEdit to recreate line transformers with updated color brushes
-                    var highlight = Editor.SyntaxHighlighting;
-                    Editor.SyntaxHighlighting = null;
-                    Editor.SyntaxHighlighting = highlight;
-                    Editor.TextArea?.TextView?.Redraw();
+                }
 
-                    if (_splitEditor != null)
-                    {
-                        _splitEditor.Background = editorBg;
-                        _splitEditor.Foreground = editorFg;
-                        if (_splitEditor.TextArea != null)
-                        {
-                            _splitEditor.TextArea.Foreground = editorFg;
-                            if (!string.IsNullOrEmpty(theme.SelectionBackground))
-                            {
-                                _splitEditor.TextArea.SelectionBrush = new SolidColorBrush(Color.Parse(theme.SelectionBackground));
-                            }
-                        }
-                        _splitEditor.LineNumbersForeground = lineNumbersFg;
-                        var splitHighlight = _splitEditor.SyntaxHighlighting;
-                        _splitEditor.SyntaxHighlighting = null;
-                        _splitEditor.SyntaxHighlighting = splitHighlight;
-                        _splitEditor.TextArea?.TextView?.Redraw();
-                    }
+                ApplyThemeToTextEditor(Editor, theme);
+                if (_splitEditor != null)
+                {
+                    ApplyThemeToTextEditor(_splitEditor, theme);
+                }
 
-                    if (vm.IsMarkdownPreviewActive)
-                    {
-                        UpdateMarkdownPreview();
-                    }
+                if (DataContext is MainViewModel vm2 && vm2.IsMarkdownPreviewActive)
+                {
+                    UpdateMarkdownPreview();
                 }
             }
             catch
@@ -601,6 +601,11 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
             {
                 _ = vm.CloseTabCommand.ExecuteAsync(doc);
                 e.Handled = true;
+                return;
+            }
+
+            if (!pointerProps.IsLeftButtonPressed)
+            {
                 return;
             }
 
@@ -910,24 +915,23 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
 
     private void RequestDebouncedMarkdownPreviewUpdate()
     {
-        _markdownDebounceCts?.Cancel();
-        _markdownDebounceCts?.Dispose();
-        _markdownDebounceCts = new CancellationTokenSource();
-        var token = _markdownDebounceCts.Token;
+        var newCts = new CancellationTokenSource();
+        var oldCts = Interlocked.Exchange(ref _markdownDebounceCts, newCts);
+        oldCts?.Cancel();
+        oldCts?.Dispose();
+        var token = newCts.Token;
 
-        Task.Delay(180, token).ContinueWith(t =>
+        _ = Task.Delay(180, token).ContinueWith(t =>
         {
-            if (!t.IsCanceled)
+            if (t.IsCanceled) return;
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                if (ReferenceEquals(_markdownDebounceCts, newCts) && !token.IsCancellationRequested)
                 {
-                    if (!token.IsCancellationRequested)
-                    {
-                        UpdateMarkdownPreview();
-                    }
-                });
-            }
-        }, token);
+                    UpdateMarkdownPreview();
+                }
+            });
+        }, TaskScheduler.Default);
     }
 
     private void UpdateMarkdownPreview()
@@ -1048,6 +1052,7 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
     #region Window Closing Verification
 
     private bool _isExplicitExit;
+    private bool _closingConfirmed;
 
     public void ExplicitExit()
     {
@@ -1057,34 +1062,31 @@ public partial class MainWindow : Window, WindowKeyboardRouter.IKeyboardActionTa
 
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
-        if (DataContext is not MainViewModel vm) return;
+        if (_closingConfirmed || DataContext is not MainViewModel vm) return;
 
+        var settings = vm.SettingsService.CurrentSettings;
         var unsavedDocs = vm.Documents.Where(d => d.IsModified).ToList();
-        if (unsavedDocs.Count == 0) return;
 
         e.Cancel = true;
 
         foreach (var doc in unsavedDocs)
         {
             vm.ActiveDocument = doc;
-            await vm.CloseTabAsync(doc);
-            if (vm.Documents.Contains(doc) && doc.IsModified)
+            if (!await vm.ResolveModifiedDocumentBeforeCloseAsync(doc))
             {
                 return;
             }
         }
 
-        var settings = vm.SettingsService.CurrentSettings;
+        await vm.SaveCurrentSessionAsync();
+
         if (settings.MinimizeToTrayOnClose && !_isExplicitExit)
         {
-            e.Cancel = true;
-            _ = vm.SaveCurrentSessionAsync();
             Hide();
             return;
         }
 
-        Closing -= OnWindowClosing;
-        _ = vm.SaveCurrentSessionAsync();
+        _closingConfirmed = true;
         Close();
     }
 

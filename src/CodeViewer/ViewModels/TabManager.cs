@@ -137,7 +137,7 @@ public partial class TabManager : ViewModelBase, IDisposable
     {
         var settings = _settingsService.CurrentSettings;
         var model = DocumentModel.CreateNew($"Untitled-{Documents.Count + 1}");
-        var fontSize = _config.DefaultFontSize > 0 ? _config.DefaultFontSize : settings.FontSize;
+        var fontSize = settings.FontSize > 0 ? settings.FontSize : _config.DefaultFontSize;
         var docVm = new DocumentViewModel(model, _languageService, fontSize)
         {
             WordWrap = settings.WordWrap,
@@ -231,7 +231,7 @@ public partial class TabManager : ViewModelBase, IDisposable
         {
             var settings = _settingsService.CurrentSettings;
             var model = await _fileService.OpenFileAsync(fullPath);
-            var fontSize = _config.DefaultFontSize > 0 ? _config.DefaultFontSize : settings.FontSize;
+            var fontSize = settings.FontSize > 0 ? settings.FontSize : _config.DefaultFontSize;
             var docVm = new DocumentViewModel(model, _languageService, fontSize)
             {
                 WordWrap = settings.WordWrap,
@@ -365,38 +365,80 @@ public partial class TabManager : ViewModelBase, IDisposable
         }
     }
 
+    /// <summary>
+    /// Prompts the user to save a modified document (Save / Don't Save / Cancel).
+    /// Returns true if safe to proceed (saved or discarded), false if cancelled or save failed.
+    /// </summary>
+    public async Task<bool> ResolveModifiedDocumentBeforeCloseAsync(DocumentViewModel targetDoc)
+    {
+        if (!targetDoc.IsModified) return true;
+
+        var confirm = await _dialogService.ShowSaveConfirmationAsync(targetDoc.Title);
+        if (confirm == ConfirmResult.Cancel)
+        {
+            return false;
+        }
+
+        if (confirm != ConfirmResult.Save)
+        {
+            return true;
+        }
+
+        try
+        {
+            targetDoc.SyncToModel();
+            if (targetDoc.Model.IsNewFile)
+            {
+                var targetPath = await _dialogService.ShowSaveFileDialogAsync(targetDoc.Title);
+                if (string.IsNullOrEmpty(targetPath)) return false;
+                _fileWatcherService.TemporarilyIgnore(targetPath);
+                await _fileService.SaveFileAsync(targetDoc.Model, targetPath);
+                if (File.Exists(targetPath))
+                {
+                    var savedInfo = new FileInfo(targetPath);
+                    targetDoc.MarkSaved(savedInfo.FullName, savedInfo.Length, savedInfo.LastWriteTimeUtc);
+                }
+                else
+                {
+                    targetDoc.MarkSaved(targetPath, targetDoc.Model.FileSizeBytes, DateTime.UtcNow);
+                }
+            }
+            else
+            {
+                if (targetDoc.FilePath != null)
+                {
+                    _fileWatcherService.TemporarilyIgnore(targetDoc.FilePath);
+                }
+                await _fileService.SaveFileAsync(targetDoc.Model);
+                if (!string.IsNullOrEmpty(targetDoc.FilePath) && File.Exists(targetDoc.FilePath))
+                {
+                    var savedInfo = new FileInfo(targetDoc.FilePath);
+                    targetDoc.MarkSaved(savedInfo.FullName, savedInfo.Length, savedInfo.LastWriteTimeUtc);
+                }
+                else
+                {
+                    targetDoc.MarkSaved(targetDoc.FilePath ?? string.Empty, targetDoc.Model.FileSizeBytes, DateTime.UtcNow);
+                }
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowMessageAsync("Error Saving File", $"Could not save file: {ex.Message}");
+            return false;
+        }
+    }
+
     [RelayCommand]
     public async Task CloseTabAsync(DocumentViewModel? doc)
     {
         var targetDoc = doc ?? ActiveDocument;
         if (targetDoc == null) return;
 
-        if (targetDoc.IsModified)
+        if (!await ResolveModifiedDocumentBeforeCloseAsync(targetDoc))
         {
-            var confirm = await _dialogService.ShowSaveConfirmationAsync(targetDoc.Title);
-            if (confirm == ConfirmResult.Cancel)
-            {
-                return;
-            }
-            if (confirm == ConfirmResult.Save)
-            {
-                targetDoc.SyncToModel();
-                if (targetDoc.Model.IsNewFile)
-                {
-                    var targetPath = await _dialogService.ShowSaveFileDialogAsync(targetDoc.Title);
-                    if (string.IsNullOrEmpty(targetPath)) return;
-                    _fileWatcherService.TemporarilyIgnore(targetPath);
-                    await _fileService.SaveFileAsync(targetDoc.Model, targetPath);
-                }
-                else
-                {
-                    if (targetDoc.FilePath != null)
-                    {
-                        _fileWatcherService.TemporarilyIgnore(targetDoc.FilePath);
-                    }
-                    await _fileService.SaveFileAsync(targetDoc.Model);
-                }
-            }
+            return;
         }
 
         if (!string.IsNullOrEmpty(targetDoc.FilePath) || !string.IsNullOrEmpty(targetDoc.TextDocument?.Text))

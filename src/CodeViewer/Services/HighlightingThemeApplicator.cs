@@ -27,9 +27,7 @@ public static class HighlightingThemeApplicator
             var preprocBrush = new SimpleHighlightingBrush(Color.Parse(t.CodePreprocessor));
             var punctBrush = new SimpleHighlightingBrush(Color.Parse(t.CodePunctuation));
 
-            var varHex = !string.IsNullOrWhiteSpace(t.CodeVariable)
-                ? t.CodeVariable
-                : (t.IsDark ? "#9CDCFE" : "#001080");
+            var varHex = t.GetEffectiveCodeVariable();
             var varBrush = new SimpleHighlightingBrush(Color.Parse(varHex));
 
             var addedBrush = new SimpleHighlightingBrush(Color.Parse(t.IsDark ? "#89D185" : "#22863A"));

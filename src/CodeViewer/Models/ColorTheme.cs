@@ -126,7 +126,25 @@ public class ColorTheme
     public IBrush MethodBrush => new SolidColorBrush(Color.TryParse(CodeMethod, out var c) ? c : Colors.Yellow);
 
     [JsonIgnore]
-    public IBrush VariableBrush => new SolidColorBrush(Color.TryParse(CodeVariable, out var c) ? c : (IsDark ? Color.Parse("#9CDCFE") : Color.Parse("#001080")));
+    public string ModeBadge => IsDark ? "DARK" : "LIGHT";
+
+    /// <summary>
+    /// Resolves a readable variable color for the theme's brightness mode,
+    /// avoiding dark-mode default pale cyan on light themes when unconfigured.
+    /// </summary>
+    public string GetEffectiveCodeVariable()
+    {
+        if (string.IsNullOrWhiteSpace(CodeVariable) ||
+            (!IsDark && string.Equals(CodeVariable, "#9CDCFE", StringComparison.OrdinalIgnoreCase)))
+        {
+            return IsDark ? "#9CDCFE" : "#001080";
+        }
+
+        return CodeVariable;
+    }
+
+    [JsonIgnore]
+    public IBrush VariableBrush => new SolidColorBrush(Color.TryParse(GetEffectiveCodeVariable(), out var c) ? c : (IsDark ? Color.Parse("#9CDCFE") : Color.Parse("#001080")));
 
     public ColorTheme Clone()
     {

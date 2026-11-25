@@ -15,7 +15,7 @@
   <Window.Styles>
     <Style Selector="Button.segmented">
       <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="Foreground" Value="#888888"/>
+      <Setter Property="Foreground" Value="{DynamicResource ThemeTabItemInactiveForeground}"/>
       <Setter Property="BorderThickness" Value="0"/>
       <Setter Property="CornerRadius" Value="4"/>
       <Setter Property="Padding" Value="10,5"/>
@@ -28,17 +28,17 @@
       </Setter>
     </Style>
     <Style Selector="Button.segmented:pointerover">
-      <Setter Property="Background" Value="#2E2E32"/>
-      <Setter Property="Foreground" Value="#CCCCCC"/>
+      <Setter Property="Background" Value="{DynamicResource ThemeSelectionBackground}"/>
+      <Setter Property="Foreground" Value="{DynamicResource ThemeWindowForeground}"/>
     </Style>
     <Style Selector="Button.segmented.active">
-      <Setter Property="Background" Value="#3F3F46"/>
-      <Setter Property="Foreground" Value="#FFFFFF"/>
+      <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource ThemeAccentForeground}"/>
     </Style>
 
     <Style Selector="Button.segmented-text">
       <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="Foreground" Value="#888888"/>
+      <Setter Property="Foreground" Value="{DynamicResource ThemeTabItemInactiveForeground}"/>
       <Setter Property="BorderThickness" Value="0"/>
       <Setter Property="CornerRadius" Value="4"/>
       <Setter Property="Padding" Value="14,5"/>
@@ -52,12 +52,12 @@
       </Setter>
     </Style>
     <Style Selector="Button.segmented-text:pointerover">
-      <Setter Property="Background" Value="#2E2E32"/>
-      <Setter Property="Foreground" Value="#CCCCCC"/>
+      <Setter Property="Background" Value="{DynamicResource ThemeSelectionBackground}"/>
+      <Setter Property="Foreground" Value="{DynamicResource ThemeWindowForeground}"/>
     </Style>
     <Style Selector="Button.segmented-text.active">
       <Setter Property="Background" Value="{DynamicResource ThemeAccentBrush}"/>
-      <Setter Property="Foreground" Value="#FFFFFF"/>
+      <Setter Property="Foreground" Value="{DynamicResource ThemeAccentForeground}"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
     </Style>
 
@@ -86,7 +86,7 @@
       </Setter>
     </Style>
     <Style Selector="Button.theme-card-btn:pointerover">
-      <Setter Property="Background" Value="#2A2A30"/>
+      <Setter Property="Background" Value="{DynamicResource ThemeSelectionBackground}"/>
       <Setter Property="BorderBrush" Value="{DynamicResource ThemeAccentBrush}"/>
       <Setter Property="RenderTransform" Value="scale(1.03)"/>
     </Style>
@@ -105,7 +105,7 @@
                    Foreground="{DynamicResource ThemeWindowForeground}"/>
         <TextBlock Text="Customize coding fonts, developer themes, syntax token colors, and editor behavior."
                    FontSize="12"
-                   Foreground="#888888"
+                   Foreground="{DynamicResource ThemeTabItemInactiveForeground}"
                    Margin="0,4,0,0"/>
       </StackPanel>
       <Border Grid.Column="1"
@@ -115,7 +115,7 @@
               CornerRadius="6"
               Padding="10,4"
               VerticalAlignment="Center">
-        <TextBlock Text="v1.2.0-rc.1"
+        <TextBlock Text="v1.2.0-rc.2"
                    FontSize="11"
                    FontWeight="SemiBold"
                    Foreground="{DynamicResource ThemeAccentBrush}"/>
@@ -147,28 +147,36 @@
                           Command="{Binding SelectPrimaryFontCommand}"
                           CommandParameter="Google Sans Code"
                           Classes="segmented-text"
-                          Background="#252528"
+                          Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                           Foreground="{DynamicResource ThemeWindowForeground}"
                           Padding="10,5"/>
                   <Button Content="Roboto Mono"
                           Command="{Binding SelectPrimaryFontCommand}"
                           CommandParameter="Roboto Mono"
                           Classes="segmented-text"
-                          Background="#252528"
+                          Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                           Foreground="{DynamicResource ThemeWindowForeground}"
                           Padding="10,5"/>
                   <Button Content="Cascadia Code"
                           Command="{Binding SelectPrimaryFontCommand}"
                           CommandParameter="Cascadia Code"
                           Classes="segmented-text"
-                          Background="#252528"
+                          Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                           Foreground="{DynamicResource ThemeWindowForeground}"
                           Padding="10,5"/>
                   <Button Content="Consolas"
                           Command="{Binding SelectPrimaryFontCommand}"
                           CommandParameter="Consolas"
                           Classes="segmented-text"
-                          Background="#252528"
+                          Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                           Foreground="{DynamicResource ThemeWindowForeground}"
                           Padding="10,5"/>
                 </StackPanel>
@@ -194,7 +202,9 @@
                     <Button Content="−"
                             Command="{Binding DecreaseFontSizeCommand}"
                             Classes="segmented-text"
-                            Background="#252528"
+                            Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             FontWeight="Bold"
                             Padding="12,4"/>
@@ -202,27 +212,35 @@
                             Command="{Binding SetFontSizeCommand}"
                             CommandParameter="12"
                             Classes="segmented-text"
-                            Background="#252528"
+                            Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Padding="8,4"/>
                     <Button Content="14"
                             Command="{Binding SetFontSizeCommand}"
                             CommandParameter="14"
                             Classes="segmented-text"
-                            Background="#252528"
+                            Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Padding="8,4"/>
                     <Button Content="16"
                             Command="{Binding SetFontSizeCommand}"
                             CommandParameter="16"
                             Classes="segmented-text"
-                            Background="#252528"
+                            Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Padding="8,4"/>
                     <Button Content="+"
                             Command="{Binding IncreaseFontSizeCommand}"
                             Classes="segmented-text"
-                            Background="#252528"
+                            Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             FontWeight="Bold"
                             Padding="12,4"/>
@@ -246,21 +264,27 @@
                             Command="{Binding SetTabSizeCommand}"
                             CommandParameter="2"
                             Classes="segmented-text"
-                            Background="#252528"
+                            Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Padding="10,4"/>
                     <Button Content="4 spaces"
                             Command="{Binding SetTabSizeCommand}"
                             CommandParameter="4"
                             Classes="segmented-text"
-                            Background="#252528"
+                            Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Padding="10,4"/>
                     <Button Content="8 spaces"
                             Command="{Binding SetTabSizeCommand}"
                             CommandParameter="8"
                             Classes="segmented-text"
-                            Background="#252528"
+                            Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Padding="10,4"/>
                   </StackPanel>
@@ -283,8 +307,8 @@
                              Foreground="{DynamicResource ThemeAccentBrush}"/>
                 </Grid>
 
-                <Border Background="{DynamicResource ThemeEditorBackground}"
-                        BorderBrush="{DynamicResource ThemeBorderBrush}"
+                <Border Background="{Binding PreviewEditorBackgroundBrush}"
+                        BorderBrush="{Binding PreviewBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="6"
                         Padding="14">
@@ -292,15 +316,15 @@
                     <TextBlock Text="// Live coding font rendering test"
                                FontFamily="{Binding SelectedFontFamily}"
                                FontSize="{Binding FontSize}"
-                               Foreground="#6A9955"/>
+                               Foreground="{Binding CommentBrush}"/>
                     <TextBlock Text="public static void Main(string[] args) => Console.WriteLine(&quot;Hello, Code Viewer!&quot;);"
                                FontFamily="{Binding SelectedFontFamily}"
                                FontSize="{Binding FontSize}"
-                               Foreground="{DynamicResource ThemeEditorForeground}"/>
+                               Foreground="{Binding PreviewEditorForegroundBrush}"/>
                     <TextBlock Text="const double pi = 3.1415926535; var items = new List&lt;int&gt; { 1, 2, 3 };"
                                FontFamily="{Binding SelectedFontFamily}"
                                FontSize="{Binding FontSize}"
-                               Foreground="{DynamicResource ThemeEditorForeground}"/>
+                               Foreground="{Binding PreviewEditorForegroundBrush}"/>
                     <TextBlock Text="0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz == &gt;= != &lt;="
                                FontFamily="{Binding SelectedFontFamily}"
                                FontSize="{Binding FontSize}"
@@ -495,13 +519,17 @@
                     <Button Content="➕ Import Theme (.json)..."
                             Command="{Binding ImportThemeCommand}"
                             Classes="segmented-text"
-                            Background="#252528"
+                            Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Padding="10,5"/>
                     <Button Content="📁 Open Themes Folder"
                             Command="{Binding OpenThemesFolderCommand}"
                             Classes="segmented-text"
-                            Background="#252528"
+                            Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                             Foreground="{DynamicResource ThemeWindowForeground}"
                             Padding="10,5"/>
                   </StackPanel>
@@ -509,7 +537,7 @@
 
                 <TextBlock Text="Click any theme below to activate it instantly across Code Viewer:"
                            FontSize="11"
-                           Foreground="#888888"/>
+                           Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
 
                 <!-- Theme Cards List -->
                 <ItemsControl ItemsSource="{Binding FilteredThemes}">
@@ -534,25 +562,27 @@
                                        Foreground="{DynamicResource ThemeWindowForeground}"
                                        TextTrimming="CharacterEllipsis"/>
                             <Border Grid.Column="1"
-                                    Background="#303038"
+                                    Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                                    BorderBrush="{DynamicResource ThemeBorderBrush}"
+                                    BorderThickness="1"
                                     CornerRadius="3"
                                     Padding="5,1">
-                              <TextBlock Text="{Binding IsDark, Converter={x:Static StringConverters.IsNotNullOrEmpty}, FallbackValue='DARK'}"
+                              <TextBlock Text="{Binding ModeBadge}"
                                          FontSize="9"
                                          FontWeight="Bold"
-                                         Foreground="#888888"/>
+                                         Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
                             </Border>
                           </Grid>
 
                           <!-- Bottom row: Color Chips -->
                           <StackPanel Orientation="Horizontal" Spacing="6">
-                            <Border Width="16" Height="16" CornerRadius="8" Background="{Binding EditorBackgroundBrush}" BorderBrush="#555555" BorderThickness="1" ToolTip.Tip="Editor Background"/>
-                            <Border Width="16" Height="16" CornerRadius="8" Background="{Binding AccentBrush}" BorderBrush="#555555" BorderThickness="1" ToolTip.Tip="Accent Color"/>
-                            <Border Width="16" Height="16" CornerRadius="8" Background="{Binding KeywordBrush}" BorderBrush="#555555" BorderThickness="1" ToolTip.Tip="Keywords"/>
-                            <Border Width="16" Height="16" CornerRadius="8" Background="{Binding StringBrush}" BorderBrush="#555555" BorderThickness="1" ToolTip.Tip="Strings"/>
+                            <Border Width="16" Height="16" CornerRadius="8" Background="{Binding EditorBackgroundBrush}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" ToolTip.Tip="Editor Background"/>
+                            <Border Width="16" Height="16" CornerRadius="8" Background="{Binding AccentBrush}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" ToolTip.Tip="Accent Color"/>
+                            <Border Width="16" Height="16" CornerRadius="8" Background="{Binding KeywordBrush}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" ToolTip.Tip="Keywords"/>
+                            <Border Width="16" Height="16" CornerRadius="8" Background="{Binding StringBrush}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" ToolTip.Tip="Strings"/>
                             <TextBlock Text="{Binding Id}"
                                        FontSize="10"
-                                       Foreground="#666666"
+                                       Foreground="{DynamicResource ThemeTabItemInactiveForeground}"
                                        VerticalAlignment="Center"
                                        Margin="6,0,0,0"
                                        TextTrimming="CharacterEllipsis"/>
@@ -585,14 +615,16 @@
                                FontSize="14"/>
                     <TextBlock Text="Override token colors for all programming languages. Leave blank or click Reset to use the active theme defaults."
                                FontSize="11"
-                               Foreground="#888888"
+                               Foreground="{DynamicResource ThemeTabItemInactiveForeground}"
                                Margin="0,2,0,0"/>
                   </StackPanel>
                   <Button Grid.Column="1"
                           Content="↺ Reset to Theme Defaults"
                           Command="{Binding ResetSyntaxColorsCommand}"
                           Classes="segmented-text"
-                          Background="#252528"
+                          Background="{DynamicResource ThemeTabItemInactiveBackground}"
+                          BorderBrush="{DynamicResource ThemeBorderBrush}"
+                          BorderThickness="1"
                           Foreground="{DynamicResource ThemeWindowForeground}"
                           Padding="10,5"/>
                 </Grid>
@@ -601,90 +633,90 @@
                 <Grid ColumnDefinitions="*,16,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="0,6">
                   <!-- 1. Keywords -->
                   <Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="Auto,*,Auto" Margin="0,5">
-                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding KeywordBrush}" BorderBrush="#555" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding KeywordBrush}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                       <TextBlock Text="Keywords" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
-                      <TextBlock Text="if, while, class, return, async" Foreground="#777" FontSize="10"/>
+                      <TextBlock Text="if, while, class, return, async" Foreground="{DynamicResource ThemeTabItemInactiveForeground}" FontSize="10"/>
                     </StackPanel>
                     <TextBox Grid.Column="2" Width="95" Text="{Binding CustomCodeKeyword, Mode=TwoWay}" Watermark="#569CD6" FontSize="11" VerticalContentAlignment="Center"/>
                   </Grid>
 
                   <!-- 2. Comments -->
                   <Grid Grid.Row="0" Grid.Column="2" ColumnDefinitions="Auto,*,Auto" Margin="0,5">
-                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding CommentBrush}" BorderBrush="#555" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding CommentBrush}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                       <TextBlock Text="Comments" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
-                      <TextBlock Text="// Single &amp; /* multi */ comments" Foreground="#777" FontSize="10"/>
+                      <TextBlock Text="// Single &amp; /* multi */ comments" Foreground="{DynamicResource ThemeTabItemInactiveForeground}" FontSize="10"/>
                     </StackPanel>
                     <TextBox Grid.Column="2" Width="95" Text="{Binding CustomCodeComment, Mode=TwoWay}" Watermark="#6A9955" FontSize="11" VerticalContentAlignment="Center"/>
                   </Grid>
 
                   <!-- 3. Strings -->
                   <Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto,*,Auto" Margin="0,5">
-                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding StringBrush}" BorderBrush="#555" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding StringBrush}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                       <TextBlock Text="Strings &amp; Literals" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
-                      <TextBlock Text="&quot;hello&quot;, 'c', regex" Foreground="#777" FontSize="10"/>
+                      <TextBlock Text="&quot;hello&quot;, 'c', regex" Foreground="{DynamicResource ThemeTabItemInactiveForeground}" FontSize="10"/>
                     </StackPanel>
                     <TextBox Grid.Column="2" Width="95" Text="{Binding CustomCodeString, Mode=TwoWay}" Watermark="#CE9178" FontSize="11" VerticalContentAlignment="Center"/>
                   </Grid>
 
                   <!-- 4. Numbers -->
                   <Grid Grid.Row="1" Grid.Column="2" ColumnDefinitions="Auto,*,Auto" Margin="0,5">
-                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding NumberBrush}" BorderBrush="#555" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding NumberBrush}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                       <TextBlock Text="Numbers &amp; Digits" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
-                      <TextBlock Text="42, 3.14, 0xFF" Foreground="#777" FontSize="10"/>
+                      <TextBlock Text="42, 3.14, 0xFF" Foreground="{DynamicResource ThemeTabItemInactiveForeground}" FontSize="10"/>
                     </StackPanel>
                     <TextBox Grid.Column="2" Width="95" Text="{Binding CustomCodeNumber, Mode=TwoWay}" Watermark="#B5CEA8" FontSize="11" VerticalContentAlignment="Center"/>
                   </Grid>
 
                   <!-- 5. Types -->
                   <Grid Grid.Row="2" Grid.Column="0" ColumnDefinitions="Auto,*,Auto" Margin="0,5">
-                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding TypeBrush}" BorderBrush="#555" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding TypeBrush}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                       <TextBlock Text="Types &amp; Classes" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
-                      <TextBlock Text="List&lt;T&gt;, string, Window" Foreground="#777" FontSize="10"/>
+                      <TextBlock Text="List&lt;T&gt;, string, Window" Foreground="{DynamicResource ThemeTabItemInactiveForeground}" FontSize="10"/>
                     </StackPanel>
                     <TextBox Grid.Column="2" Width="95" Text="{Binding CustomCodeType, Mode=TwoWay}" Watermark="#4EC9B0" FontSize="11" VerticalContentAlignment="Center"/>
                   </Grid>
 
                   <!-- 6. Methods -->
                   <Grid Grid.Row="2" Grid.Column="2" ColumnDefinitions="Auto,*,Auto" Margin="0,5">
-                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding MethodBrush}" BorderBrush="#555" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding MethodBrush}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                       <TextBlock Text="Methods &amp; Calls" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
-                      <TextBlock Text="WriteLine(), Calculate()" Foreground="#777" FontSize="10"/>
+                      <TextBlock Text="WriteLine(), Calculate()" Foreground="{DynamicResource ThemeTabItemInactiveForeground}" FontSize="10"/>
                     </StackPanel>
                     <TextBox Grid.Column="2" Width="95" Text="{Binding CustomCodeMethod, Mode=TwoWay}" Watermark="#DCDCAA" FontSize="11" VerticalContentAlignment="Center"/>
                   </Grid>
 
                   <!-- 7. Preprocessors -->
                   <Grid Grid.Row="3" Grid.Column="0" ColumnDefinitions="Auto,*,Auto" Margin="0,5">
-                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding PreprocessorBrush}" BorderBrush="#555" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding PreprocessorBrush}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                       <TextBlock Text="Preprocessors" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
-                      <TextBlock Text="#region, #if, import" Foreground="#777" FontSize="10"/>
+                      <TextBlock Text="#region, #if, import" Foreground="{DynamicResource ThemeTabItemInactiveForeground}" FontSize="10"/>
                     </StackPanel>
                     <TextBox Grid.Column="2" Width="95" Text="{Binding CustomCodePreprocessor, Mode=TwoWay}" Watermark="#9B9B9B" FontSize="11" VerticalContentAlignment="Center"/>
                   </Grid>
 
                   <!-- 8. Punctuation -->
                   <Grid Grid.Row="3" Grid.Column="2" ColumnDefinitions="Auto,*,Auto" Margin="0,5">
-                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding PunctuationBrush}" BorderBrush="#555" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding PunctuationBrush}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                       <TextBlock Text="Punctuation" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
-                      <TextBlock Text=";, ., {}, [], ()" Foreground="#777" FontSize="10"/>
+                      <TextBlock Text=";, ., {}, [], ()" Foreground="{DynamicResource ThemeTabItemInactiveForeground}" FontSize="10"/>
                     </StackPanel>
                     <TextBox Grid.Column="2" Width="95" Text="{Binding CustomCodePunctuation, Mode=TwoWay}" Watermark="#D4D4D4" FontSize="11" VerticalContentAlignment="Center"/>
                   </Grid>
 
                   <!-- 9. Variables -->
                   <Grid Grid.Row="4" Grid.Column="0" ColumnDefinitions="Auto,*,Auto" Margin="0,5">
-                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding VariableBrush}" BorderBrush="#555" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                    <Border Grid.Column="0" Width="18" Height="18" CornerRadius="4" Background="{Binding VariableBrush}" BorderBrush="{DynamicResource ThemeBorderBrush}" BorderThickness="1" Margin="0,0,10,0" VerticalAlignment="Center"/>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                       <TextBlock Text="Variables &amp; Fields" Foreground="{DynamicResource ThemeWindowForeground}" FontSize="12" FontWeight="SemiBold"/>
-                      <TextBlock Text="$var, _count, value" Foreground="#777" FontSize="10"/>
+                      <TextBlock Text="$var, _count, value" Foreground="{DynamicResource ThemeTabItemInactiveForeground}" FontSize="10"/>
                     </StackPanel>
                     <TextBox Grid.Column="2" Width="95" Text="{Binding CustomCodeVariable, Mode=TwoWay}" Watermark="#9CDCFE" FontSize="11" VerticalContentAlignment="Center"/>
                   </Grid>
@@ -700,8 +732,8 @@
                            Foreground="{DynamicResource ThemeWindowForeground}"
                            FontSize="13"/>
 
-                <Border Background="{DynamicResource ThemeEditorBackground}"
-                        BorderBrush="{DynamicResource ThemeBorderBrush}"
+                <Border Background="{Binding PreviewEditorBackgroundBrush}"
+                        BorderBrush="{Binding PreviewBorderBrush}"
                         BorderThickness="1"
                         CornerRadius="6"
                         Padding="14">
@@ -729,7 +761,7 @@
 
                     <StackPanel Orientation="Horizontal" Spacing="0">
                       <TextBlock Text="    public const double " FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding KeywordBrush}"/>
-                      <TextBlock Text="Scale " FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{DynamicResource ThemeEditorForeground}"/>
+                      <TextBlock Text="Scale " FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding VariableBrush}"/>
                       <TextBlock Text="= " FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding PunctuationBrush}"/>
                       <TextBlock Text="3.14159" FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding NumberBrush}"/>
                       <TextBlock Text=";" FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding PunctuationBrush}"/>
@@ -740,10 +772,12 @@
                       <TextBlock Text="FormatResult" FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding MethodBrush}"/>
                       <TextBlock Text="(" FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding PunctuationBrush}"/>
                       <TextBlock Text="int " FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding KeywordBrush}"/>
-                      <TextBlock Text="count" FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{DynamicResource ThemeEditorForeground}"/>
+                      <TextBlock Text="count" FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding VariableBrush}"/>
                       <TextBlock Text=") =&gt; " FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding PunctuationBrush}"/>
                       <TextBlock Text="&quot;Items: &quot;" FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding StringBrush}"/>
-                      <TextBlock Text=" + count;" FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding PunctuationBrush}"/>
+                      <TextBlock Text=" + " FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding PunctuationBrush}"/>
+                      <TextBlock Text="count" FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding VariableBrush}"/>
+                      <TextBlock Text=";" FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding PunctuationBrush}"/>
                     </StackPanel>
 
                     <TextBlock Text="}" FontFamily="{Binding SelectedFontFamily}" FontSize="{Binding FontSize}" Foreground="{Binding PunctuationBrush}"/>
@@ -775,7 +809,7 @@
                            FontSize="14"/>
                 <TextBlock Text="Pre-warm Code Viewer in the background at Windows startup for sub-10ms instantaneous opening."
                            FontSize="11"
-                           Foreground="#888888"/>
+                           Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
 
                 <CheckBox IsChecked="{Binding RunInBackgroundOnStartup}"
                           Foreground="{DynamicResource ThemeWindowForeground}">
@@ -785,7 +819,7 @@
                                Foreground="{DynamicResource ThemeWindowForeground}"/>
                     <TextBlock Text="Starts silently in tray; files open instantly without splash delay."
                                FontSize="11"
-                               Foreground="#888888"/>
+                               Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
                   </StackPanel>
                 </CheckBox>
 
@@ -797,7 +831,7 @@
                                Foreground="{DynamicResource ThemeWindowForeground}"/>
                     <TextBlock Text="Keeps the app pre-warmed in background memory for instant reopening."
                                FontSize="11"
-                               Foreground="#888888"/>
+                               Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
                   </StackPanel>
                 </CheckBox>
               </StackPanel>
@@ -812,7 +846,7 @@
                            FontSize="14"/>
                 <TextBlock Text="Select the default shell used by the integrated terminal console (Ctrl+`) and script runner."
                            FontSize="11"
-                           Foreground="#888888"/>
+                           Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
 
                 <ComboBox ItemsSource="{Binding AvailableTerminalShells}"
                           SelectedItem="{Binding SelectedTerminalShell, Mode=TwoWay}"
@@ -839,7 +873,7 @@
                            FontSize="14"/>
                 <TextBlock Text="Keep Code Viewer up to date with official releases and security improvements."
                            FontSize="11"
-                           Foreground="#888888"/>
+                           Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
 
                 <CheckBox IsChecked="{Binding AutoCheckForUpdates}"
                           Foreground="{DynamicResource ThemeWindowForeground}">
@@ -849,7 +883,7 @@
                                Foreground="{DynamicResource ThemeWindowForeground}"/>
                     <TextBlock Text="Checks GitHub Releases unobtrusively in the background and notifies you when an update is available."
                                FontSize="11"
-                               Foreground="#888888"/>
+                               Foreground="{DynamicResource ThemeTabItemInactiveForeground}"/>
                   </StackPanel>
                 </CheckBox>
 
@@ -876,8 +910,10 @@
       <Button Grid.Column="0"
               Content="Reset Defaults"
               Command="{Binding ResetDefaultsCommand}"
-              Background="#333333"
+              Background="{DynamicResource ThemeTabItemInactiveBackground}"
               Foreground="{DynamicResource ThemeWindowForeground}"
+              BorderBrush="{DynamicResource ThemeBorderBrush}"
+              BorderThickness="1"
               CornerRadius="5"
               Padding="14,6"/>
 
@@ -886,7 +922,7 @@
               Command="{Binding CancelCommand}"
               Background="Transparent"
               Foreground="{DynamicResource ThemeWindowForeground}"
-              BorderBrush="#555555"
+              BorderBrush="{DynamicResource ThemeBorderBrush}"
               BorderThickness="1"
               CornerRadius="5"
               Width="85"
@@ -897,7 +933,7 @@
               Content="Save &amp; Apply"
               Command="{Binding SaveCommand}"
               Background="{DynamicResource ThemeAccentBrush}"
-              Foreground="#FFFFFF"
+              Foreground="{DynamicResource ThemeAccentForeground}"
               FontWeight="SemiBold"
               CornerRadius="5"
               Width="120"
